@@ -1,0 +1,53 @@
+{
+  "id": "rel-07-self-referential",
+  "order": 7,
+  "title": "Self-referential",
+  "summary": "Staff who report to other staff via manager_id.",
+  "description": "Staff who report to other staff via manager_id.",
+  "objectives": [
+    "lab_staff (id PK, name, manager_id nullable FK \u2192 lab_staff.id)"
+  ],
+  "hints": [
+    "Self-FK: same table on both ends."
+  ],
+  "sqlEquivalent": "CREATE TABLE lab_staff (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL,\n  manager_id INTEGER REFERENCES lab_staff(id) ON DELETE SET NULL\n);",
+  "requirements": {
+    "tables": [
+      {
+        "name": "lab_staff",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "name"
+          },
+          {
+            "name": "manager_id",
+            "fk": {
+              "table": "lab_staff",
+              "column": "id"
+            },
+            "nullable": true
+          }
+        ]
+      }
+    ]
+  },
+  "animation": {
+    "highlightTables": [
+      "lab_staff"
+    ],
+    "highlightRels": [
+      "lab_staff.manager_id"
+    ]
+  },
+  "highlightHint": [
+    "lab_staff"
+  ],
+  "starterCode": "// JavaScript track \u2014 same Prisma DSL\nmodel LabStaff {\n  id Int @id @default(autoincrement())\n  name String\n  managerId Int? @map(\"manager_id\")\n  manager LabStaff? @relation(\"StaffTree\", fields: [managerId], references: [id])\n  reports LabStaff[] @relation(\"StaffTree\")\n  @@map(\"lab_staff\")\n}\n",
+  "starterCodePrisma": "model LabStaff {\n  id Int @id @default(autoincrement())\n  name String\n  managerId Int? @map(\"manager_id\")\n  manager LabStaff? @relation(\"StaffTree\", fields: [managerId], references: [id])\n  reports LabStaff[] @relation(\"StaffTree\")\n  @@map(\"lab_staff\")\n}\n",
+  "language": "javascript",
+  "trackId": "node-javascript"
+}

@@ -1,0 +1,49 @@
+{
+  "id": "rel-02-types-pks",
+  "order": 2,
+  "title": "Types & primary keys",
+  "summary": "Add lab_products with typed columns and a clear primary key.",
+  "description": "Add lab_products with typed columns and a clear primary key.",
+  "objectives": [
+    "Create lab_products with id PK, sku, price, in_stock"
+  ],
+  "hints": [
+    "Map bool \u2192 BOOLEAN, Decimal \u2192 NUMERIC."
+  ],
+  "sqlEquivalent": "CREATE TABLE lab_products (\n  id SERIAL PRIMARY KEY,\n  sku VARCHAR(64) UNIQUE NOT NULL,\n  price NUMERIC(10,2) NOT NULL,\n  in_stock BOOLEAN DEFAULT TRUE\n);",
+  "requirements": {
+    "tables": [
+      {
+        "name": "lab_products",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "sku"
+          },
+          {
+            "name": "price"
+          },
+          {
+            "name": "in_stock"
+          }
+        ]
+      }
+    ]
+  },
+  "animation": {
+    "highlightTables": [
+      "lab_products"
+    ],
+    "highlightRels": []
+  },
+  "highlightHint": [
+    "lab_products"
+  ],
+  "starterCode": "model LabProduct {\n  id      Int     @id @default(autoincrement())\n  sku     String  @unique\n  price   Decimal @db.Decimal(10, 2)\n  inStock Boolean @default(true) @map(\"in_stock\")\n  @@map(\"lab_products\")\n}\n",
+  "starterCodePrisma": "model LabProduct {\n  id      Int     @id @default(autoincrement())\n  sku     String  @unique\n  price   Decimal @db.Decimal(10, 2)\n  inStock Boolean @default(true) @map(\"in_stock\")\n  @@map(\"lab_products\")\n}\n",
+  "language": "typescript",
+  "trackId": "node-typescript"
+}

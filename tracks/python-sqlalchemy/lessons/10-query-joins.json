@@ -1,0 +1,15 @@
+{
+  "id": "10-query-joins",
+  "order": 10,
+  "title": "Queries & joins",
+  "summary": "Read across relationships.",
+  "example": {
+    "language": "python",
+    "code": "engine = create_engine(DATABASE_URL)\nwith Session(engine) as s:\n    ...",
+    "sql": "SELECT ... JOIN"
+  },
+  "exercise": {
+    "prompt": "Write a join query.",
+    "hint": "Read across relationships."
+  }
+}

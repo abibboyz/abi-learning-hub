@@ -1,0 +1,66 @@
+{
+  "id": "rel-09-insert-query",
+  "order": 9,
+  "title": "Insert + query across relationships",
+  "summary": "Create lab_teams / lab_players with FK relationship.",
+  "description": "Create lab_teams / lab_players with FK relationship.",
+  "objectives": [
+    "lab_teams (id PK, name)",
+    "lab_players (id PK, name, team_id FK)"
+  ],
+  "hints": [
+    "JOIN queries prove the relationship."
+  ],
+  "sqlEquivalent": "CREATE TABLE lab_teams (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_players (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL,\n  team_id INTEGER NOT NULL REFERENCES lab_teams(id)\n);",
+  "requirements": {
+    "tables": [
+      {
+        "name": "lab_teams",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "name"
+          }
+        ]
+      },
+      {
+        "name": "lab_players",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "name"
+          },
+          {
+            "name": "team_id",
+            "fk": {
+              "table": "lab_teams",
+              "column": "id"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "animation": {
+    "highlightTables": [
+      "lab_teams",
+      "lab_players"
+    ],
+    "highlightRels": [
+      "lab_players.team_id"
+    ]
+  },
+  "highlightHint": [
+    "lab_teams",
+    "lab_players"
+  ],
+  "starterCode": "from sqlalchemy import String, Integer, ForeignKey, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column\n\nclass Base(DeclarativeBase):\n    pass\n\n# TODO: lab_teams + lab_players\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+  "language": "python",
+  "trackId": "python-sqlalchemy"
+}

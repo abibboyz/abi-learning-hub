@@ -1,0 +1,15 @@
+{
+  "id": "04-foreign-keys",
+  "order": 4,
+  "title": "Foreign keys",
+  "summary": "References between tables.",
+  "example": {
+    "language": "typescript",
+    "code": "import { PrismaClient } from '@prisma/client'\nconst prisma = new PrismaClient()\nawait prisma.$queryRaw`SELECT 1`",
+    "sql": "REFERENCES"
+  },
+  "exercise": {
+    "prompt": "Add an FK column.",
+    "hint": "References between tables."
+  }
+}

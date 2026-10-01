@@ -1,0 +1,83 @@
+{
+  "id": "rel-06-many-to-many",
+  "order": 6,
+  "title": "Many-to-many + association",
+  "summary": "Learners \u2194 classes through lab_class_enrollments.",
+  "description": "Learners \u2194 classes through lab_class_enrollments.",
+  "objectives": [
+    "lab_learners",
+    "lab_classes",
+    "lab_class_enrollments with learner_id + class_id FKs"
+  ],
+  "hints": [
+    "Association tables hold both FKs."
+  ],
+  "sqlEquivalent": "CREATE TABLE lab_learners (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_classes (id SERIAL PRIMARY KEY, title VARCHAR(200) NOT NULL);\nCREATE TABLE lab_class_enrollments (\n  learner_id INTEGER NOT NULL REFERENCES lab_learners(id) ON DELETE CASCADE,\n  class_id INTEGER NOT NULL REFERENCES lab_classes(id) ON DELETE CASCADE,\n  grade VARCHAR(2),\n  PRIMARY KEY (learner_id, class_id)\n);",
+  "requirements": {
+    "tables": [
+      {
+        "name": "lab_learners",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "name"
+          }
+        ]
+      },
+      {
+        "name": "lab_classes",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "title"
+          }
+        ]
+      },
+      {
+        "name": "lab_class_enrollments",
+        "columns": [
+          {
+            "name": "learner_id",
+            "fk": {
+              "table": "lab_learners",
+              "column": "id"
+            }
+          },
+          {
+            "name": "class_id",
+            "fk": {
+              "table": "lab_classes",
+              "column": "id"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "animation": {
+    "highlightTables": [
+      "lab_learners",
+      "lab_classes",
+      "lab_class_enrollments"
+    ],
+    "highlightRels": [
+      "lab_class_enrollments.learner_id",
+      "lab_class_enrollments.class_id"
+    ]
+  },
+  "highlightHint": [
+    "lab_learners",
+    "lab_classes",
+    "lab_class_enrollments"
+  ],
+  "starterCode": "// JavaScript track \u2014 same Prisma DSL\nmodel LabLearner {\n  id Int @id @default(autoincrement())\n  name String\n  enrollments LabClassEnrollment[]\n  @@map(\"lab_learners\")\n}\nmodel LabClass {\n  id Int @id @default(autoincrement())\n  title String\n  enrollments LabClassEnrollment[]\n  @@map(\"lab_classes\")\n}\nmodel LabClassEnrollment {\n  learnerId Int @map(\"learner_id\")\n  classId Int @map(\"class_id\")\n  grade String?\n  learner LabLearner @relation(fields: [learnerId], references: [id], onDelete: Cascade)\n  class LabClass @relation(fields: [classId], references: [id], onDelete: Cascade)\n  @@id([learnerId, classId])\n  @@map(\"lab_class_enrollments\")\n}\n",
+  "starterCodePrisma": "model LabLearner {\n  id Int @id @default(autoincrement())\n  name String\n  enrollments LabClassEnrollment[]\n  @@map(\"lab_learners\")\n}\nmodel LabClass {\n  id Int @id @default(autoincrement())\n  title String\n  enrollments LabClassEnrollment[]\n  @@map(\"lab_classes\")\n}\nmodel LabClassEnrollment {\n  learnerId Int @map(\"learner_id\")\n  classId Int @map(\"class_id\")\n  grade String?\n  learner LabLearner @relation(fields: [learnerId], references: [id], onDelete: Cascade)\n  class LabClass @relation(fields: [classId], references: [id], onDelete: Cascade)\n  @@id([learnerId, classId])\n  @@map(\"lab_class_enrollments\")\n}\n",
+  "language": "javascript",
+  "trackId": "node-javascript"
+}

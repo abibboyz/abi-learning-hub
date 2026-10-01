@@ -1,0 +1,15 @@
+{
+  "id": "05-one-to-many",
+  "order": 5,
+  "title": "One-to-many",
+  "summary": "Parent has many children.",
+  "example": {
+    "language": "javascript",
+    "code": "const { PrismaClient } = require('@prisma/client')\nconst prisma = new PrismaClient()\nawait prisma.$queryRaw`SELECT 1`",
+    "sql": "FK on child"
+  },
+  "exercise": {
+    "prompt": "Model 1:N.",
+    "hint": "Parent has many children."
+  }
+}

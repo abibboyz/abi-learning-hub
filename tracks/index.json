@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "tracks": [
+    {
+      "id": "python-sqlalchemy",
+      "title": "Python \u00b7 SQLAlchemy",
+      "language": "python",
+      "variant": "orm",
+      "runtime": "fastapi",
+      "api": "python",
+      "description": "Declare models with SQLAlchemy 2.x Mapped columns, relationships, and metadata.create_all.",
+      "order": 1,
+      "icon": "\ud83d\udc0d"
+    },
+    {
+      "id": "node-typescript",
+      "title": "Node.js \u00b7 TypeScript",
+      "language": "typescript",
+      "variant": "orm",
+      "runtime": "node",
+      "api": "node",
+      "description": "Prisma schema + TypeScript client. Strong typing for models and queries.",
+      "order": 2,
+      "icon": "\ud83d\udcd8"
+    },
+    {
+      "id": "node-javascript",
+      "title": "Node.js \u00b7 JavaScript",
+      "language": "javascript",
+      "variant": "orm",
+      "runtime": "node",
+      "api": "node",
+      "description": "Same Prisma patterns without TypeScript \u2014 Zod at the boundaries.",
+      "order": 3,
+      "icon": "\ud83d\udcd2"
+    }
+  ],
+  "howToAdd": "Create tracks/<id>/manifest.json + lessons/ + tasks/. Register in index.json."
+}

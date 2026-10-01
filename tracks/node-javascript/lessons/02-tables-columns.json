@@ -1,0 +1,15 @@
+{
+  "id": "02-tables-columns",
+  "order": 2,
+  "title": "Tables & columns",
+  "summary": "Mapping classes/models to tables.",
+  "example": {
+    "language": "javascript",
+    "code": "const { PrismaClient } = require('@prisma/client')\nconst prisma = new PrismaClient()\nawait prisma.$queryRaw`SELECT 1`",
+    "sql": "CREATE TABLE"
+  },
+  "exercise": {
+    "prompt": "Declare a table with typed columns.",
+    "hint": "Mapping classes/models to tables."
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "id": "12-frameworks",
+  "order": 12,
+  "title": "Where DB code lives",
+  "summary": "Node/React/Next placement.",
+  "example": {
+    "language": "typescript",
+    "code": "// Plain Node: DB in API\n// React SPA: fetch('/api/...'); no pg in browser\n// Next.js: route.ts / server component \u2014 Node runtime for pg\n",
+    "sql": "API boundary"
+  },
+  "exercise": {
+    "prompt": "Explain server vs browser.",
+    "hint": "Node/React/Next placement."
+  }
+}

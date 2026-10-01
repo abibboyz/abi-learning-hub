@@ -1,0 +1,67 @@
+{
+  "id": "rel-03-one-to-many",
+  "order": 3,
+  "title": "One-to-many (1:N)",
+  "summary": "Model publishers that own many magazines.",
+  "description": "Model publishers that own many magazines.",
+  "objectives": [
+    "lab_publishers (id PK, name)",
+    "lab_magazines (id PK, title, publisher_id FK)"
+  ],
+  "hints": [
+    "FK lives on the many side."
+  ],
+  "sqlEquivalent": "CREATE TABLE lab_publishers (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_magazines (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  publisher_id INTEGER NOT NULL REFERENCES lab_publishers(id)\n);",
+  "requirements": {
+    "tables": [
+      {
+        "name": "lab_publishers",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "name"
+          }
+        ]
+      },
+      {
+        "name": "lab_magazines",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "title"
+          },
+          {
+            "name": "publisher_id",
+            "fk": {
+              "table": "lab_publishers",
+              "column": "id"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "animation": {
+    "highlightTables": [
+      "lab_publishers",
+      "lab_magazines"
+    ],
+    "highlightRels": [
+      "lab_magazines.publisher_id"
+    ]
+  },
+  "highlightHint": [
+    "lab_publishers",
+    "lab_magazines"
+  ],
+  "starterCode": "// JavaScript track \u2014 same Prisma DSL\nmodel LabPublisher {\n  id Int @id @default(autoincrement())\n  name String\n  magazines LabMagazine[]\n  @@map(\"lab_publishers\")\n}\nmodel LabMagazine {\n  id Int @id @default(autoincrement())\n  title String\n  publisherId Int @map(\"publisher_id\")\n  publisher LabPublisher @relation(fields: [publisherId], references: [id])\n  @@map(\"lab_magazines\")\n}\n",
+  "starterCodePrisma": "model LabPublisher {\n  id Int @id @default(autoincrement())\n  name String\n  magazines LabMagazine[]\n  @@map(\"lab_publishers\")\n}\nmodel LabMagazine {\n  id Int @id @default(autoincrement())\n  title String\n  publisherId Int @map(\"publisher_id\")\n  publisher LabPublisher @relation(fields: [publisherId], references: [id])\n  @@map(\"lab_magazines\")\n}\n",
+  "language": "javascript",
+  "trackId": "node-javascript"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "11-validation",
+  "order": 11,
+  "title": "Validation & DTOs",
+  "summary": "Validate inserts before persistence.",
+  "example": {
+    "language": "python",
+    "code": "from pydantic import BaseModel\nclass BookInsert(BaseModel):\n    title: str\n    author_id: int\n",
+    "sql": "Zod / Pydantic"
+  },
+  "exercise": {
+    "prompt": "Schema for insert DTO.",
+    "hint": "Validate inserts before persistence."
+  }
+}

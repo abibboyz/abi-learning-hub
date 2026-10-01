@@ -1,0 +1,15 @@
+{
+  "id": "11-validation",
+  "order": 11,
+  "title": "Validation & DTOs",
+  "summary": "Validate inserts before persistence.",
+  "example": {
+    "language": "typescript",
+    "code": "import { z } from 'zod'\nconst BookInsert = z.object({ title: z.string(), authorId: z.number().int() })\n",
+    "sql": "Zod / Pydantic"
+  },
+  "exercise": {
+    "prompt": "Schema for insert DTO.",
+    "hint": "Validate inserts before persistence."
+  }
+}

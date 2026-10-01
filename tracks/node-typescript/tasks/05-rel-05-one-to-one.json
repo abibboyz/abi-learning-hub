@@ -1,0 +1,68 @@
+{
+  "id": "rel-05-one-to-one",
+  "order": 5,
+  "title": "One-to-one (1:1)",
+  "summary": "Pair each account with exactly one settings row via a UNIQUE FK.",
+  "description": "Pair each account with exactly one settings row via a UNIQUE FK.",
+  "objectives": [
+    "lab_accounts (id PK, username)",
+    "lab_settings (id PK, theme, account_id UNIQUE FK)"
+  ],
+  "hints": [
+    "UNIQUE on the FK makes it 1:1."
+  ],
+  "sqlEquivalent": "CREATE TABLE lab_accounts (id SERIAL PRIMARY KEY, username VARCHAR(80) UNIQUE NOT NULL);\nCREATE TABLE lab_settings (\n  id SERIAL PRIMARY KEY,\n  theme VARCHAR(40) DEFAULT 'system',\n  account_id INTEGER UNIQUE NOT NULL REFERENCES lab_accounts(id)\n);",
+  "requirements": {
+    "tables": [
+      {
+        "name": "lab_accounts",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "username"
+          }
+        ]
+      },
+      {
+        "name": "lab_settings",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "theme"
+          },
+          {
+            "name": "account_id",
+            "fk": {
+              "table": "lab_accounts",
+              "column": "id"
+            },
+            "unique": true
+          }
+        ]
+      }
+    ]
+  },
+  "animation": {
+    "highlightTables": [
+      "lab_accounts",
+      "lab_settings"
+    ],
+    "highlightRels": [
+      "lab_settings.account_id"
+    ]
+  },
+  "highlightHint": [
+    "lab_accounts",
+    "lab_settings"
+  ],
+  "starterCode": "model LabAccount {\n  id Int @id @default(autoincrement())\n  username String @unique\n  settings LabSettings?\n  @@map(\"lab_accounts\")\n}\nmodel LabSettings {\n  id Int @id @default(autoincrement())\n  theme String @default(\"system\")\n  accountId Int @unique @map(\"account_id\")\n  account LabAccount @relation(fields: [accountId], references: [id])\n  @@map(\"lab_settings\")\n}\n",
+  "starterCodePrisma": "model LabAccount {\n  id Int @id @default(autoincrement())\n  username String @unique\n  settings LabSettings?\n  @@map(\"lab_accounts\")\n}\nmodel LabSettings {\n  id Int @id @default(autoincrement())\n  theme String @default(\"system\")\n  accountId Int @unique @map(\"account_id\")\n  account LabAccount @relation(fields: [accountId], references: [id])\n  @@map(\"lab_settings\")\n}\n",
+  "language": "typescript",
+  "trackId": "node-typescript"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "09-cascades",
+  "order": 9,
+  "title": "Cascades & loading",
+  "summary": "ON DELETE and load strategies.",
+  "example": {
+    "language": "python",
+    "code": "engine = create_engine(DATABASE_URL)\nwith Session(engine) as s:\n    ...",
+    "sql": "ON DELETE CASCADE"
+  },
+  "exercise": {
+    "prompt": "Use CASCADE.",
+    "hint": "ON DELETE and load strategies."
+  }
+}

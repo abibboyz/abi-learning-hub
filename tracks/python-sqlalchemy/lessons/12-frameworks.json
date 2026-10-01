@@ -1,0 +1,15 @@
+{
+  "id": "12-frameworks",
+  "order": 12,
+  "title": "Where DB code lives",
+  "summary": "Node/React/Next placement.",
+  "example": {
+    "language": "python",
+    "code": "engine = create_engine(DATABASE_URL)\nwith Session(engine) as s:\n    ...",
+    "sql": "API boundary"
+  },
+  "exercise": {
+    "prompt": "Explain server vs browser.",
+    "hint": "Node/React/Next placement."
+  }
+}

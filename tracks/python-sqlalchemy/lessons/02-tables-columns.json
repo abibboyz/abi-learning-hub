@@ -1,0 +1,15 @@
+{
+  "id": "02-tables-columns",
+  "order": 2,
+  "title": "Tables & columns",
+  "summary": "Mapping classes/models to tables.",
+  "example": {
+    "language": "python",
+    "code": "engine = create_engine(DATABASE_URL)\nwith Session(engine) as s:\n    ...",
+    "sql": "CREATE TABLE"
+  },
+  "exercise": {
+    "prompt": "Declare a table with typed columns.",
+    "hint": "Mapping classes/models to tables."
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "id": "07-many-to-many",
+  "order": 7,
+  "title": "Many-to-many",
+  "summary": "Association tables.",
+  "example": {
+    "language": "typescript",
+    "code": "import { PrismaClient } from '@prisma/client'\nconst prisma = new PrismaClient()\nawait prisma.$queryRaw`SELECT 1`",
+    "sql": "join table"
+  },
+  "exercise": {
+    "prompt": "Model M:N.",
+    "hint": "Association tables."
+  }
+}

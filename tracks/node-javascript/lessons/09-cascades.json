@@ -1,0 +1,15 @@
+{
+  "id": "09-cascades",
+  "order": 9,
+  "title": "Cascades & loading",
+  "summary": "ON DELETE and load strategies.",
+  "example": {
+    "language": "javascript",
+    "code": "const { PrismaClient } = require('@prisma/client')\nconst prisma = new PrismaClient()\nawait prisma.$queryRaw`SELECT 1`",
+    "sql": "ON DELETE CASCADE"
+  },
+  "exercise": {
+    "prompt": "Use CASCADE.",
+    "hint": "ON DELETE and load strategies."
+  }
+}

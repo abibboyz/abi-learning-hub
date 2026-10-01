@@ -1,0 +1,106 @@
+{
+  "id": "rel-10-mini-domain",
+  "order": 10,
+  "title": "Mini multi-relationship domain",
+  "summary": "Blog domain: bloggers, posts (1:N), tags, post_tags (M:N).",
+  "description": "Blog domain: bloggers, posts (1:N), tags, post_tags (M:N).",
+  "objectives": [
+    "lab_bloggers",
+    "lab_posts with blogger_id FK",
+    "lab_tags",
+    "lab_post_tags"
+  ],
+  "hints": [
+    "Combine 1:N and M:N."
+  ],
+  "sqlEquivalent": "CREATE TABLE lab_bloggers (id SERIAL PRIMARY KEY, handle VARCHAR(80) UNIQUE NOT NULL);\nCREATE TABLE lab_posts (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  blogger_id INTEGER NOT NULL REFERENCES lab_bloggers(id)\n);\nCREATE TABLE lab_tags (id SERIAL PRIMARY KEY, label VARCHAR(80) UNIQUE NOT NULL);\nCREATE TABLE lab_post_tags (\n  post_id INTEGER NOT NULL REFERENCES lab_posts(id) ON DELETE CASCADE,\n  tag_id INTEGER NOT NULL REFERENCES lab_tags(id) ON DELETE CASCADE,\n  PRIMARY KEY (post_id, tag_id)\n);",
+  "requirements": {
+    "tables": [
+      {
+        "name": "lab_bloggers",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "handle"
+          }
+        ]
+      },
+      {
+        "name": "lab_posts",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "title"
+          },
+          {
+            "name": "blogger_id",
+            "fk": {
+              "table": "lab_bloggers",
+              "column": "id"
+            }
+          }
+        ]
+      },
+      {
+        "name": "lab_tags",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "label"
+          }
+        ]
+      },
+      {
+        "name": "lab_post_tags",
+        "columns": [
+          {
+            "name": "post_id",
+            "fk": {
+              "table": "lab_posts",
+              "column": "id"
+            }
+          },
+          {
+            "name": "tag_id",
+            "fk": {
+              "table": "lab_tags",
+              "column": "id"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "animation": {
+    "highlightTables": [
+      "lab_bloggers",
+      "lab_posts",
+      "lab_tags",
+      "lab_post_tags"
+    ],
+    "highlightRels": [
+      "lab_posts.blogger_id",
+      "lab_post_tags.post_id",
+      "lab_post_tags.tag_id"
+    ]
+  },
+  "highlightHint": [
+    "lab_bloggers",
+    "lab_posts",
+    "lab_tags",
+    "lab_post_tags"
+  ],
+  "starterCode": "model LabBlogger {\n  id Int @id @default(autoincrement())\n  handle String @unique\n  posts LabPost[]\n  @@map(\"lab_bloggers\")\n}\nmodel LabPost {\n  id Int @id @default(autoincrement())\n  title String\n  bloggerId Int @map(\"blogger_id\")\n  blogger LabBlogger @relation(fields: [bloggerId], references: [id])\n  tags LabPostTag[]\n  @@map(\"lab_posts\")\n}\nmodel LabTag {\n  id Int @id @default(autoincrement())\n  label String @unique\n  posts LabPostTag[]\n  @@map(\"lab_tags\")\n}\nmodel LabPostTag {\n  postId Int @map(\"post_id\")\n  tagId Int @map(\"tag_id\")\n  post LabPost @relation(fields: [postId], references: [id], onDelete: Cascade)\n  tag LabTag @relation(fields: [tagId], references: [id], onDelete: Cascade)\n  @@id([postId, tagId])\n  @@map(\"lab_post_tags\")\n}\n",
+  "starterCodePrisma": "model LabBlogger {\n  id Int @id @default(autoincrement())\n  handle String @unique\n  posts LabPost[]\n  @@map(\"lab_bloggers\")\n}\nmodel LabPost {\n  id Int @id @default(autoincrement())\n  title String\n  bloggerId Int @map(\"blogger_id\")\n  blogger LabBlogger @relation(fields: [bloggerId], references: [id])\n  tags LabPostTag[]\n  @@map(\"lab_posts\")\n}\nmodel LabTag {\n  id Int @id @default(autoincrement())\n  label String @unique\n  posts LabPostTag[]\n  @@map(\"lab_tags\")\n}\nmodel LabPostTag {\n  postId Int @map(\"post_id\")\n  tagId Int @map(\"tag_id\")\n  post LabPost @relation(fields: [postId], references: [id], onDelete: Cascade)\n  tag LabTag @relation(fields: [tagId], references: [id], onDelete: Cascade)\n  @@id([postId, tagId])\n  @@map(\"lab_post_tags\")\n}\n",
+  "language": "typescript",
+  "trackId": "node-typescript"
+}

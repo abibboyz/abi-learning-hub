@@ -1,0 +1,15 @@
+{
+  "id": "08-self-ref",
+  "order": 8,
+  "title": "Self-referential",
+  "summary": "Hierarchies.",
+  "example": {
+    "language": "python",
+    "code": "engine = create_engine(DATABASE_URL)\nwith Session(engine) as s:\n    ...",
+    "sql": "self FK"
+  },
+  "exercise": {
+    "prompt": "parent_id pattern.",
+    "hint": "Hierarchies."
+  }
+}

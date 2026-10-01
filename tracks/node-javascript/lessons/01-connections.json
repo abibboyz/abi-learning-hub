@@ -1,0 +1,15 @@
+{
+  "id": "01-connections",
+  "order": 1,
+  "title": "Connections & engines",
+  "summary": "How apps connect to Postgres.",
+  "example": {
+    "language": "javascript",
+    "code": "const { PrismaClient } = require('@prisma/client')\nconst prisma = new PrismaClient()\nawait prisma.$queryRaw`SELECT 1`",
+    "sql": "document connection string + client setup"
+  },
+  "exercise": {
+    "prompt": "Create an engine/client from a connection string.",
+    "hint": "How apps connect to Postgres."
+  }
+}

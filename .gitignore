@@ -1,0 +1,58 @@
+
+!.env.example
+!snapshots/.gitkeep
+!snapshots/sample-seed.sql
+# Data / dumps
+# Docker
+# Env / secrets
+# IDE / OS
+# Misc
+# Node
+# Prisma
+# Python
+*$py.class
+*.dump
+*.egg-info/
+*.log
+*.py[cod]
+*.sql.gz
+*.swo
+*.swp
+*.tsbuildinfo
+*~
+.DS_Store
+.cache/
+.coverage
+.eggs/
+.env
+.env.*.local
+.env.local
+.idea/
+.mypy_cache/
+.next/
+.pnpm-store/
+.pytest_cache/
+.ruff_cache/
+.turbo/
+.venv/
+.vscode/
+__pycache__/
+api-node/dist/
+api-node/prisma/*.db
+api-node/prisma/*.db-journal
+api-python/.venv/
+build/
+coverage.xml
+data/
+dist/
+docker-data/
+htmlcov/
+node_modules/
+npm-debug.log*
+out/
+snapshots/*.dump
+tmp/
+venv/
+web/.next/
+yarn-debug.log*
+yarn-error.log*

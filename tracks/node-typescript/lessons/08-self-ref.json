@@ -1,0 +1,15 @@
+{
+  "id": "08-self-ref",
+  "order": 8,
+  "title": "Self-referential",
+  "summary": "Hierarchies.",
+  "example": {
+    "language": "typescript",
+    "code": "import { PrismaClient } from '@prisma/client'\nconst prisma = new PrismaClient()\nawait prisma.$queryRaw`SELECT 1`",
+    "sql": "self FK"
+  },
+  "exercise": {
+    "prompt": "parent_id pattern.",
+    "hint": "Hierarchies."
+  }
+}

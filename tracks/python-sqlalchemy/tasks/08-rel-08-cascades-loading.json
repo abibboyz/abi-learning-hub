@@ -1,0 +1,67 @@
+{
+  "id": "rel-08-cascades-loading",
+  "order": 8,
+  "title": "Cascades & loading",
+  "summary": "Categories \u2192 items with ON DELETE CASCADE.",
+  "description": "Categories \u2192 items with ON DELETE CASCADE.",
+  "objectives": [
+    "lab_categories",
+    "lab_items with category_id FK ON DELETE CASCADE"
+  ],
+  "hints": [
+    "Check onDelete in the diagram after success."
+  ],
+  "sqlEquivalent": "CREATE TABLE lab_categories (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_items (\n  id SERIAL PRIMARY KEY,\n  label VARCHAR(200) NOT NULL,\n  category_id INTEGER NOT NULL REFERENCES lab_categories(id) ON DELETE CASCADE\n);",
+  "requirements": {
+    "tables": [
+      {
+        "name": "lab_categories",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "name"
+          }
+        ]
+      },
+      {
+        "name": "lab_items",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "label"
+          },
+          {
+            "name": "category_id",
+            "fk": {
+              "table": "lab_categories",
+              "column": "id",
+              "onDelete": "CASCADE"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "animation": {
+    "highlightTables": [
+      "lab_categories",
+      "lab_items"
+    ],
+    "highlightRels": [
+      "lab_items.category_id"
+    ]
+  },
+  "highlightHint": [
+    "lab_categories",
+    "lab_items"
+  ],
+  "starterCode": "from sqlalchemy import String, Integer, ForeignKey, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column\n\nclass Base(DeclarativeBase):\n    pass\n\n# TODO: lab_categories + lab_items with ondelete=\"CASCADE\"\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+  "language": "python",
+  "trackId": "python-sqlalchemy"
+}

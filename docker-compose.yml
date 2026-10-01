@@ -1,0 +1,109 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hub-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hub_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-learning_hub}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - hub_pgdata:/var/lib/postgresql/data
+      - ./snapshots:/snapshots
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hub} -d ${POSTGRES_DB:-learning_hub}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  api-python:
+    build:
+      context: ./api-python
+      dockerfile: Dockerfile
+    container_name: hub-api-python
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-hub}:${POSTGRES_PASSWORD:-hub_secret}@postgres:5432/${POSTGRES_DB:-learning_hub}
+      TRACKS_DIR: /app/tracks
+      CORS_ORIGINS: http://localhost:3000,http://web:3000
+    ports:
+      - "${PYTHON_API_PORT:-8000}:8000"
+    volumes:
+      - ./tracks:/app/tracks:ro
+      - ./snapshots:/app/snapshots
+      - hub_python_data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
+    restart: unless-stopped
+
+  api-node:
+    build:
+      context: ./api-node
+      dockerfile: Dockerfile
+    container_name: hub-api-node
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hub}:${POSTGRES_PASSWORD:-hub_secret}@postgres:5432/${POSTGRES_DB:-learning_hub}
+      TRACKS_DIR: /app/tracks
+      PORT: "8001"
+      CORS_ORIGINS: http://localhost:3000,http://web:3000
+    ports:
+      - "${NODE_API_PORT:-8001}:8001"
+    volumes:
+      - ./tracks:/app/tracks:ro
+      - ./snapshots:/app/snapshots
+      - hub_node_data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 25s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_PYTHON_API_URL: ${NEXT_PUBLIC_PYTHON_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_NODE_API_URL: ${NEXT_PUBLIC_NODE_API_URL:-http://localhost:8001}
+    container_name: hub-web
+    environment:
+      NEXT_PUBLIC_PYTHON_API_URL: ${NEXT_PUBLIC_PYTHON_API_URL:-http://localhost:8000}
+      NEXT_PUBLIC_NODE_API_URL: ${NEXT_PUBLIC_NODE_API_URL:-http://localhost:8001}
+      PYTHON_API_INTERNAL: http://api-python:8000
+      NODE_API_INTERNAL: http://api-node:8001
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      api-python:
+        condition: service_healthy
+      api-node:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  hub_pgdata:
+    name: abi-learning-hub-pgdata
+  hub_python_data:
+    name: abi-learning-hub-python-data
+  hub_node_data:
+    name: abi-learning-hub-node-data

@@ -1,0 +1,68 @@
+{
+  "id": "rel-01-create-connect",
+  "order": 1,
+  "title": "Create & connect",
+  "summary": "Create lab_authors and lab_books with a foreign key from books \u2192 authors.",
+  "description": "Create lab_authors and lab_books with a foreign key from books \u2192 authors.",
+  "objectives": [
+    "Create table lab_authors with id (PK) and name",
+    "Create table lab_books with id (PK), title, and author_id FK \u2192 lab_authors.id"
+  ],
+  "hints": [
+    "Extra columns are allowed.",
+    "Use ForeignKey / @relation fields."
+  ],
+  "sqlEquivalent": "CREATE TABLE lab_authors (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL\n);\nCREATE TABLE lab_books (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  author_id INTEGER NOT NULL REFERENCES lab_authors(id)\n);",
+  "requirements": {
+    "tables": [
+      {
+        "name": "lab_authors",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "name"
+          }
+        ]
+      },
+      {
+        "name": "lab_books",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "title"
+          },
+          {
+            "name": "author_id",
+            "fk": {
+              "table": "lab_authors",
+              "column": "id"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "animation": {
+    "highlightTables": [
+      "lab_authors",
+      "lab_books"
+    ],
+    "highlightRels": [
+      "lab_books.author_id"
+    ]
+  },
+  "highlightHint": [
+    "lab_authors",
+    "lab_books"
+  ],
+  "starterCode": "// JavaScript track \u2014 same Prisma DSL\nmodel LabAuthor {\n  id    Int      @id @default(autoincrement())\n  name  String\n  books LabBook[]\n  @@map(\"lab_authors\")\n}\nmodel LabBook {\n  id       Int       @id @default(autoincrement())\n  title    String\n  authorId Int       @map(\"author_id\")\n  author   LabAuthor @relation(fields: [authorId], references: [id])\n  @@map(\"lab_books\")\n}\n",
+  "starterCodePrisma": "model LabAuthor {\n  id    Int      @id @default(autoincrement())\n  name  String\n  books LabBook[]\n  @@map(\"lab_authors\")\n}\nmodel LabBook {\n  id       Int       @id @default(autoincrement())\n  title    String\n  authorId Int       @map(\"author_id\")\n  author   LabAuthor @relation(fields: [authorId], references: [id])\n  @@map(\"lab_books\")\n}\n",
+  "language": "javascript",
+  "trackId": "node-javascript"
+}

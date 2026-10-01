@@ -1,0 +1,67 @@
+{
+  "id": "node-javascript",
+  "title": "Node.js \u00b7 JavaScript",
+  "language": "javascript",
+  "variant": "orm",
+  "runtime": "node",
+  "api": "node",
+  "order": 3,
+  "icon": "\ud83d\udcd2",
+  "description": "Same Prisma patterns without TypeScript \u2014 Zod at the boundaries.",
+  "prerequisites": {
+    "title": "Node.js \u00b7 JavaScript setup",
+    "lockedByDefault": true,
+    "install": "npm install @prisma/client && npm install -D prisma zod",
+    "code": "DATABASE_URL=\"postgresql://hub:hub_secret@localhost:5432/learning_hub\"\n\nconst { PrismaClient } = require(\"@prisma/client\");\nconst prisma = new PrismaClient();\n// JS: no compile-time model types \u2014 validate with Zod.\n",
+    "connection": null,
+    "notes": null
+  },
+  "runtimePanels": {
+    "plain-node": {
+      "title": "Plain Node.js API",
+      "points": [
+        "Prisma/pg live in the API process",
+        "DATABASE_URL is a server env var",
+        "Expose HTTP JSON \u2014 never ship credentials to clients"
+      ]
+    },
+    "react-spa": {
+      "title": "React SPA",
+      "points": [
+        "Browser calls your API with fetch",
+        "No pg/Prisma in client bundles",
+        "Auth tokens \u2260 database passwords"
+      ]
+    },
+    "nextjs-app-router": {
+      "title": "Next.js App Router",
+      "points": [
+        "DB access in Server Components / Route Handlers",
+        "Prefer Node runtime for native drivers",
+        "Edge runtime lacks full pg support \u2014 use Node for Prisma"
+      ]
+    }
+  },
+  "validationCatalog": [
+    {
+      "id": "zod",
+      "title": "Zod",
+      "example": "const BookInsert = z.object({ title: z.string(), authorId: z.number().int() })\ntype BookInsert = z.infer<typeof BookInsert>"
+    },
+    {
+      "id": "valibot",
+      "title": "Valibot",
+      "example": "import * as v from 'valibot'\nconst BookInsert = v.object({ title: v.string(), authorId: v.number() })"
+    },
+    {
+      "id": "arktype",
+      "title": "ArkType",
+      "example": "import { type } from 'arktype'\nconst BookInsert = type({ title: 'string>0', authorId: 'number>0' })"
+    },
+    {
+      "id": "pg",
+      "title": "pg (raw driver)",
+      "example": "import pg from 'pg'\nconst pool = new pg.Pool({ connectionString: process.env.DATABASE_URL })\nawait pool.query('SELECT 1')"
+    }
+  ]
+}

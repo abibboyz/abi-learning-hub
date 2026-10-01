@@ -1,0 +1,36 @@
+{
+  "id": "python-sqlalchemy",
+  "title": "Python \u00b7 SQLAlchemy",
+  "language": "python",
+  "variant": "orm",
+  "runtime": "fastapi",
+  "api": "python",
+  "order": 1,
+  "icon": "\ud83d\udc0d",
+  "description": "Declare models with SQLAlchemy 2.x Mapped columns, relationships, and metadata.create_all.",
+  "prerequisites": {
+    "title": "Python \u00b7 SQLAlchemy setup",
+    "lockedByDefault": true,
+    "install": "pip install sqlalchemy psycopg[binary]",
+    "code": "import os\nfrom sqlalchemy import create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Session\n\nDATABASE_URL = os.environ[\"DATABASE_URL\"]\nengine = create_engine(DATABASE_URL, pool_pre_ping=True)\n\nclass Base(DeclarativeBase):\n    pass\n",
+    "connection": null,
+    "notes": null
+  },
+  "runtimePanels": {
+    "plain-python": {
+      "title": "Python API / script",
+      "points": [
+        "Engine + Session live in the server/process.",
+        "DATABASE_URL from environment.",
+        "DeclarativeBase metadata.create_all issues DDL."
+      ]
+    }
+  },
+  "validationCatalog": [
+    {
+      "id": "pydantic",
+      "title": "Pydantic (Python DTOs)",
+      "example": "from pydantic import BaseModel, Field\n\nclass CreateBook(BaseModel):\n    title: str = Field(min_length=1, max_length=200)\n    author_id: int = Field(gt=0)\n"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "06-one-to-one",
+  "order": 6,
+  "title": "One-to-one",
+  "summary": "Unique FK pattern.",
+  "example": {
+    "language": "javascript",
+    "code": "const { PrismaClient } = require('@prisma/client')\nconst prisma = new PrismaClient()\nawait prisma.$queryRaw`SELECT 1`",
+    "sql": "UNIQUE FK"
+  },
+  "exercise": {
+    "prompt": "Model 1:1.",
+    "hint": "Unique FK pattern."
+  }
+}

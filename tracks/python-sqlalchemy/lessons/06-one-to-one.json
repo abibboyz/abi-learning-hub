@@ -1,0 +1,15 @@
+{
+  "id": "06-one-to-one",
+  "order": 6,
+  "title": "One-to-one",
+  "summary": "Unique FK pattern.",
+  "example": {
+    "language": "python",
+    "code": "engine = create_engine(DATABASE_URL)\nwith Session(engine) as s:\n    ...",
+    "sql": "UNIQUE FK"
+  },
+  "exercise": {
+    "prompt": "Model 1:1.",
+    "hint": "Unique FK pattern."
+  }
+}

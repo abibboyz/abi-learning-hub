@@ -1,0 +1,67 @@
+{
+  "id": "rel-09-insert-query",
+  "order": 9,
+  "title": "Insert + query across relationships",
+  "summary": "Create lab_teams / lab_players with FK relationship.",
+  "description": "Create lab_teams / lab_players with FK relationship.",
+  "objectives": [
+    "lab_teams (id PK, name)",
+    "lab_players (id PK, name, team_id FK)"
+  ],
+  "hints": [
+    "JOIN queries prove the relationship."
+  ],
+  "sqlEquivalent": "CREATE TABLE lab_teams (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_players (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL,\n  team_id INTEGER NOT NULL REFERENCES lab_teams(id)\n);",
+  "requirements": {
+    "tables": [
+      {
+        "name": "lab_teams",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "name"
+          }
+        ]
+      },
+      {
+        "name": "lab_players",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "name"
+          },
+          {
+            "name": "team_id",
+            "fk": {
+              "table": "lab_teams",
+              "column": "id"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "animation": {
+    "highlightTables": [
+      "lab_teams",
+      "lab_players"
+    ],
+    "highlightRels": [
+      "lab_players.team_id"
+    ]
+  },
+  "highlightHint": [
+    "lab_teams",
+    "lab_players"
+  ],
+  "starterCode": "model LabTeam {\n  id Int @id @default(autoincrement())\n  name String\n  players LabPlayer[]\n  @@map(\"lab_teams\")\n}\nmodel LabPlayer {\n  id Int @id @default(autoincrement())\n  name String\n  teamId Int @map(\"team_id\")\n  team LabTeam @relation(fields: [teamId], references: [id])\n  @@map(\"lab_players\")\n}\n",
+  "starterCodePrisma": "model LabTeam {\n  id Int @id @default(autoincrement())\n  name String\n  players LabPlayer[]\n  @@map(\"lab_teams\")\n}\nmodel LabPlayer {\n  id Int @id @default(autoincrement())\n  name String\n  teamId Int @map(\"team_id\")\n  team LabTeam @relation(fields: [teamId], references: [id])\n  @@map(\"lab_players\")\n}\n",
+  "language": "typescript",
+  "trackId": "node-typescript"
+}

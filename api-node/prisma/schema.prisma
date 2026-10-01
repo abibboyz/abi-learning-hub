@@ -1,0 +1,11 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Hub meta — demo seed tables are created via raw SQL in the Python API / shared seed.
+// Lab models are applied dynamically from learner Prisma snippets.

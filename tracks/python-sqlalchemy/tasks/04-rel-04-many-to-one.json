@@ -1,0 +1,66 @@
+{
+  "id": "rel-04-many-to-one",
+  "order": 4,
+  "title": "Many-to-one (N:1)",
+  "summary": "Many orders belong to one customer.",
+  "description": "Many orders belong to one customer.",
+  "objectives": [
+    "lab_customers (id PK, email)",
+    "lab_orders (id PK, total, customer_id FK)"
+  ],
+  "hints": [
+    "N:1 is the same FK pattern as 1:N from the child."
+  ],
+  "sqlEquivalent": "CREATE TABLE lab_customers (id SERIAL PRIMARY KEY, email VARCHAR(200) UNIQUE NOT NULL);\nCREATE TABLE lab_orders (\n  id SERIAL PRIMARY KEY,\n  total NUMERIC(10,2) NOT NULL,\n  customer_id INTEGER NOT NULL REFERENCES lab_customers(id)\n);",
+  "requirements": {
+    "tables": [
+      {
+        "name": "lab_customers",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "email"
+          }
+        ]
+      },
+      {
+        "name": "lab_orders",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "total"
+          },
+          {
+            "name": "customer_id",
+            "fk": {
+              "table": "lab_customers",
+              "column": "id"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "animation": {
+    "highlightTables": [
+      "lab_customers",
+      "lab_orders"
+    ],
+    "highlightRels": [
+      "lab_orders.customer_id"
+    ]
+  },
+  "highlightHint": [
+    "lab_customers",
+    "lab_orders"
+  ],
+  "starterCode": "from sqlalchemy import String, Numeric, Integer, ForeignKey, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column\n\nclass Base(DeclarativeBase):\n    pass\n\n# TODO: lab_customers + lab_orders\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+  "language": "python",
+  "trackId": "python-sqlalchemy"
+}

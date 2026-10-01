@@ -1,0 +1,15 @@
+{
+  "id": "03-primary-keys",
+  "order": 3,
+  "title": "Primary keys",
+  "summary": "Identity and uniqueness.",
+  "example": {
+    "language": "python",
+    "code": "engine = create_engine(DATABASE_URL)\nwith Session(engine) as s:\n    ...",
+    "sql": "PRIMARY KEY"
+  },
+  "exercise": {
+    "prompt": "Add a primary key.",
+    "hint": "Identity and uniqueness."
+  }
+}

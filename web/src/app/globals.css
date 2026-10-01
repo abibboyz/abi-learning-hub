@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-ink-950 text-ink-100 antialiased;
+  background-image:
+    radial-gradient(1200px 600px at 10% -10%, rgba(52, 211, 153, 0.12), transparent 60%),
+    radial-gradient(900px 500px at 90% 0%, rgba(251, 191, 36, 0.08), transparent 55%),
+    linear-gradient(180deg, #0b111c 0%, #141c2c 100%);
+  background-attachment: fixed;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #2c3e5c;
+  border-radius: 999px;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-ink-700/60 bg-ink-900/70 shadow-glow backdrop-blur;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-sm font-medium transition;
+  }
+  .btn-ghost {
+    @apply btn border border-ink-600/60 bg-ink-800/80 text-ink-100 hover:bg-ink-700;
+  }
+  .btn-danger {
+    @apply btn border border-danger/30 bg-danger/10 text-danger hover:bg-danger/20;
+  }
+  .btn-primary {
+    @apply btn bg-accent font-semibold text-ink-950 hover:bg-accent-glow;
+  }
+  .kbd {
+    @apply inline-flex items-center rounded border border-ink-600 bg-ink-800 px-1.5 py-0.5 text-[10px] font-mono text-ink-300;
+  }
+  .code-area {
+    @apply w-full min-h-[280px] rounded-xl border border-ink-700 bg-ink-950 p-4 font-mono text-sm leading-relaxed text-accent-glow focus:outline-none focus:ring-2 focus:ring-accent/40;
+  }
+  .diagram-table {
+    @apply rounded-xl border border-accent/20 bg-ink-900/90 p-2 text-[11px] shadow-glow;
+  }
+  .diagram-table.highlight {
+    @apply animate-pulseGlow border-accent;
+  }
+  .diagram-table.executing {
+    @apply animate-highlightFlash border-warn;
+  }
+}
+
+.rel-line {
+  stroke: #34d399;
+  stroke-width: 2;
+  fill: none;
+  opacity: 0.55;
+}
+.rel-line.active {
+  stroke: #fbbf24;
+  opacity: 1;
+  stroke-dasharray: 6 4;
+  animation: dashMove 0.8s linear infinite;
+}
+
+@keyframes dashMove {
+  to {
+    stroke-dashoffset: -20;
+  }
+}

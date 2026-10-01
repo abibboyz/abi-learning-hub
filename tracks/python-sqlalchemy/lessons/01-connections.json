@@ -1,0 +1,15 @@
+{
+  "id": "01-connections",
+  "order": 1,
+  "title": "Connections & engines",
+  "summary": "How apps connect to Postgres.",
+  "example": {
+    "language": "python",
+    "code": "engine = create_engine(DATABASE_URL)\nwith Session(engine) as s:\n    ...",
+    "sql": "document connection string + client setup"
+  },
+  "exercise": {
+    "prompt": "Create an engine/client from a connection string.",
+    "hint": "How apps connect to Postgres."
+  }
+}

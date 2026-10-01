@@ -1,0 +1,15 @@
+{
+  "id": "03-primary-keys",
+  "order": 3,
+  "title": "Primary keys",
+  "summary": "Identity and uniqueness.",
+  "example": {
+    "language": "typescript",
+    "code": "import { PrismaClient } from '@prisma/client'\nconst prisma = new PrismaClient()\nawait prisma.$queryRaw`SELECT 1`",
+    "sql": "PRIMARY KEY"
+  },
+  "exercise": {
+    "prompt": "Add a primary key.",
+    "hint": "Identity and uniqueness."
+  }
+}
