@@ -63,5 +63,31 @@
       "title": "pg (raw driver)",
       "example": "import pg from 'pg'\nconst pool = new pg.Pool({ connectionString: process.env.DATABASE_URL })\nawait pool.query('SELECT 1')"
     }
+  ],
+  "taskIds": [
+    "rel-01-create-connect",
+    "rel-02-types-pks",
+    "rel-03-one-to-many",
+    "rel-04-many-to-one",
+    "rel-05-one-to-one",
+    "rel-06-many-to-many",
+    "rel-07-self-referential",
+    "rel-08-cascades-loading",
+    "rel-09-insert-query",
+    "rel-10-mini-domain"
+  ],
+  "lessonIds": [
+    "01-connections",
+    "02-tables-columns",
+    "03-primary-keys",
+    "04-foreign-keys",
+    "05-one-to-many",
+    "06-one-to-one",
+    "07-many-to-many",
+    "08-self-ref",
+    "09-cascades",
+    "10-query-joins",
+    "11-validation",
+    "12-frameworks"
   ]
 }
