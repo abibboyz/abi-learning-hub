@@ -9,15 +9,22 @@ type Props = {
 };
 
 export function CodeEditor({ value, onChange, readOnly, label, minHeight = 220 }: Props) {
+  const id = "hub-code-editor";
   return (
     <div className="space-y-1.5">
-      {label && <div className="text-xs uppercase tracking-wide text-ink-400">{label}</div>}
+      {label && (
+        <label htmlFor={id} className="text-xs uppercase tracking-wide text-ink-400">
+          {label}
+        </label>
+      )}
       <textarea
+        id={id}
         className="code-area"
         style={{ minHeight }}
         value={value}
         readOnly={readOnly}
         spellCheck={false}
+        aria-label={label || "Code editor"}
         onChange={(e) => onChange(e.target.value)}
       />
     </div>

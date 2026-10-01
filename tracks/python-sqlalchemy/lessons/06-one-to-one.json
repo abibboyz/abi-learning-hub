@@ -1,15 +1,45 @@
 {
   "id": "06-one-to-one",
   "order": 6,
-  "title": "One-to-one",
-  "summary": "Unique FK pattern.",
+  "title": "One-to-one (1:1)",
+  "summary": "Each parent pairs with at most one child \u2014 usually a UNIQUE FK.",
   "example": {
     "language": "python",
-    "code": "engine = create_engine(DATABASE_URL)\nwith Session(engine) as s:\n    ...",
-    "sql": "UNIQUE FK"
+    "code": "account_id: Mapped[int] = mapped_column(ForeignKey('lab_accounts.id'), unique=True)",
+    "sql": "account_id INTEGER UNIQUE NOT NULL REFERENCES lab_accounts(id)"
   },
   "exercise": {
-    "prompt": "Model 1:1.",
-    "hint": "Unique FK pattern."
-  }
+    "prompt": "Model a 1:1 with a UNIQUE foreign key.",
+    "hint": "UNIQUE on the FK is what enforces one child per parent."
+  },
+  "body": "Each parent pairs with at most one child \u2014 usually a UNIQUE FK.\n\nWhy it matters: Profiles, settings, and credentials often share a 1:1 with a user/account. Without UNIQUE on the FK, the database silently allows multiple children (accidental 1:N).\n\nSQL \u2194 ORM: UNIQUE FK \u2194 Prisma @unique on the FK field \u2194 SQL UNIQUE.",
+  "why": "Profiles, settings, and credentials often share a 1:1 with a user/account. Without UNIQUE on the FK, the database silently allows multiple children (accidental 1:N).",
+  "objectives": [
+    "Implement 1:1 with a UNIQUE foreign key on the dependent table.",
+    "Explain how UNIQUE changes cardinality vs plain 1:N."
+  ],
+  "pitfalls": [
+    "Forgetting UNIQUE \u2014 tests may pass until duplicate inserts appear.",
+    "Shared primary key 1:1 is valid but harder to migrate; labs prefer UNIQUE FK."
+  ],
+  "mappingNotes": "UNIQUE FK \u2194 Prisma @unique on the FK field \u2194 SQL UNIQUE.",
+  "teachAlong": [
+    "Cause: each account may have only one profile.",
+    "Effect: profile.account_id UNIQUE REFERENCES accounts(id).",
+    "Diagram: 1:1 line instead of 1:N fan-out."
+  ],
+  "references": [
+    {
+      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
+    },
+    {
+      "title": "Prisma \u2014 Relations",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
+    },
+    {
+      "title": "PostgreSQL \u2014 Foreign Keys",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
+    }
+  ]
 }

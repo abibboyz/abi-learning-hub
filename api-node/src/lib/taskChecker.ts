@@ -41,7 +41,11 @@ export function checkRequirements(schema: Schema, requirements: Requirements) {
   for (const reqTable of requirements.tables || []) {
     const actual = tablesByName[reqTable.name];
     if (!actual) {
-      errors.push(`Missing required table \`${reqTable.name}\`.`);
+      errors.push(
+        `Missing required table \`${reqTable.name}\`. ` +
+          `Why: later foreign keys and joins need this relation to exist in Postgres — ` +
+          `declare/create it (lab_ prefix) then re-run.`
+      );
       continue;
     }
     matched.push(`table:${reqTable.name}`);
@@ -50,24 +54,35 @@ export function checkRequirements(schema: Schema, requirements: Requirements) {
     for (const reqCol of reqTable.columns || []) {
       const col = colsByName[reqCol.name];
       if (!col) {
-        errors.push(`Table \`${reqTable.name}\` missing required column \`${reqCol.name}\`.`);
+        errors.push(
+          `Table \`${reqTable.name}\` missing required column \`${reqCol.name}\`. ` +
+            `Why: the task gate introspects real columns; extras are fine, but \`${reqCol.name}\` ` +
+            `must be present for the relationship drill to proceed.`
+        );
         continue;
       }
       matched.push(`column:${reqTable.name}.${reqCol.name}`);
       if (reqCol.pk && !col.isPrimaryKey) {
-        errors.push(`Column \`${reqTable.name}.${reqCol.name}\` must be a primary key.`);
+        errors.push(
+          `Column \`${reqTable.name}.${reqCol.name}\` must be a primary key. ` +
+            `Why: foreign keys reference primary (or unique) keys — without a PK, ` +
+            `child tables cannot attach a valid REFERENCES constraint.`
+        );
       }
       const fk = reqCol.fk;
       if (fk) {
         if (!col.isForeignKey) {
           errors.push(
-            `Column \`${reqTable.name}.${reqCol.name}\` must be a foreign key to \`${fk.table}.${fk.column}\`.`
+            `Column \`${reqTable.name}.${reqCol.name}\` must be a foreign key to \`${fk.table}.${fk.column}\`. ` +
+              `Why: relationships are enforced by FK constraints — an ORM ` +
+              `\`@relation\` without a real FK will not pass the gate.`
           );
         } else {
           const ref = col.references || { table: "", column: "" };
           if (ref.table !== fk.table || ref.column !== fk.column) {
             errors.push(
-              `Column \`${reqTable.name}.${reqCol.name}\` must reference \`${fk.table}.${fk.column}\`, found \`${ref.table}.${ref.column}\`.`
+              `Column \`${reqTable.name}.${reqCol.name}\` must reference \`${fk.table}.${fk.column}\`, found \`${ref.table}.${ref.column}\`. ` +
+                `Why: the FK target defines the parent side of the relationship.`
             );
           } else {
             matched.push(`fk:${reqTable.name}.${reqCol.name}->${fk.table}.${fk.column}`);
@@ -79,7 +94,8 @@ export function checkRequirements(schema: Schema, requirements: Requirements) {
             const got = (found?.onDelete || "").toUpperCase();
             if (got !== fk.onDelete.toUpperCase()) {
               errors.push(
-                `FK \`${reqTable.name}.${reqCol.name}\` must have ON DELETE ${fk.onDelete} (found ${got || "NONE"}).`
+                `FK \`${reqTable.name}.${reqCol.name}\` must have ON DELETE ${fk.onDelete} (found ${got || "NONE"}). ` +
+                  `Why: delete policy decides whether children are removed, nulled, or blocked when the parent row goes away.`
               );
             } else {
               matched.push(`onDelete:${reqTable.name}.${reqCol.name}:${fk.onDelete}`);
@@ -94,6 +110,7 @@ export function checkRequirements(schema: Schema, requirements: Requirements) {
     ok: errors.length === 0,
     errors,
     matched,
-    message: errors.length === 0 ? "All requirements satisfied." : errors.join("; "),
+    message:
+      errors.length === 0 ? "All requirements satisfied — extras are allowed." : errors.join("; "),
   };
 }

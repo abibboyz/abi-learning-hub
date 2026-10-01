@@ -1,15 +1,46 @@
 {
   "id": "02-tables-columns",
   "order": 2,
-  "title": "Tables & columns",
-  "summary": "Mapping classes/models to tables.",
+  "title": "Tables, columns & types",
+  "summary": "Tables are named row collections; columns carry typed attributes.",
   "example": {
     "language": "python",
-    "code": "engine = create_engine(DATABASE_URL)\nwith Session(engine) as s:\n    ...",
-    "sql": "CREATE TABLE"
+    "code": "class LabAuthor(Base):\n    __tablename__ = 'lab_authors'\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n",
+    "sql": "CREATE TABLE lab_authors (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL\n);"
   },
   "exercise": {
-    "prompt": "Declare a table with typed columns.",
-    "hint": "Mapping classes/models to tables."
-  }
+    "prompt": "Declare a lab_ table with at least id + one typed column.",
+    "hint": "Match the physical table name the task gate expects."
+  },
+  "body": "Tables are named row collections; columns carry typed attributes.\n\nWhy it matters: Relationships only make sense once tables and columns exist. Choosing VARCHAR vs TEXT, INTEGER vs UUID, and NOT NULL vs nullable shapes every FK and join you write later.\n\nSQL \u2194 ORM: SQLAlchemy mapped_column(String(120)) \u2194 VARCHAR(120). Prisma String @db.VarChar(120) \u2194 VARCHAR(120). @@map(\"lab_x\") / __tablename__ keep physical names stable.",
+  "why": "Relationships only make sense once tables and columns exist. Choosing VARCHAR vs TEXT, INTEGER vs UUID, and NOT NULL vs nullable shapes every FK and join you write later.",
+  "objectives": [
+    "Map ORM field types to Postgres column types.",
+    "Name tables intentionally (this hub uses lab_ prefixes for learner tables).",
+    "Distinguish required vs optional columns."
+  ],
+  "pitfalls": [
+    "Mixing camelCase columns in DB with snake_case FKs without @map / key naming.",
+    "Using overly wide TEXT everywhere \u2014 loses intent and check constraints."
+  ],
+  "mappingNotes": "SQLAlchemy mapped_column(String(120)) \u2194 VARCHAR(120). Prisma String @db.VarChar(120) \u2194 VARCHAR(120). @@map(\"lab_x\") / __tablename__ keep physical names stable.",
+  "teachAlong": [
+    "Cause: you declare a model/table with typed fields.",
+    "Effect: CREATE TABLE materializes columns in Postgres.",
+    "Diagram: each table box lists those columns."
+  ],
+  "references": [
+    {
+      "title": "SQLAlchemy \u2014 Mapped Column Declarative",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/declarative_tables.html"
+    },
+    {
+      "title": "Prisma \u2014 Schema Reference",
+      "url": "https://www.prisma.io/docs/orm/reference/prisma-schema-reference"
+    },
+    {
+      "title": "PostgreSQL \u2014 CREATE TABLE",
+      "url": "https://www.postgresql.org/docs/current/sql-createtable.html"
+    }
+  ]
 }

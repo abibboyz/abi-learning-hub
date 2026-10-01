@@ -2,14 +2,45 @@
   "id": "04-foreign-keys",
   "order": 4,
   "title": "Foreign keys",
-  "summary": "References between tables.",
+  "summary": "An FK column stores the parent PK \u2014 the physical basis of relationships.",
   "example": {
-    "language": "javascript",
-    "code": "const { PrismaClient } = require('@prisma/client')\nconst prisma = new PrismaClient()\nawait prisma.$queryRaw`SELECT 1`",
-    "sql": "REFERENCES"
+    "language": "prisma",
+    "code": "authorId Int @map(\"author_id\")\nauthor   LabAuthor @relation(fields: [authorId], references: [id])",
+    "sql": "author_id INTEGER NOT NULL REFERENCES lab_authors(id)"
   },
   "exercise": {
-    "prompt": "Add an FK column.",
-    "hint": "References between tables."
-  }
+    "prompt": "Add a foreign key column that references another lab_ table's id.",
+    "hint": "FK lives on the child / many side."
+  },
+  "body": "An FK column stores the parent PK \u2014 the physical basis of relationships.\n\nWhy it matters: Diagram lines and ORM relationship() / @relation are sugar over foreign keys. If the FK column (and constraint) is missing, joins and cascades have nothing to enforce.\n\nSQL \u2194 ORM: SQLAlchemy ForeignKey('lab_authors.id') \u2194 Prisma fields/references \u2194 SQL REFERENCES lab_authors(id).",
+  "why": "Diagram lines and ORM relationship() / @relation are sugar over foreign keys. If the FK column (and constraint) is missing, joins and cascades have nothing to enforce.",
+  "objectives": [
+    "Place the FK on the correct side (usually the 'many' / child).",
+    "Reference parent_table(parent_pk).",
+    "Read FK errors as 'relationship not yet real in the database'."
+  ],
+  "pitfalls": [
+    "Putting the FK on the parent for 1:N (backwards).",
+    "ORM relationship without an actual FK column \u2014 looks fine in code, fails the gate."
+  ],
+  "mappingNotes": "SQLAlchemy ForeignKey('lab_authors.id') \u2194 Prisma fields/references \u2194 SQL REFERENCES lab_authors(id).",
+  "teachAlong": [
+    "Cause: child row must belong to a parent.",
+    "Effect: child gets parent_id + FK constraint.",
+    "Diagram: arrow from child column to parent PK."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL \u2014 Foreign Keys",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
+    },
+    {
+      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
+    },
+    {
+      "title": "Prisma \u2014 Relations",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
+    }
+  ]
 }

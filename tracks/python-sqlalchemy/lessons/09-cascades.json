@@ -2,14 +2,45 @@
   "id": "09-cascades",
   "order": 9,
   "title": "Cascades & loading",
-  "summary": "ON DELETE and load strategies.",
+  "summary": "ON DELETE / ORM cascade and how you load related rows.",
   "example": {
     "language": "python",
-    "code": "engine = create_engine(DATABASE_URL)\nwith Session(engine) as s:\n    ...",
-    "sql": "ON DELETE CASCADE"
+    "code": "mapped_column(ForeignKey('lab_categories.id', ondelete='CASCADE'))",
+    "sql": "category_id INTEGER REFERENCES lab_categories(id) ON DELETE CASCADE"
   },
   "exercise": {
-    "prompt": "Use CASCADE.",
-    "hint": "ON DELETE and load strategies."
-  }
+    "prompt": "Add an FK with an explicit ON DELETE policy.",
+    "hint": "Match the task's required onDelete value."
+  },
+  "body": "ON DELETE / ORM cascade and how you load related rows.\n\nWhy it matters: Deleting a parent without a plan orphans children or fails the DELETE. Loading without include/selectinload causes N+1 queries in real apps.\n\nSQL \u2194 ORM: SQL ON DELETE CASCADE \u2194 Prisma onDelete: Cascade \u2194 SQLAlchemy ForeignKey(..., ondelete='CASCADE') / relationship cascade options.",
+  "why": "Deleting a parent without a plan orphans children or fails the DELETE. Loading without include/selectinload causes N+1 queries in real apps.",
+  "objectives": [
+    "Choose ON DELETE CASCADE vs SET NULL vs RESTRICT intentionally.",
+    "Contrast DB-level ON DELETE with ORM cascade flags.",
+    "Prefer explicit loading strategies for related collections."
+  ],
+  "pitfalls": [
+    "CASCADE everywhere \u2014 easy demos, dangerous production defaults.",
+    "N+1 queries from lazy loads in a loop."
+  ],
+  "mappingNotes": "SQL ON DELETE CASCADE \u2194 Prisma onDelete: Cascade \u2194 SQLAlchemy ForeignKey(..., ondelete='CASCADE') / relationship cascade options.",
+  "teachAlong": [
+    "Cause: parent row deleted.",
+    "Effect: DB applies ON DELETE policy to child FKs.",
+    "Loading: ask for related rows in one query when you need them."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL \u2014 Foreign Keys",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
+    },
+    {
+      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
+    },
+    {
+      "title": "Prisma \u2014 Relations",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
+    }
+  ]
 }

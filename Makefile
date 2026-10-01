@@ -1,5 +1,6 @@
-.PHONY: up down logs reset-db export-db restore-db test-python test-node typecheck-web install
+.PHONY: up down logs reset-db export-db restore-db test-python test-node typecheck-web install config
 
+# One platform — brings up postgres + internal runners + web
 up:
 	docker compose up --build
 
@@ -8,6 +9,9 @@ down:
 
 logs:
 	docker compose logs -f
+
+config:
+	docker compose config
 
 reset-db:
 	docker compose exec postgres psql -U hub -d learning_hub -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"

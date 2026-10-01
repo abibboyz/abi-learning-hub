@@ -1,15 +1,46 @@
 {
   "id": "05-one-to-many",
   "order": 5,
-  "title": "One-to-many",
-  "summary": "Parent has many children.",
+  "title": "One-to-many (1:N)",
+  "summary": "One parent owns many children \u2014 FK on the child.",
   "example": {
-    "language": "javascript",
-    "code": "const { PrismaClient } = require('@prisma/client')\nconst prisma = new PrismaClient()\nawait prisma.$queryRaw`SELECT 1`",
-    "sql": "FK on child"
+    "language": "prisma",
+    "code": "model LabPublisher {\n  id Int @id @default(autoincrement())\n  name String\n  magazines LabMagazine[]\n  @@map(\"lab_publishers\")\n}\nmodel LabMagazine {\n  id Int @id @default(autoincrement())\n  title String\n  publisherId Int @map(\"publisher_id\")\n  publisher LabPublisher @relation(fields: [publisherId], references: [id])\n  @@map(\"lab_magazines\")\n}\n",
+    "sql": "FK publisher_id ON lab_magazines REFERENCES lab_publishers(id)"
   },
   "exercise": {
-    "prompt": "Model 1:N.",
-    "hint": "Parent has many children."
-  }
+    "prompt": "Model publishers that own many magazines (FK on magazines).",
+    "hint": "Do not put a unique constraint on publisher_id."
+  },
+  "body": "One parent owns many children \u2014 FK on the child.\n\nWhy it matters: 1:N is the most common business relationship (publisher\u2192magazines, customer\u2192orders). Modeling it correctly prevents duplicate parent rows and enables simple JOINs.\n\nSQL \u2194 ORM: Child FK + parent collection. SQL only needs the FK; ORM adds navigation.",
+  "why": "1:N is the most common business relationship (publisher\u2192magazines, customer\u2192orders). Modeling it correctly prevents duplicate parent rows and enables simple JOINs.",
+  "objectives": [
+    "Create parent + child tables.",
+    "Put publisher_id (or equivalent) on the child with FK.",
+    "Optional: declare ORM collection on the parent (relationship / magazines Mag[])."
+  ],
+  "pitfalls": [
+    "Unique constraint on the FK accidentally turning 1:N into 1:1.",
+    "Nullable FK when the domain requires every child to have a parent."
+  ],
+  "mappingNotes": "Child FK + parent collection. SQL only needs the FK; ORM adds navigation.",
+  "teachAlong": [
+    "Cause: one publisher publishes many magazines.",
+    "Effect: lab_magazines.publisher_id \u2192 lab_publishers.id.",
+    "Gate: both tables + FK must exist; extras allowed."
+  ],
+  "references": [
+    {
+      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
+    },
+    {
+      "title": "Prisma \u2014 Relations",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
+    },
+    {
+      "title": "PostgreSQL \u2014 Foreign Keys",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
+    }
+  ]
 }

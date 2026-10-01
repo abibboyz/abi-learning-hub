@@ -1,15 +1,45 @@
 {
   "id": "10-query-joins",
   "order": 10,
-  "title": "Queries & joins",
-  "summary": "Read across relationships.",
+  "title": "Insert & query across relationships",
+  "summary": "Write rows that respect FKs, then JOIN / include to read graphs.",
   "example": {
     "language": "typescript",
-    "code": "import { PrismaClient } from '@prisma/client'\nconst prisma = new PrismaClient()\nawait prisma.$queryRaw`SELECT 1`",
-    "sql": "SELECT ... JOIN"
+    "code": "prisma.labMagazine.findMany({ include: { publisher: true } })",
+    "sql": "SELECT m.title, p.name FROM lab_magazines m JOIN lab_publishers p ON p.id = m.publisher_id;"
   },
   "exercise": {
-    "prompt": "Write a join query.",
-    "hint": "Read across relationships."
-  }
+    "prompt": "Sketch a JOIN that returns child rows with parent names.",
+    "hint": "Join on the FK column you created earlier."
+  },
+  "body": "Write rows that respect FKs, then JOIN / include to read graphs.\n\nWhy it matters: Schema without queries is incomplete. Inserts must satisfy FKs; reads use JOINs (or ORM include) to reassemble the relationship graph you modeled.\n\nSQL \u2194 ORM: SQL JOIN \u2194 SQLAlchemy selectinload/joinedload \u2194 Prisma include/select.",
+  "why": "Schema without queries is incomplete. Inserts must satisfy FKs; reads use JOINs (or ORM include) to reassemble the relationship graph you modeled.",
+  "objectives": [
+    "Insert parent before child when FKs are required.",
+    "Read across a relationship with JOIN or ORM navigation."
+  ],
+  "pitfalls": [
+    "Inserting child first \u2192 FK violation.",
+    "Selecting only one table and wondering where related fields went."
+  ],
+  "mappingNotes": "SQL JOIN \u2194 SQLAlchemy selectinload/joinedload \u2194 Prisma include/select.",
+  "teachAlong": [
+    "Cause: data is normalized across tables.",
+    "Effect: JOIN/include reconstitutes the object graph.",
+    "Validate: row counts and FK values match your intent."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL \u2014 Joins",
+      "url": "https://www.postgresql.org/docs/current/tutorial-join.html"
+    },
+    {
+      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
+    },
+    {
+      "title": "Prisma Client API",
+      "url": "https://www.prisma.io/docs/orm/prisma-client"
+    }
+  ]
 }

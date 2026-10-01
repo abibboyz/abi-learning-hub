@@ -3,12 +3,13 @@
   "order": 7,
   "title": "Self-referential",
   "summary": "Staff who report to other staff via manager_id.",
-  "description": "Staff who report to other staff via manager_id.",
+  "description": "Staff who report to other staff via manager_id.\n\nWhy: Hierarchies live in one table via a self-FK. Nullable manager_id is what allows root rows.",
   "objectives": [
     "lab_staff (id PK, name, manager_id nullable FK \u2192 lab_staff.id)"
   ],
   "hints": [
-    "Self-FK: same table on both ends."
+    "Self-FK: same table on both ends.",
+    "Read gate errors as cause\u2192effect: each message names what Postgres still lacks."
   ],
   "sqlEquivalent": "CREATE TABLE lab_staff (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL,\n  manager_id INTEGER REFERENCES lab_staff(id) ON DELETE SET NULL\n);",
   "requirements": {
@@ -49,5 +50,29 @@
   "starterCode": "model LabStaff {\n  id Int @id @default(autoincrement())\n  name String\n  managerId Int? @map(\"manager_id\")\n  manager LabStaff? @relation(\"StaffTree\", fields: [managerId], references: [id])\n  reports LabStaff[] @relation(\"StaffTree\")\n  @@map(\"lab_staff\")\n}\n",
   "starterCodePrisma": "model LabStaff {\n  id Int @id @default(autoincrement())\n  name String\n  managerId Int? @map(\"manager_id\")\n  manager LabStaff? @relation(\"StaffTree\", fields: [managerId], references: [id])\n  reports LabStaff[] @relation(\"StaffTree\")\n  @@map(\"lab_staff\")\n}\n",
   "language": "typescript",
-  "trackId": "node-typescript"
+  "trackId": "node-typescript",
+  "why": "Hierarchies live in one table via a self-FK. Nullable manager_id is what allows root rows.",
+  "pitfalls": [
+    "NOT NULL self-FK so the root cannot be inserted."
+  ],
+  "teachAlong": [
+    "Cause: hierarchy in one entity.",
+    "Effect: nullable self-FK.",
+    "NULL = root."
+  ],
+  "references": [
+    {
+      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
+    },
+    {
+      "title": "Prisma \u2014 Relations",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
+    },
+    {
+      "title": "PostgreSQL \u2014 Foreign Keys",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
+    }
+  ],
+  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres \u2014 only real tables/FKs count."
 }

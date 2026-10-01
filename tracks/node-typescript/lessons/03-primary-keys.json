@@ -2,14 +2,45 @@
   "id": "03-primary-keys",
   "order": 3,
   "title": "Primary keys",
-  "summary": "Identity and uniqueness.",
+  "summary": "A PK uniquely identifies each row \u2014 the target of every foreign key.",
   "example": {
-    "language": "typescript",
-    "code": "import { PrismaClient } from '@prisma/client'\nconst prisma = new PrismaClient()\nawait prisma.$queryRaw`SELECT 1`",
-    "sql": "PRIMARY KEY"
+    "language": "prisma",
+    "code": "id Int @id @default(autoincrement())",
+    "sql": "id SERIAL PRIMARY KEY"
   },
   "exercise": {
-    "prompt": "Add a primary key.",
-    "hint": "Identity and uniqueness."
-  }
+    "prompt": "Ensure your lab table has an integer primary key named id.",
+    "hint": "Task gate checks isPrimaryKey on id."
+  },
+  "body": "A PK uniquely identifies each row \u2014 the target of every foreign key.\n\nWhy it matters: Foreign keys point at primary (or unique) keys. Without a stable PK, you cannot express 1:N, 1:1, or M:N safely, and ON DELETE behavior becomes undefined.\n\nSQL \u2194 ORM: SQLAlchemy primary_key=True \u2194 Prisma @id \u2194 SQL PRIMARY KEY.",
+  "why": "Foreign keys point at primary (or unique) keys. Without a stable PK, you cannot express 1:N, 1:1, or M:N safely, and ON DELETE behavior becomes undefined.",
+  "objectives": [
+    "Mark a surrogate integer id as PRIMARY KEY.",
+    "Explain why FKs reference PKs.",
+    "Prefer stable surrogate keys in labs; add UNIQUE for natural keys separately."
+  ],
+  "pitfalls": [
+    "Forgetting @id / primary_key=True \u2014 table exists but relationships cannot attach.",
+    "Composite PKs too early \u2014 fine in production, noisy while learning basics."
+  ],
+  "mappingNotes": "SQLAlchemy primary_key=True \u2194 Prisma @id \u2194 SQL PRIMARY KEY.",
+  "teachAlong": [
+    "Cause: row needs a durable identity.",
+    "Effect: PK constraint + index created.",
+    "Later: child.publisher_id REFERENCES parent(id)."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL \u2014 CREATE TABLE",
+      "url": "https://www.postgresql.org/docs/current/sql-createtable.html"
+    },
+    {
+      "title": "SQLAlchemy \u2014 Mapped Column Declarative",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/declarative_tables.html"
+    },
+    {
+      "title": "Prisma \u2014 Schema Reference",
+      "url": "https://www.prisma.io/docs/orm/reference/prisma-schema-reference"
+    }
+  ]
 }

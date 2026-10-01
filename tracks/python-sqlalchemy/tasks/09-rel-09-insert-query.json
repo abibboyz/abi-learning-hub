@@ -3,13 +3,14 @@
   "order": 9,
   "title": "Insert + query across relationships",
   "summary": "Create lab_teams / lab_players with FK relationship.",
-  "description": "Create lab_teams / lab_players with FK relationship.",
+  "description": "Create lab_teams / lab_players with FK relationship.\n\nWhy: Inserts must respect FKs; queries must JOIN/include to reassemble the graph \u2014 schema alone is not enough for production thinking.",
   "objectives": [
     "lab_teams (id PK, name)",
     "lab_players (id PK, name, team_id FK)"
   ],
   "hints": [
-    "JOIN queries prove the relationship."
+    "JOIN queries prove the relationship.",
+    "Read gate errors as cause\u2192effect: each message names what Postgres still lacks."
   ],
   "sqlEquivalent": "CREATE TABLE lab_teams (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_players (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL,\n  team_id INTEGER NOT NULL REFERENCES lab_teams(id)\n);",
   "requirements": {
@@ -62,5 +63,29 @@
   ],
   "starterCode": "from sqlalchemy import String, Integer, ForeignKey, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column\n\nclass Base(DeclarativeBase):\n    pass\n\n# TODO: lab_teams + lab_players\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
   "language": "python",
-  "trackId": "python-sqlalchemy"
+  "trackId": "python-sqlalchemy",
+  "why": "Inserts must respect FKs; queries must JOIN/include to reassemble the graph \u2014 schema alone is not enough for production thinking.",
+  "pitfalls": [
+    "Inserting child before parent.",
+    "Forgetting to expose the FK column the JOIN needs."
+  ],
+  "teachAlong": [
+    "Cause: normalized data.",
+    "Effect: INSERT order + JOIN/include to read."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL \u2014 Joins",
+      "url": "https://www.postgresql.org/docs/current/tutorial-join.html"
+    },
+    {
+      "title": "Prisma Client API",
+      "url": "https://www.prisma.io/docs/orm/prisma-client"
+    },
+    {
+      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
+    }
+  ],
+  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres \u2014 only real tables/FKs count."
 }

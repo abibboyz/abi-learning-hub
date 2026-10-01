@@ -7,10 +7,7 @@ FROM node:20-bookworm-slim AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-ARG NEXT_PUBLIC_PYTHON_API_URL=http://localhost:8000
-ARG NEXT_PUBLIC_NODE_API_URL=http://localhost:8001
-ENV NEXT_PUBLIC_PYTHON_API_URL=$NEXT_PUBLIC_PYTHON_API_URL
-ENV NEXT_PUBLIC_NODE_API_URL=$NEXT_PUBLIC_NODE_API_URL
+# Browser talks only to same-origin /api — no dual public API URLs baked in.
 RUN npm run build
 
 FROM node:20-bookworm-slim AS runner
@@ -21,5 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+ENV PYTHON_API_INTERNAL=http://api-python:8000
+ENV NODE_API_INTERNAL=http://api-node:8001
 EXPOSE 3000
 CMD ["node", "server.js"]

@@ -33,14 +33,22 @@ export type SchemaRel = {
 };
 export type Schema = { tables: SchemaTable[]; relationships: SchemaRel[] };
 
+export type RefLink = { title: string; url: string };
+
 export type Task = {
   id: string;
   order: number;
   title: string;
   summary?: string;
   description?: string;
+  /** Why this task matters — cause→effect pedagogy */
+  why?: string;
   objectives: string[];
   hints?: string[];
+  pitfalls?: string[];
+  mappingNotes?: string;
+  teachAlong?: string[];
+  references?: RefLink[];
   sqlEquivalent?: string;
   starterCode: string;
   requirements: unknown;
@@ -55,7 +63,15 @@ export type Lesson = {
   topic?: string;
   body?: string;
   summary?: string;
+  why?: string;
+  objectives?: string[];
+  pitfalls?: string[];
+  mappingNotes?: string;
+  teachAlong?: string[];
+  references?: RefLink[];
   example?: string | { language?: string; code?: string; sql?: string };
+  exampleSql?: string;
+  exampleLanguage?: string;
   exercise?: string | { prompt?: string; hint?: string };
 };
 
@@ -69,6 +85,7 @@ export type ExecuteResult = {
   note?: string;
   sql?: string[];
   traceback?: string;
+  teachAlong?: string[];
 };
 
 export type Manifest = TrackSummary & {

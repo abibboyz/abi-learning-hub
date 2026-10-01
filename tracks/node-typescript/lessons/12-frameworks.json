@@ -1,15 +1,45 @@
 {
   "id": "12-frameworks",
   "order": 12,
-  "title": "Where DB code lives",
-  "summary": "Node/React/Next placement.",
+  "title": "Where DB code lives (runtimes)",
+  "summary": "APIs, Next.js server routes, and SPAs \u2014 credentials never ship to the browser.",
   "example": {
     "language": "typescript",
-    "code": "// Plain Node: DB in API\n// React SPA: fetch('/api/...'); no pg in browser\n// Next.js: route.ts / server component \u2014 Node runtime for pg\n",
-    "sql": "API boundary"
+    "code": "// Next.js Route Handler proxies /api/* to internal runners",
+    "sql": "-- same database, one platform"
   },
   "exercise": {
-    "prompt": "Explain server vs browser.",
-    "hint": "Node/React/Next placement."
-  }
+    "prompt": "Name three places DB credentials must never appear.",
+    "hint": "Client bundles, public env without server-only prefix, screenshots of .env."
+  },
+  "body": "APIs, Next.js server routes, and SPAs \u2014 credentials never ship to the browser.\n\nWhy it matters: Putting DATABASE_URL in client JS leaks secrets. Production hubs keep runners and queries on the server (this app's /api BFF is the learner-facing example).\n\nSQL \u2194 ORM: Browser \u2192 https://localhost:3000/api/* \u2192 internal runners \u2192 Postgres.",
+  "why": "Putting DATABASE_URL in client JS leaks secrets. Production hubs keep runners and queries on the server (this app's /api BFF is the learner-facing example).",
+  "objectives": [
+    "List safe places for DB access (API process, Next route handlers, workers).",
+    "Explain why SPAs must call an API instead of opening Postgres."
+  ],
+  "pitfalls": [
+    "Importing Prisma/pg into Client Components.",
+    "Edge runtimes without native driver support \u2014 prefer Node for DB labs."
+  ],
+  "mappingNotes": "Browser \u2192 https://localhost:3000/api/* \u2192 internal runners \u2192 Postgres.",
+  "teachAlong": [
+    "Cause: learner picks a track in the UI.",
+    "Effect: BFF routes to python or node runner internally.",
+    "You never start a separate 'Python stack' or 'Node stack'."
+  ],
+  "references": [
+    {
+      "title": "Next.js \u2014 Route Handlers",
+      "url": "https://nextjs.org/docs/app/building-your-application/routing/route-handlers"
+    },
+    {
+      "title": "Prisma Client API",
+      "url": "https://www.prisma.io/docs/orm/prisma-client"
+    },
+    {
+      "title": "SQLAlchemy \u2014 Engine Configuration",
+      "url": "https://docs.sqlalchemy.org/en/20/core/engines.html"
+    }
+  ]
 }

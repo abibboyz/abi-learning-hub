@@ -2,14 +2,54 @@
   "id": "01-connections",
   "order": 1,
   "title": "Connections & engines",
-  "summary": "How apps connect to Postgres.",
+  "summary": "How applications open a durable channel to Postgres before any ORM work.",
   "example": {
     "language": "typescript",
-    "code": "import { PrismaClient } from '@prisma/client'\nconst prisma = new PrismaClient()\nawait prisma.$queryRaw`SELECT 1`",
-    "sql": "document connection string + client setup"
+    "code": "import { PrismaClient } from '@prisma/client'\n\nconst prisma = new PrismaClient()\nawait prisma.$queryRaw`SELECT 1`\n",
+    "sql": "-- datasource url = env(\"DATABASE_URL\") in schema.prisma"
   },
   "exercise": {
-    "prompt": "Create an engine/client from a connection string.",
-    "hint": "How apps connect to Postgres."
-  }
+    "prompt": "Create a client/engine from DATABASE_URL and run SELECT 1.",
+    "hint": "SQLAlchemy Session or PrismaClient \u2014 credentials stay on the server."
+  },
+  "body": "How applications open a durable channel to Postgres before any ORM work.\n\nWhy it matters: Without a connection (engine/client/pool), every model definition is just text. The connection string decides host, database, credentials, and SSL \u2014 get this wrong and relationship labs fail before you write a single FK.\n\nSQL \u2194 ORM: SQLAlchemy: create_engine(DATABASE_URL) + Session. Prisma: datasource db { url = env(\"DATABASE_URL\") } + PrismaClient. Raw SQL: psql or pg.Pool with the same URL.",
+  "why": "Without a connection (engine/client/pool), every model definition is just text. The connection string decides host, database, credentials, and SSL \u2014 get this wrong and relationship labs fail before you write a single FK.",
+  "objectives": [
+    "Explain what a DATABASE_URL encodes (user, password, host, port, database).",
+    "Create an engine (SQLAlchemy) or PrismaClient / pg Pool (Node).",
+    "Keep credentials server-side \u2014 never in browser bundles."
+  ],
+  "pitfalls": [
+    "Hard-coding passwords in committed files.",
+    "Pointing the ORM at the wrong database (empty schema looks like 'broken' relationships).",
+    "Opening a new connection per query instead of pooling."
+  ],
+  "mappingNotes": "SQLAlchemy: create_engine(DATABASE_URL) + Session. Prisma: datasource db { url = env(\"DATABASE_URL\") } + PrismaClient. Raw SQL: psql or pg.Pool with the same URL.",
+  "teachAlong": [
+    "Cause: app needs to talk to Postgres.",
+    "Effect: engine/client parses DATABASE_URL and opens TCP + auth.",
+    "Next: metadata/models can CREATE TABLE against that live database."
+  ],
+  "references": [
+    {
+      "title": "SQLAlchemy \u2014 Engine Configuration",
+      "url": "https://docs.sqlalchemy.org/en/20/core/engines.html"
+    },
+    {
+      "title": "Prisma Client API",
+      "url": "https://www.prisma.io/docs/orm/prisma-client"
+    },
+    {
+      "title": "PostgreSQL \u2014 CREATE TABLE",
+      "url": "https://www.postgresql.org/docs/current/sql-createtable.html"
+    },
+    {
+      "title": "node-postgres (pg)",
+      "url": "https://node-postgres.com/"
+    },
+    {
+      "title": "Next.js \u2014 Route Handlers",
+      "url": "https://nextjs.org/docs/app/building-your-application/routing/route-handlers"
+    }
+  ]
 }

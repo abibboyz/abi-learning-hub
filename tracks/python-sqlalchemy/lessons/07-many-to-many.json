@@ -1,15 +1,45 @@
 {
   "id": "07-many-to-many",
   "order": 7,
-  "title": "Many-to-many",
-  "summary": "Association tables.",
+  "title": "Many-to-many (M:N)",
+  "summary": "Two principals associate via a junction table holding two FKs.",
   "example": {
     "language": "python",
-    "code": "engine = create_engine(DATABASE_URL)\nwith Session(engine) as s:\n    ...",
-    "sql": "join table"
+    "code": "# association table with post_id + tag_id foreign keys",
+    "sql": "CREATE TABLE lab_post_tags (\n  post_id INT REFERENCES lab_posts(id),\n  tag_id INT REFERENCES lab_tags(id),\n  PRIMARY KEY (post_id, tag_id)\n);"
   },
   "exercise": {
-    "prompt": "Model M:N.",
-    "hint": "Association tables."
-  }
+    "prompt": "Add a junction table with two foreign keys.",
+    "hint": "Both FKs are required for M:N integrity."
+  },
+  "body": "Two principals associate via a junction table holding two FKs.\n\nWhy it matters: Posts\u2194tags, students\u2194courses need M:N. A direct FK cannot express 'many on both sides' \u2014 the association table is the relational answer and can carry payload columns (grade, enrolled_at).\n\nSQL \u2194 ORM: SQLAlchemy secondary= / association object \u2194 Prisma implicit/explicit m:n \u2194 junction CREATE TABLE with two REFERENCES.",
+  "why": "Posts\u2194tags, students\u2194courses need M:N. A direct FK cannot express 'many on both sides' \u2014 the association table is the relational answer and can carry payload columns (grade, enrolled_at).",
+  "objectives": [
+    "Create two entity tables plus a junction with two FKs.",
+    "Optionally add a composite PK or unique pair on (left_id, right_id)."
+  ],
+  "pitfalls": [
+    "Trying to store arrays of ids in a column \u2014 loses referential integrity.",
+    "Missing one of the two FKs so the gate fails."
+  ],
+  "mappingNotes": "SQLAlchemy secondary= / association object \u2194 Prisma implicit/explicit m:n \u2194 junction CREATE TABLE with two REFERENCES.",
+  "teachAlong": [
+    "Cause: many posts share many tags.",
+    "Effect: lab_post_tags(post_id, tag_id) with two FKs.",
+    "Diagram: two lines into the junction."
+  ],
+  "references": [
+    {
+      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
+    },
+    {
+      "title": "Prisma \u2014 Relations",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
+    },
+    {
+      "title": "PostgreSQL \u2014 Foreign Keys",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
+    }
+  ]
 }

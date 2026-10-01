@@ -3,13 +3,14 @@
   "order": 8,
   "title": "Cascades & loading",
   "summary": "Categories \u2192 items with ON DELETE CASCADE.",
-  "description": "Categories \u2192 items with ON DELETE CASCADE.",
+  "description": "Categories \u2192 items with ON DELETE CASCADE.\n\nWhy: Cascades encode delete policy in the database so apps do not leave orphans or rely only on ORM memory.",
   "objectives": [
     "lab_categories",
     "lab_items with category_id FK ON DELETE CASCADE"
   ],
   "hints": [
-    "Check onDelete in the diagram after success."
+    "Check onDelete in the diagram after success.",
+    "Read gate errors as cause\u2192effect: each message names what Postgres still lacks."
   ],
   "sqlEquivalent": "CREATE TABLE lab_categories (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_items (\n  id SERIAL PRIMARY KEY,\n  label VARCHAR(200) NOT NULL,\n  category_id INTEGER NOT NULL REFERENCES lab_categories(id) ON DELETE CASCADE\n);",
   "requirements": {
@@ -64,5 +65,29 @@
   "starterCode": "model LabCategory {\n  id Int @id @default(autoincrement())\n  name String\n  items LabItem[]\n  @@map(\"lab_categories\")\n}\nmodel LabItem {\n  id Int @id @default(autoincrement())\n  label String\n  categoryId Int @map(\"category_id\")\n  category LabCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)\n  @@map(\"lab_items\")\n}\n",
   "starterCodePrisma": "model LabCategory {\n  id Int @id @default(autoincrement())\n  name String\n  items LabItem[]\n  @@map(\"lab_categories\")\n}\nmodel LabItem {\n  id Int @id @default(autoincrement())\n  label String\n  categoryId Int @map(\"category_id\")\n  category LabCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)\n  @@map(\"lab_items\")\n}\n",
   "language": "typescript",
-  "trackId": "node-typescript"
+  "trackId": "node-typescript",
+  "why": "Cascades encode delete policy in the database so apps do not leave orphans or rely only on ORM memory.",
+  "pitfalls": [
+    "Relying on ORM cascade without setting DB ON DELETE when the task requires it."
+  ],
+  "teachAlong": [
+    "Cause: parent deleted.",
+    "Effect: ON DELETE policy runs.",
+    "Match the required cascade exactly."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL \u2014 Foreign Keys",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
+    },
+    {
+      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
+    },
+    {
+      "title": "Prisma \u2014 Relations",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
+    }
+  ],
+  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres \u2014 only real tables/FKs count."
 }

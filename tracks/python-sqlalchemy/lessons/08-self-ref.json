@@ -1,15 +1,45 @@
 {
   "id": "08-self-ref",
   "order": 8,
-  "title": "Self-referential",
-  "summary": "Hierarchies.",
+  "title": "Self-referential relationships",
+  "summary": "A table FK-references itself (manager \u2192 reports, category trees).",
   "example": {
     "language": "python",
-    "code": "engine = create_engine(DATABASE_URL)\nwith Session(engine) as s:\n    ...",
-    "sql": "self FK"
+    "code": "manager_id: Mapped[int | None] = mapped_column(ForeignKey('lab_employees.id'))",
+    "sql": "manager_id INTEGER NULL REFERENCES lab_employees(id)"
   },
   "exercise": {
-    "prompt": "parent_id pattern.",
-    "hint": "Hierarchies."
-  }
+    "prompt": "Add a self-referential nullable FK.",
+    "hint": "Root rows need NULL."
+  },
+  "body": "A table FK-references itself (manager \u2192 reports, category trees).\n\nWhy it matters: Org charts and nested categories live in one table. A self-FK (nullable for roots) models hierarchy without inventing extra tables.\n\nSQL \u2194 ORM: Same-table ForeignKey / Prisma self relation names (fields + references).",
+  "why": "Org charts and nested categories live in one table. A self-FK (nullable for roots) models hierarchy without inventing extra tables.",
+  "objectives": [
+    "Add nullable parent_id / manager_id referencing the same table's id.",
+    "Explain why roots use NULL."
+  ],
+  "pitfalls": [
+    "NOT NULL on parent_id \u2014 then you cannot insert the root row.",
+    "Cycles without application checks."
+  ],
+  "mappingNotes": "Same-table ForeignKey / Prisma self relation names (fields + references).",
+  "teachAlong": [
+    "Cause: employee reports to another employee.",
+    "Effect: manager_id NULL REFERENCES lab_employees(id).",
+    "Roots: manager_id IS NULL."
+  ],
+  "references": [
+    {
+      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
+    },
+    {
+      "title": "Prisma \u2014 Relations",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
+    },
+    {
+      "title": "PostgreSQL \u2014 Foreign Keys",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
+    }
+  ]
 }

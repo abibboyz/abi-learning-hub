@@ -3,12 +3,13 @@
   "order": 2,
   "title": "Types & primary keys",
   "summary": "Add lab_products with typed columns and a clear primary key.",
-  "description": "Add lab_products with typed columns and a clear primary key.",
+  "description": "Add lab_products with typed columns and a clear primary key.\n\nWhy: Types and primary keys are the anchors every FK will reference. Get PKs wrong and later relationship tasks cannot attach constraints.",
   "objectives": [
     "Create lab_products with id PK, sku, price, in_stock"
   ],
   "hints": [
-    "Map bool \u2192 BOOLEAN, Decimal \u2192 NUMERIC."
+    "Map bool \u2192 BOOLEAN, Decimal \u2192 NUMERIC.",
+    "Read gate errors as cause\u2192effect: each message names what Postgres still lacks."
   ],
   "sqlEquivalent": "CREATE TABLE lab_products (\n  id SERIAL PRIMARY KEY,\n  sku VARCHAR(64) UNIQUE NOT NULL,\n  price NUMERIC(10,2) NOT NULL,\n  in_stock BOOLEAN DEFAULT TRUE\n);",
   "requirements": {
@@ -45,5 +46,30 @@
   "starterCode": "model LabProduct {\n  id      Int     @id @default(autoincrement())\n  sku     String  @unique\n  price   Decimal @db.Decimal(10, 2)\n  inStock Boolean @default(true) @map(\"in_stock\")\n  @@map(\"lab_products\")\n}\n",
   "starterCodePrisma": "model LabProduct {\n  id      Int     @id @default(autoincrement())\n  sku     String  @unique\n  price   Decimal @db.Decimal(10, 2)\n  inStock Boolean @default(true) @map(\"in_stock\")\n  @@map(\"lab_products\")\n}\n",
   "language": "typescript",
-  "trackId": "node-typescript"
+  "trackId": "node-typescript",
+  "why": "Types and primary keys are the anchors every FK will reference. Get PKs wrong and later relationship tasks cannot attach constraints.",
+  "pitfalls": [
+    "Column exists but is not marked PK.",
+    "Using a non-integer id when the task expects SERIAL/Int @id."
+  ],
+  "teachAlong": [
+    "Cause: need stable row identity.",
+    "Effect: PK constraint created.",
+    "Next tasks will REFERENCE this id."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL \u2014 CREATE TABLE",
+      "url": "https://www.postgresql.org/docs/current/sql-createtable.html"
+    },
+    {
+      "title": "SQLAlchemy \u2014 Mapped Column Declarative",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/declarative_tables.html"
+    },
+    {
+      "title": "Prisma \u2014 Schema Reference",
+      "url": "https://www.prisma.io/docs/orm/reference/prisma-schema-reference"
+    }
+  ],
+  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres \u2014 only real tables/FKs count."
 }

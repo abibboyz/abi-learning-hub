@@ -1,12 +1,10 @@
 import type { ExecuteResult, Lesson, Manifest, Schema, Task, TrackSummary } from "@/types/hub";
 
-const PYTHON = process.env.NEXT_PUBLIC_PYTHON_API_URL || "http://localhost:8000";
-const NODE = process.env.NEXT_PUBLIC_NODE_API_URL || "http://localhost:8001";
-
-function baseForTrackId(trackId: string): string {
-  if (trackId.startsWith("node-")) return NODE;
-  return PYTHON;
-}
+/** Single public API surface — same-origin BFF proxies to internal runners. */
+const API = (typeof window === "undefined"
+  ? process.env.HUB_PUBLIC_API_BASE || "http://localhost:3000/api"
+  : "/api"
+).replace(/\/$/, "");
 
 async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url, { cache: "no-store" });
@@ -15,32 +13,29 @@ async function getJson<T>(url: string): Promise<T> {
 }
 
 export async function healthCheck(): Promise<{
+  ok?: boolean;
+  message?: string;
   python?: { database?: boolean; ok?: boolean };
   node?: { database?: boolean; ok?: boolean };
 }> {
-  const [python, node] = await Promise.all([
-    fetch(`${PYTHON}/health`).then((r) => r.json()).catch(() => ({ ok: false, database: false })),
-    fetch(`${NODE}/health`).then((r) => r.json()).catch(() => ({ ok: false, database: false })),
-  ]);
-  return { python, node };
-}
-
-export async function fetchTracks(): Promise<TrackSummary[]> {
   try {
-    const data = await getJson<{ tracks?: TrackSummary[] }>(`${PYTHON}/tracks`);
-    return data.tracks || [];
+    return await getJson(`${API}/health`);
   } catch {
-    const data = await getJson<{ tracks?: TrackSummary[] }>(`${NODE}/tracks`);
-    return data.tracks || [];
+    return { ok: false, message: "Hub offline", python: { ok: false }, node: { ok: false } };
   }
 }
 
+export async function fetchTracks(): Promise<TrackSummary[]> {
+  const data = await getJson<{ tracks?: TrackSummary[] }>(`${API}/tracks`);
+  return data.tracks || [];
+}
+
 export async function fetchTrack(trackId: string): Promise<Manifest> {
-  return getJson(`${baseForTrackId(trackId)}/tracks/${trackId}`);
+  return getJson(`${API}/tracks/${trackId}`);
 }
 
 export async function fetchTasks(trackId: string): Promise<Task[]> {
-  const data = await getJson<{ tasks?: Task[] }>(`${baseForTrackId(trackId)}/tracks/${trackId}/tasks`);
+  const data = await getJson<{ tasks?: Task[] }>(`${API}/tracks/${trackId}/tasks`);
   return (data.tasks || []).map((t) => ({
     ...t,
     summary: t.summary || t.description || t.title,
@@ -49,9 +44,7 @@ export async function fetchTasks(trackId: string): Promise<Task[]> {
 }
 
 export async function fetchLessons(trackId: string): Promise<Lesson[]> {
-  const data = await getJson<{ lessons?: Lesson[] }>(
-    `${baseForTrackId(trackId)}/tracks/${trackId}/lessons`
-  );
+  const data = await getJson<{ lessons?: Lesson[] }>(`${API}/tracks/${trackId}/lessons`);
   return (data.lessons || []).map((l) => {
     const exampleObj = typeof l.example === "object" && l.example ? l.example : null;
     const exampleCode =
@@ -62,12 +55,14 @@ export async function fetchLessons(trackId: string): Promise<Lesson[]> {
       body: l.body || l.summary || "",
       example: exampleCode,
       summary: l.summary || l.body || "",
+      exampleSql: exampleObj?.sql || l.exampleSql,
+      exampleLanguage: exampleObj?.language || l.exampleLanguage,
     };
   });
 }
 
 export async function fetchSchema(trackId: string): Promise<Schema> {
-  return getJson(`${baseForTrackId(trackId)}/schema`);
+  return getJson(`${API}/schema?trackId=${encodeURIComponent(trackId)}`);
 }
 
 export async function executeCode(body: {
@@ -76,7 +71,7 @@ export async function executeCode(body: {
   code: string;
   mode?: string;
 }): Promise<ExecuteResult> {
-  const res = await fetch(`${baseForTrackId(body.trackId)}/execute`, {
+  const res = await fetch(`${API}/execute`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -84,22 +79,23 @@ export async function executeCode(body: {
   return res.json();
 }
 
-export async function resetLab(trackId?: string): Promise<{ ok?: boolean; message?: string; schema?: Schema }> {
-  const res = await fetch(`${PYTHON}/lab/reset`, { method: "POST" });
-  if (!res.ok) {
-    // node also has reset
-    const res2 = await fetch(`${NODE}/lab/reset`, { method: "POST" });
-    return res2.json();
-  }
+export async function resetLab(_trackId?: string): Promise<{
+  ok?: boolean;
+  message?: string;
+  schema?: Schema;
+}> {
+  const res = await fetch(`${API}/lab/reset`, { method: "POST" });
   return res.json();
 }
 
-export async function fetchHistory(trackId: string): Promise<{ history: Array<Record<string, unknown>> }> {
-  const base = baseForTrackId(trackId);
+export async function fetchHistory(
+  trackId: string
+): Promise<{ history: Array<Record<string, unknown>> }> {
   try {
-    const data = await getJson<{ history?: Array<Record<string, unknown>>; items?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>>(
-      `${base}/history?limit=40&trackId=${encodeURIComponent(trackId)}`
-    );
+    const data = await getJson<
+      | { history?: Array<Record<string, unknown>>; items?: Array<Record<string, unknown>> }
+      | Array<Record<string, unknown>>
+    >(`${API}/history?limit=40&trackId=${encodeURIComponent(trackId)}`);
     if (Array.isArray(data)) return { history: data };
     return { history: data.history || data.items || [] };
   } catch {
@@ -111,9 +107,9 @@ export async function listSnapshots(): Promise<{
   snapshots: Array<{ name: string; size: number; mtime: string }>;
 }> {
   try {
-    const data = await getJson<{ snapshots?: Array<{ name: string; size: number; mtime: string }> }>(
-      `${PYTHON}/db/snapshots`
-    );
+    const data = await getJson<{
+      snapshots?: Array<{ name: string; size: number; mtime: string }>;
+    }>(`${API}/db/snapshots`);
     return { snapshots: data.snapshots || [] };
   } catch {
     return { snapshots: [] };
@@ -121,12 +117,14 @@ export async function listSnapshots(): Promise<{
 }
 
 export async function exportDb(): Promise<{ ok?: boolean; file?: string; message?: string }> {
-  const res = await fetch(`${PYTHON}/db/export`, { method: "POST" });
+  const res = await fetch(`${API}/db/export`, { method: "POST" });
   return res.json();
 }
 
-export async function restoreSnapshot(name: string): Promise<{ ok?: boolean; message?: string }> {
-  const res = await fetch(`${PYTHON}/db/restore`, {
+export async function restoreSnapshot(
+  name: string
+): Promise<{ ok?: boolean; message?: string }> {
+  const res = await fetch(`${API}/db/restore`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ file: name, name }),
@@ -134,7 +132,8 @@ export async function restoreSnapshot(name: string): Promise<{ ok?: boolean; mes
   return res.json();
 }
 
-// Aliases used by older LabClient (kept for TrackCards etc.)
 export const runLab = executeCode;
 export const exportSnapshot = exportDb;
-export { PYTHON, NODE };
+/** @deprecated Dual public URLs removed — use same-origin /api */
+export const PYTHON = API;
+export const NODE = API;

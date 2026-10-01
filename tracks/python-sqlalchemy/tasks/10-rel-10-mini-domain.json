@@ -3,7 +3,7 @@
   "order": 10,
   "title": "Mini multi-relationship domain",
   "summary": "Blog domain: bloggers, posts (1:N), tags, post_tags (M:N).",
-  "description": "Blog domain: bloggers, posts (1:N), tags, post_tags (M:N).",
+  "description": "Blog domain: bloggers, posts (1:N), tags, post_tags (M:N).\n\nWhy: A mini domain combines 1:N and M:N so you practice designing before coding \u2014 the skill used on real features.",
   "objectives": [
     "lab_bloggers",
     "lab_posts with blogger_id FK",
@@ -11,7 +11,8 @@
     "lab_post_tags"
   ],
   "hints": [
-    "Combine 1:N and M:N."
+    "Combine 1:N and M:N.",
+    "Read gate errors as cause\u2192effect: each message names what Postgres still lacks."
   ],
   "sqlEquivalent": "CREATE TABLE lab_bloggers (id SERIAL PRIMARY KEY, handle VARCHAR(80) UNIQUE NOT NULL);\nCREATE TABLE lab_posts (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  blogger_id INTEGER NOT NULL REFERENCES lab_bloggers(id)\n);\nCREATE TABLE lab_tags (id SERIAL PRIMARY KEY, label VARCHAR(80) UNIQUE NOT NULL);\nCREATE TABLE lab_post_tags (\n  post_id INTEGER NOT NULL REFERENCES lab_posts(id) ON DELETE CASCADE,\n  tag_id INTEGER NOT NULL REFERENCES lab_tags(id) ON DELETE CASCADE,\n  PRIMARY KEY (post_id, tag_id)\n);",
   "requirements": {
@@ -101,5 +102,29 @@
   ],
   "starterCode": "from sqlalchemy import String, Integer, ForeignKey, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column\n\nclass Base(DeclarativeBase):\n    pass\n\n# TODO: lab_bloggers, lab_posts, lab_tags, lab_post_tags\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
   "language": "python",
-  "trackId": "python-sqlalchemy"
+  "trackId": "python-sqlalchemy",
+  "why": "A mini domain combines 1:N and M:N so you practice designing before coding \u2014 the skill used on real features.",
+  "pitfalls": [
+    "Modeling M:N as a single FK.",
+    "Skipping the association table."
+  ],
+  "teachAlong": [
+    "Cause: realistic feature domain.",
+    "Effect: combine patterns; sketch ER first."
+  ],
+  "references": [
+    {
+      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
+    },
+    {
+      "title": "Prisma \u2014 Relations",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
+    },
+    {
+      "title": "PostgreSQL \u2014 Foreign Keys",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
+    }
+  ],
+  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres \u2014 only real tables/FKs count."
 }

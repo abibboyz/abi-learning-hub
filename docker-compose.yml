@@ -1,3 +1,7 @@
+# abi-learning-hub — ONE platform, ONE compose project.
+# Learners only open http://localhost:3000 and pick a track in the UI.
+# api-python / api-node stay on the internal compose network (not advertised).
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -28,8 +32,9 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-hub}:${POSTGRES_PASSWORD:-hub_secret}@postgres:5432/${POSTGRES_DB:-learning_hub}
       TRACKS_DIR: /app/tracks
       CORS_ORIGINS: http://localhost:3000,http://web:3000
-    ports:
-      - "${PYTHON_API_PORT:-8000}:8000"
+    # Internal only — no host port. Reached via web BFF (/api/*).
+    expose:
+      - "8000"
     volumes:
       - ./tracks:/app/tracks:ro
       - ./snapshots:/app/snapshots
@@ -55,8 +60,9 @@ services:
       TRACKS_DIR: /app/tracks
       PORT: "8001"
       CORS_ORIGINS: http://localhost:3000,http://web:3000
-    ports:
-      - "${NODE_API_PORT:-8001}:8001"
+    # Internal only — no host port. Reached via web BFF (/api/*).
+    expose:
+      - "8001"
     volumes:
       - ./tracks:/app/tracks:ro
       - ./snapshots:/app/snapshots
@@ -76,13 +82,9 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_PYTHON_API_URL: ${NEXT_PUBLIC_PYTHON_API_URL:-http://localhost:8000}
-        NEXT_PUBLIC_NODE_API_URL: ${NEXT_PUBLIC_NODE_API_URL:-http://localhost:8001}
     container_name: hub-web
     environment:
-      NEXT_PUBLIC_PYTHON_API_URL: ${NEXT_PUBLIC_PYTHON_API_URL:-http://localhost:8000}
-      NEXT_PUBLIC_NODE_API_URL: ${NEXT_PUBLIC_NODE_API_URL:-http://localhost:8001}
+      # Server-side BFF → internal compose DNS (not browser-facing)
       PYTHON_API_INTERNAL: http://api-python:8000
       NODE_API_INTERNAL: http://api-node:8001
     ports:

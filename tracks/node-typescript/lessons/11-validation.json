@@ -1,15 +1,45 @@
 {
   "id": "11-validation",
   "order": 11,
-  "title": "Validation & DTOs",
-  "summary": "Validate inserts before persistence.",
+  "title": "Validation at boundaries",
+  "summary": "Validate payloads before persistence \u2014 Zod / Pydantic / DB constraints.",
   "example": {
     "language": "typescript",
-    "code": "import { z } from 'zod'\nconst BookInsert = z.object({ title: z.string(), authorId: z.number().int() })\n",
-    "sql": "Zod / Pydantic"
+    "code": "import { z } from 'zod'\nconst MagazineIn = z.object({ title: z.string(), publisherId: z.number().int() })\n",
+    "sql": "-- DB still enforces NOT NULL / FK"
   },
   "exercise": {
-    "prompt": "Schema for insert DTO.",
-    "hint": "Validate inserts before persistence."
-  }
+    "prompt": "Define a small input schema for a child row (title + parent id).",
+    "hint": "Validate before calling the ORM."
+  },
+  "body": "Validate payloads before persistence \u2014 Zod / Pydantic / DB constraints.\n\nWhy it matters: ORMs trust your inputs. Runtime schemas catch bad types and missing fields before they become integrity errors \u2014 or worse, corrupt data.\n\nSQL \u2194 ORM: Zod z.infer \u2194 Pydantic models \u2194 DB NOT NULL / CHECK / FK.",
+  "why": "ORMs trust your inputs. Runtime schemas catch bad types and missing fields before they become integrity errors \u2014 or worse, corrupt data.",
+  "objectives": [
+    "Validate DTOs with Zod (Node) or Pydantic (Python) before write.",
+    "Treat DB constraints as the last line of defense, not the first."
+  ],
+  "pitfalls": [
+    "Trusting req.body / form JSON without parsing.",
+    "Duplicating every DB rule in app code unnecessarily \u2014 prefer complementary checks."
+  ],
+  "mappingNotes": "Zod z.infer \u2194 Pydantic models \u2194 DB NOT NULL / CHECK / FK.",
+  "teachAlong": [
+    "Cause: client sends untrusted JSON.",
+    "Effect: schema parse succeeds \u2192 safe object; else 400 with details.",
+    "Then: ORM/SQL write runs under constraints."
+  ],
+  "references": [
+    {
+      "title": "Zod \u2014 Schema validation",
+      "url": "https://zod.dev/"
+    },
+    {
+      "title": "Drizzle ORM \u2014 Relations",
+      "url": "https://orm.drizzle.team/docs/relations"
+    },
+    {
+      "title": "Prisma Client API",
+      "url": "https://www.prisma.io/docs/orm/prisma-client"
+    }
+  ]
 }

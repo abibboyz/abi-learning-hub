@@ -5,15 +5,25 @@ export default function HomePage() {
   return (
     <div className="mx-auto max-w-6xl space-y-10 px-4 py-10 animate-fade-up">
       <header className="space-y-4">
-        <p className="text-xs uppercase tracking-[0.2em] text-accent">abi-learning-hub</p>
+        <p className="text-xs uppercase tracking-[0.2em] text-accent">One platform · one command</p>
         <h1 className="text-4xl font-semibold tracking-tight text-white md:text-5xl">
           Learn database relationships
-          <span className="block text-accent">across Python, TypeScript & JavaScript</span>
+          <span className="block text-accent">pick a track in the UI</span>
         </h1>
         <p className="max-w-2xl text-ink-300">
-          Pluggable tracks, live schema diagram, task gate (validate before you celebrate),
-          topic mode, execute-only drills, Zod/SQL side-by-side, and durable progress.
+          <strong className="text-ink-100">docker compose up --build</strong> starts the whole hub.
+          Open this app, choose Python · SQLAlchemy, Node · TypeScript, or Node · JavaScript —
+          no separate stacks, no dual ports to remember.
         </p>
+        <ol className="max-w-2xl list-decimal space-y-1 pl-5 text-sm text-ink-300">
+          <li>
+            Run <code className="text-accent">docker compose up --build</code>
+          </li>
+          <li>
+            Open <code className="text-accent">http://localhost:3000</code>
+          </li>
+          <li>Select a track below (or in the lab picker) and start learning</li>
+        </ol>
         <div className="flex flex-wrap gap-3">
           <Link href="/lab?mode=topics" className="btn-primary">
             Topic-by-topic mode
@@ -24,22 +34,25 @@ export default function HomePage() {
           <Link href="/tracks" className="btn-ghost">
             Browse tracks
           </Link>
+          <Link href="/concepts" className="btn-ghost">
+            Concepts & references
+          </Link>
         </div>
       </header>
 
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-3" aria-label="Platform highlights">
         {[
           {
-            t: "Prerequisites unlock",
-            d: "Connection strings, Base/Prisma client, install commands — read-only until you unlock.",
+            t: "Single public entry",
+            d: "Only the web UI is learner-facing. /api/* BFF reaches internal runners — you never start Python vs Node Docker separately.",
           },
           {
-            t: "ORM ↔ SQL mapping",
-            d: "Every task shows equivalent CREATE TABLE / JOINs next to your model code.",
+            t: "Why · pitfalls · references",
+            d: "Every topic and task explains cause→effect, common mistakes, SQL↔ORM mapping, and links to official docs.",
           },
           {
-            t: "Export & restore",
-            d: "pg_dump snapshots via UI + scripts. Named volumes keep lab state across restarts.",
+            t: "Task gate + teach-along",
+            d: "Validate against Postgres before celebrating. Diagram highlights narrate what changed when you pass.",
           },
         ].map((x) => (
           <div key={x.t} className="card p-5">

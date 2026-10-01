@@ -38,7 +38,10 @@ export function SchemaDiagram({ schema, highlightTables = [], highlightRels = []
       <div className="card flex h-full min-h-[420px] items-center justify-center p-6 text-ink-400">
         <div className="text-center">
           <p className="text-white">Schema diagram</p>
-          <p className="mt-2 text-sm">No tables yet — run a task or wait for demo seed.</p>
+          <p className="mt-2 text-sm">
+            No tables yet — run a task to materialize lab_ tables, or reset to the demo seed.
+            Highlights narrate cause→effect when a task passes.
+          </p>
         </div>
       </div>
     );

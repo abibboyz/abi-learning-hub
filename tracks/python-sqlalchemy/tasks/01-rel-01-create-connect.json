@@ -3,14 +3,15 @@
   "order": 1,
   "title": "Create & connect",
   "summary": "Create lab_authors and lab_books with a foreign key from books \u2192 authors.",
-  "description": "Create lab_authors and lab_books with a foreign key from books \u2192 authors.",
+  "description": "Create lab_authors and lab_books with a foreign key from books \u2192 authors.\n\nWhy: You need a connected schema baseline before relationship drills. Creating the first lab table proves the runner, database, and gate are wired.",
   "objectives": [
     "Create table lab_authors with id (PK) and name",
     "Create table lab_books with id (PK), title, and author_id FK \u2192 lab_authors.id"
   ],
   "hints": [
     "Extra columns are allowed.",
-    "Use ForeignKey / @relation fields."
+    "Use ForeignKey / @relation fields.",
+    "Read gate errors as cause\u2192effect: each message names what Postgres still lacks."
   ],
   "sqlEquivalent": "CREATE TABLE lab_authors (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL\n);\nCREATE TABLE lab_books (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  author_id INTEGER NOT NULL REFERENCES lab_authors(id)\n);",
   "requirements": {
@@ -63,5 +64,30 @@
   ],
   "starterCode": "from sqlalchemy import String, Integer, ForeignKey, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\nclass Base(DeclarativeBase):\n    pass\n\n# TODO: LabAuthor + LabBook (tables lab_authors, lab_books) with author_id FK\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
   "language": "python",
-  "trackId": "python-sqlalchemy"
+  "trackId": "python-sqlalchemy",
+  "why": "You need a connected schema baseline before relationship drills. Creating the first lab table proves the runner, database, and gate are wired.",
+  "pitfalls": [
+    "Wrong table name prefix \u2014 gate looks for lab_ tables.",
+    "Forgetting create_all / migration so nothing appears in Postgres."
+  ],
+  "teachAlong": [
+    "Cause: empty lab schema.",
+    "Effect: first lab_ table appears in the diagram.",
+    "Gate: required columns matched; extras allowed."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL \u2014 CREATE TABLE",
+      "url": "https://www.postgresql.org/docs/current/sql-createtable.html"
+    },
+    {
+      "title": "SQLAlchemy \u2014 Mapped Column Declarative",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/declarative_tables.html"
+    },
+    {
+      "title": "Prisma \u2014 Schema Reference",
+      "url": "https://www.prisma.io/docs/orm/reference/prisma-schema-reference"
+    }
+  ],
+  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres \u2014 only real tables/FKs count."
 }
