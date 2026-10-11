@@ -15,8 +15,18 @@ export function nodeBackend(): string {
   ).replace(/\/$/, "");
 }
 
+/** Playwright runner (pw-runner): Playwright tracks, artifacts and the trace viewer. */
+export function pwBackend(): string {
+  return (process.env.PW_RUNNER_INTERNAL || "http://localhost:8002").replace(/\/$/, "");
+}
+
+export function isPlaywrightTrack(trackId: string | null | undefined): boolean {
+  return Boolean(trackId && trackId.startsWith("playwright-"));
+}
+
 /** Route a track id to the internal runner service. */
 export function backendForTrack(trackId: string | null | undefined): string {
+  if (isPlaywrightTrack(trackId)) return pwBackend();
   if (trackId && trackId.startsWith("node-")) return nodeBackend();
   return pythonBackend();
 }
@@ -44,6 +54,7 @@ export function isSharedMetaPath(parts: string[]): boolean {
 
 export function pickBackend(parts: string[], trackId: string | null): string {
   if (parts[0] === "compare") return nodeBackend();
+  if (parts[0] === "pw") return pwBackend(); // /pw/reset, /pw/artifacts/*, /pw/trace-viewer/*
   if (isSharedMetaPath(parts)) return pythonBackend();
   const tid = trackId || trackIdFromPath(parts);
   return backendForTrack(tid);

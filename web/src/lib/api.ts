@@ -1,4 +1,4 @@
-import type { ExecuteResult, Lesson, Manifest, Schema, Task, TrackSummary } from "@/types/hub";
+import type { ExecuteResult, Lesson, Manifest, PwExecuteResult, PwLesson, PwTask, Schema, Task, TrackSummary } from "@/types/hub";
 
 /** Single public API surface — same-origin BFF proxies to internal runners. */
 const API = (typeof window === "undefined"
@@ -17,6 +17,7 @@ export async function healthCheck(): Promise<{
   message?: string;
   python?: { database?: boolean; ok?: boolean };
   node?: { database?: boolean; ok?: boolean };
+  playwright?: { ok?: boolean; playwright?: string; appUnderTest?: boolean; database?: boolean; traceViewer?: boolean };
 }> {
   try {
     return await getJson(`${API}/health`);
@@ -128,6 +129,71 @@ export async function restoreSnapshot(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ file: name, name }),
+  });
+  return res.json();
+}
+
+// ---------------------------------------------------------------- Playwright track (pw-runner via BFF)
+
+export async function fetchPwTasks(trackId: string): Promise<PwTask[]> {
+  const data = await getJson<{ tasks?: PwTask[] }>(`${API}/tracks/${trackId}/tasks`);
+  return data.tasks || [];
+}
+
+export async function fetchPwLessons(trackId: string): Promise<PwLesson[]> {
+  const data = await getJson<{ lessons?: PwLesson[] }>(`${API}/tracks/${trackId}/lessons`);
+  return data.lessons || [];
+}
+
+export async function fetchPwSolution(trackId: string, taskId: string): Promise<{ solution: string; solutionJs: string | null }> {
+  return getJson(`${API}/tracks/${trackId}/tasks/${taskId}/solution`);
+}
+
+export async function executePlaywright(body: {
+  trackId: string;
+  taskId?: string | null;
+  lessonId?: string | null;
+  code: string;
+  mode?: string;
+  language?: "typescript" | "javascript";
+}): Promise<PwExecuteResult> {
+  const res = await fetch(`${API}/execute`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  try {
+    return (await res.json()) as PwExecuteResult;
+  } catch {
+    return { success: false, gate: "runner_error", message: `Runner answered HTTP ${res.status}` };
+  }
+}
+
+export async function fetchRun(trackId: string, id: number): Promise<{
+  id: number; task_id: string | null; mode: string; code: string; success: boolean; message: string;
+  validation: PwExecuteResult | null; created_at: string;
+} | null> {
+  try {
+    return await getJson(`${API}/history/${id}?trackId=${encodeURIComponent(trackId)}`);
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchPwProgress(trackId: string): Promise<Array<{ task_id: string; completed: boolean; attempts: number }>> {
+  try {
+    const d = await getJson<{ progress?: Array<{ task_id: string; completed: boolean; attempts: number }> }>(`${API}/progress/${trackId}`);
+    return d.progress || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function resetPlaywrightApp(trackId: string, progress = false): Promise<{ ok?: boolean; message?: string }> {
+  const res = await fetch(`${API}/pw/reset`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ trackId, progress }),
   });
   return res.json();
 }

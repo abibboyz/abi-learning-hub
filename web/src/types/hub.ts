@@ -4,7 +4,9 @@ export type TrackSummary = {
   language: string;
   variant: string;
   runtime: string;
-  api: "python" | "node";
+  api: "python" | "node" | "playwright";
+  /** Track kind picks the lab: SQL/ORM labs (default) or the Playwright lab. */
+  kind?: "orm" | "playwright";
   description: string;
   order: number;
   icon?: string;
@@ -100,4 +102,76 @@ export type Manifest = TrackSummary & {
   validationCatalog?: Array<{ id: string; title: string; example: string }>;
   taskIds?: string[];
   lessonIds?: string[];
+  playwrightVersion?: string;
+  languages?: string[];
+  appUnderTest?: { name: string; pages?: string[]; api?: string[]; accounts?: Array<{ email: string; password: string; role?: string }>; notes?: string[] };
+  references?: RefLink[];
+};
+
+// ---------------------------------------------------------------- Playwright track
+
+export type PwSupportFile = { path: string; content: string; readOnly?: boolean };
+
+export type PwTask = Task & {
+  testFile?: string;
+  starterCodeJs?: string;
+  supportFiles?: PwSupportFile[];
+  hints?: string[];
+  gate?: { forbidCss?: boolean; minTests?: number; minRunTests?: number; preset?: string; mutants?: Array<{ bug: string; reason: string }> };
+};
+
+export type PwLesson = {
+  id: string;
+  order: number;
+  title: string;
+  topic?: string;
+  summary?: string;
+  why?: string;
+  body?: string;
+  objectives?: string[];
+  pitfalls?: string[];
+  teachAlong?: string[];
+  references?: RefLink[];
+  example?: { language?: string; code?: string };
+  runnable?: boolean;
+  lab?: { supportFiles?: PwSupportFile[]; preset?: string };
+};
+
+export type PwFinding = { rule: string; severity: "reject" | "error" | "warning"; message: string; line?: number; column?: number };
+export type PwLog = { kind: string; text: string; at: number; status?: number; method?: string; url?: string; level?: string };
+export type PwTestError = { message: string; line?: number; column?: number; file?: string; snippet?: string };
+export type PwTestResult = {
+  id: string;
+  title: string;
+  titlePath: string[];
+  file: string;
+  line?: number;
+  project: string;
+  status: "passed" | "failed" | "flaky" | "skipped" | "timedOut";
+  runs: Array<{ status: string; duration: number; repeat: number; error?: PwTestError }>;
+  durationMs: number;
+  error?: PwTestError;
+  screenshots: string[];
+  trace?: string;
+  log: PwLog[];
+};
+
+export type PwExecuteResult = {
+  success: boolean;
+  gate: string;
+  message: string;
+  reasons?: PwFinding[];
+  warnings?: PwFinding[];
+  run?: {
+    runId: string;
+    durationMs: number;
+    timedOut: boolean;
+    tests: PwTestResult[];
+    mutants: Array<{ bug: string; status: "caught" | "missed" | "not-run"; tests: number }>;
+    globalErrors: PwTestError[];
+    output?: string;
+  } | null;
+  testFile?: string;
+  language?: string;
+  historyId?: number | null;
 };
