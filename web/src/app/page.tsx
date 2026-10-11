@@ -12,7 +12,7 @@ export default function HomePage() {
         </h1>
         <p className="max-w-2xl text-ink-300">
           <strong className="text-ink-100">docker compose up --build</strong> starts the whole hub.
-          Open this app, choose Python · SQLAlchemy, Node · TypeScript, Node · JavaScript, or Playwright · TypeScript —
+          Open this app, choose Python · SQLAlchemy, Node · TypeScript, Node · JavaScript, Raw SQL · PostgreSQL, or Playwright · TypeScript —
           no separate stacks, no dual ports to remember.
         </p>
         <ol className="max-w-2xl list-decimal space-y-1 pl-5 text-sm text-ink-300">
