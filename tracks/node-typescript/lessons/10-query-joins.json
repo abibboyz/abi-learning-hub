@@ -9,20 +9,79 @@
     "sql": "SELECT m.title, p.name FROM lab_magazines m JOIN lab_publishers p ON p.id = m.publisher_id;"
   },
   "exercise": {
-    "prompt": "Sketch a JOIN that returns child rows with parent names.",
-    "hint": "Join on the FK column you created earlier."
+    "kind": "code",
+    "runnable": true,
+    "language": "prisma",
+    "prompt": "Model publishers ← magazines so this JOIN works: SELECT m.title, p.name FROM lab_l10_magazines m JOIN lab_l10_publishers p ON p.id = m.publisher_id.",
+    "hint": "The gate inserts sample rows and runs that exact JOIN (rolled back). In app code: prisma.labL10Magazine.findMany({ include: { publisher: true } }).",
+    "starterCode": "model LabL10Publisher {\n  id   Int    @id @default(autoincrement())\n  name String\n  @@map(\"lab_l10_publishers\")\n}\n\n// TODO: model LabL10Magazine\n",
+    "solution": "model LabL10Publisher {\n  id        Int              @id @default(autoincrement())\n  name      String\n  magazines LabL10Magazine[]\n  @@map(\"lab_l10_publishers\")\n}\n\nmodel LabL10Magazine {\n  id          Int             @id @default(autoincrement())\n  title       String\n  publisherId Int             @map(\"publisher_id\")\n  publisher   LabL10Publisher @relation(fields: [publisherId], references: [id])\n  @@map(\"lab_l10_magazines\")\n}\n",
+    "wrongSolutions": [
+      {
+        "label": "publisherId without @map — the JOIN on publisher_id fails",
+        "expect": [
+          "missing-column",
+          "probe-failed"
+        ],
+        "code": "model LabL10Publisher {\n  id        Int              @id @default(autoincrement())\n  name      String\n  magazines LabL10Magazine[]\n  @@map(\"lab_l10_publishers\")\n}\n\nmodel LabL10Magazine {\n  id          Int             @id @default(autoincrement())\n  title       String\n  publisherId Int             \n  publisher   LabL10Publisher @relation(fields: [publisherId], references: [id])\n  @@map(\"lab_l10_magazines\")\n}\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l10_publishers",
+          "columns": [
+            {
+              "name": "id",
+              "pk": true
+            }
+          ]
+        },
+        {
+          "name": "lab_l10_magazines",
+          "columns": [
+            {
+              "name": "publisher_id",
+              "nullable": false,
+              "fk": {
+                "table": "lab_l10_publishers",
+                "column": "id"
+              }
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "sql": [
+            "INSERT INTO lab_l10_publishers (id, name) VALUES (1, 'Acme'), (2, 'Globex')",
+            "INSERT INTO lab_l10_magazines (title, publisher_id) VALUES ('Monthly Review', 1), ('Data Weekly', 1), ('Outdoor Life', 2)",
+            "SELECT m.title, p.name FROM lab_l10_magazines m JOIN lab_l10_publishers p ON p.id = m.publisher_id"
+          ],
+          "minRows": 3,
+          "message": "The gate inserts 2 publishers + 3 magazines and runs the JOIN."
+        }
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l10_publishers",
+        "lab_l10_magazines"
+      ],
+      "highlightRels": []
+    }
   },
-  "body": "Write rows that respect FKs, then JOIN / include to read graphs.\n\nWhy it matters: Schema without queries is incomplete. Inserts must satisfy FKs; reads use JOINs (or ORM include) to reassemble the relationship graph you modeled.\n\nSQL \u2194 ORM: SQL JOIN \u2194 SQLAlchemy selectinload/joinedload \u2194 Prisma include/select.",
+  "body": "Write rows that respect FKs, then JOIN / include to read graphs.\n\nWhy it matters: Schema without queries is incomplete. Inserts must satisfy FKs; reads use JOINs (or ORM include) to reassemble the relationship graph you modeled.\n\nSQL ↔ ORM: SQL JOIN ↔ SQLAlchemy selectinload/joinedload ↔ Prisma include/select.",
   "why": "Schema without queries is incomplete. Inserts must satisfy FKs; reads use JOINs (or ORM include) to reassemble the relationship graph you modeled.",
   "objectives": [
     "Insert parent before child when FKs are required.",
     "Read across a relationship with JOIN or ORM navigation."
   ],
   "pitfalls": [
-    "Inserting child first \u2192 FK violation.",
+    "Inserting child first → FK violation.",
     "Selecting only one table and wondering where related fields went."
   ],
-  "mappingNotes": "SQL JOIN \u2194 SQLAlchemy selectinload/joinedload \u2194 Prisma include/select.",
+  "mappingNotes": "SQL JOIN ↔ SQLAlchemy selectinload/joinedload ↔ Prisma include/select.",
   "teachAlong": [
     "Cause: data is normalized across tables.",
     "Effect: JOIN/include reconstitutes the object graph.",
@@ -30,16 +89,17 @@
   ],
   "references": [
     {
-      "title": "PostgreSQL \u2014 Joins",
+      "title": "PostgreSQL — Joins",
       "url": "https://www.postgresql.org/docs/current/tutorial-join.html"
     },
     {
-      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
       "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
     },
     {
       "title": "Prisma Client API",
       "url": "https://www.prisma.io/docs/orm/prisma-client"
     }
-  ]
+  ],
+  "level": "intermediate"
 }

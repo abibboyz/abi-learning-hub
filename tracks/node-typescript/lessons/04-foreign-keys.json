@@ -2,17 +2,71 @@
   "id": "04-foreign-keys",
   "order": 4,
   "title": "Foreign keys",
-  "summary": "An FK column stores the parent PK \u2014 the physical basis of relationships.",
+  "summary": "An FK column stores the parent PK — the physical basis of relationships.",
   "example": {
     "language": "prisma",
     "code": "authorId Int @map(\"author_id\")\nauthor   LabAuthor @relation(fields: [authorId], references: [id])",
     "sql": "author_id INTEGER NOT NULL REFERENCES lab_authors(id)"
   },
   "exercise": {
-    "prompt": "Add a foreign key column that references another lab_ table's id.",
-    "hint": "FK lives on the child / many side."
+    "kind": "code",
+    "runnable": true,
+    "language": "prisma",
+    "prompt": "LabL04Magazine.publisherId (@map(\"publisher_id\")) with @relation to LabL04Publisher — required.",
+    "hint": "The FK lives on the side with `@relation(fields: [...], references: [...])`.",
+    "starterCode": "model LabL04Publisher {\n  id        Int              @id @default(autoincrement())\n  name      String\n  magazines LabL04Magazine[]\n  @@map(\"lab_l04_publishers\")\n}\n\n// TODO: model LabL04Magazine\n",
+    "solution": "model LabL04Publisher {\n  id        Int              @id @default(autoincrement())\n  name      String\n  magazines LabL04Magazine[]\n  @@map(\"lab_l04_publishers\")\n}\n\nmodel LabL04Magazine {\n  id          Int             @id @default(autoincrement())\n  title       String\n  publisherId Int             @map(\"publisher_id\")\n  publisher   LabL04Publisher @relation(fields: [publisherId], references: [id])\n  @@map(\"lab_l04_magazines\")\n}\n",
+    "wrongSolutions": [
+      {
+        "label": "forgot @map on publisherId (column is \"publisherId\")",
+        "expect": [
+          "missing-column"
+        ],
+        "code": "model LabL04Publisher {\n  id        Int              @id @default(autoincrement())\n  name      String\n  magazines LabL04Magazine[]\n  @@map(\"lab_l04_publishers\")\n}\n\nmodel LabL04Magazine {\n  id          Int             @id @default(autoincrement())\n  title       String\n  publisherId Int\n  publisher   LabL04Publisher @relation(fields: [publisherId], references: [id])\n  @@map(\"lab_l04_magazines\")\n}\n"
+      },
+      {
+        "label": "no @relation (plain Int)",
+        "expect": [
+          "not-foreign-key"
+        ],
+        "code": "model LabL04Publisher {\n  id   Int    @id @default(autoincrement())\n  name String\n  @@map(\"lab_l04_publishers\")\n}\n\nmodel LabL04Magazine {\n  id          Int    @id @default(autoincrement())\n  title       String\n  publisherId Int    @map(\"publisher_id\")\n  @@map(\"lab_l04_magazines\")\n}\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l04_publishers",
+          "columns": [
+            {
+              "name": "id",
+              "pk": true
+            }
+          ]
+        },
+        {
+          "name": "lab_l04_magazines",
+          "columns": [
+            {
+              "name": "publisher_id",
+              "nullable": false,
+              "fk": {
+                "table": "lab_l04_publishers",
+                "column": "id"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l04_publishers",
+        "lab_l04_magazines"
+      ],
+      "highlightRels": []
+    }
   },
-  "body": "An FK column stores the parent PK \u2014 the physical basis of relationships.\n\nWhy it matters: Diagram lines and ORM relationship() / @relation are sugar over foreign keys. If the FK column (and constraint) is missing, joins and cascades have nothing to enforce.\n\nSQL \u2194 ORM: SQLAlchemy ForeignKey('lab_authors.id') \u2194 Prisma fields/references \u2194 SQL REFERENCES lab_authors(id).",
+  "body": "An FK column stores the parent PK — the physical basis of relationships.\n\nWhy it matters: Diagram lines and ORM relationship() / @relation are sugar over foreign keys. If the FK column (and constraint) is missing, joins and cascades have nothing to enforce.\n\nSQL ↔ ORM: SQLAlchemy ForeignKey('lab_authors.id') ↔ Prisma fields/references ↔ SQL REFERENCES lab_authors(id).",
   "why": "Diagram lines and ORM relationship() / @relation are sugar over foreign keys. If the FK column (and constraint) is missing, joins and cascades have nothing to enforce.",
   "objectives": [
     "Place the FK on the correct side (usually the 'many' / child).",
@@ -21,9 +75,9 @@
   ],
   "pitfalls": [
     "Putting the FK on the parent for 1:N (backwards).",
-    "ORM relationship without an actual FK column \u2014 looks fine in code, fails the gate."
+    "ORM relationship without an actual FK column — looks fine in code, fails the gate."
   ],
-  "mappingNotes": "SQLAlchemy ForeignKey('lab_authors.id') \u2194 Prisma fields/references \u2194 SQL REFERENCES lab_authors(id).",
+  "mappingNotes": "SQLAlchemy ForeignKey('lab_authors.id') ↔ Prisma fields/references ↔ SQL REFERENCES lab_authors(id).",
   "teachAlong": [
     "Cause: child row must belong to a parent.",
     "Effect: child gets parent_id + FK constraint.",
@@ -31,16 +85,17 @@
   ],
   "references": [
     {
-      "title": "PostgreSQL \u2014 Foreign Keys",
+      "title": "PostgreSQL — Foreign Keys",
       "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
     },
     {
-      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
       "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
     },
     {
-      "title": "Prisma \u2014 Relations",
+      "title": "Prisma — Relations",
       "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
     }
-  ]
+  ],
+  "level": "beginner"
 }

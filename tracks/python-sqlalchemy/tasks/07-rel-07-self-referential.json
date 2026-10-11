@@ -5,11 +5,11 @@
   "summary": "Staff who report to other staff via manager_id.",
   "description": "Staff who report to other staff via manager_id.\n\nWhy: Hierarchies live in one table via a self-FK. Nullable manager_id is what allows root rows.",
   "objectives": [
-    "lab_staff (id PK, name, manager_id nullable FK \u2192 lab_staff.id)"
+    "lab_staff (id PK, name, manager_id nullable FK → lab_staff.id)"
   ],
   "hints": [
     "Self-FK: same table on both ends.",
-    "Read gate errors as cause\u2192effect: each message names what Postgres still lacks."
+    "Read gate errors as cause→effect: each message names what Postgres still lacks."
   ],
   "sqlEquivalent": "CREATE TABLE lab_staff (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL,\n  manager_id INTEGER REFERENCES lab_staff(id) ON DELETE SET NULL\n);",
   "requirements": {
@@ -47,7 +47,7 @@
   "highlightHint": [
     "lab_staff"
   ],
-  "starterCode": "from sqlalchemy import String, Integer, ForeignKey, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column\n\nclass Base(DeclarativeBase):\n    pass\n\n# TODO: lab_staff with manager_id \u2192 lab_staff.id\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+  "starterCode": "from sqlalchemy import String, Integer, ForeignKey, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column\n\nclass Base(DeclarativeBase):\n    pass\n\n# TODO: lab_staff with manager_id → lab_staff.id\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
   "language": "python",
   "trackId": "python-sqlalchemy",
   "why": "Hierarchies live in one table via a self-FK. Nullable manager_id is what allows root rows.",
@@ -61,17 +61,27 @@
   ],
   "references": [
     {
-      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
       "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
     },
     {
-      "title": "Prisma \u2014 Relations",
+      "title": "Prisma — Relations",
       "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
     },
     {
-      "title": "PostgreSQL \u2014 Foreign Keys",
+      "title": "PostgreSQL — Foreign Keys",
       "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
     }
   ],
-  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres \u2014 only real tables/FKs count."
+  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres — only real tables/FKs count.",
+  "solution": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabStaff(Base):\n    __tablename__ = \"lab_staff\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    manager_id: Mapped[int | None] = mapped_column(ForeignKey(\"lab_staff.id\"))\n    manager: Mapped[\"LabStaff | None\"] = relationship(remote_side=[id], back_populates=\"reports\")\n    reports: Mapped[list[\"LabStaff\"]] = relationship(back_populates=\"manager\")\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+  "wrongSolutions": [
+    {
+      "label": "manager_id NOT NULL — the CEO cannot be inserted",
+      "expect": [
+        "must-be-nullable"
+      ],
+      "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabStaff(Base):\n    __tablename__ = \"lab_staff\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    manager_id: Mapped[int] = mapped_column(ForeignKey(\"lab_staff.id\"))\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+    }
+  ]
 }

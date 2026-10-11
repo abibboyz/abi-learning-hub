@@ -31,20 +31,52 @@ def _introspect(conn: Connection) -> dict[str, Any]:
         )
     ).fetchall()
 
-    unique_cols = conn.execute(
+    # Every PRIMARY KEY / UNIQUE constraint or unique index, with its ordered columns.
+    # Single-column keys mark the column as unique; multi-column keys are reported per table
+    # (a composite UNIQUE(a, b) does NOT make `a` unique on its own).
+    key_rows = conn.execute(
         text(
             """
-            SELECT tc.table_name, kcu.column_name
-            FROM information_schema.table_constraints tc
-            JOIN information_schema.key_column_usage kcu
-              ON tc.constraint_name = kcu.constraint_name
-             AND tc.table_schema = kcu.table_schema
-            WHERE tc.table_schema = 'public'
-              AND tc.constraint_type IN ('UNIQUE', 'PRIMARY KEY')
+            SELECT c.relname AS table_name,
+                   i.indisprimary AS is_primary,
+                   i.indisunique AS is_unique,
+                   array_agg(a.attname::text ORDER BY k.ord) AS columns
+            FROM pg_index i
+            JOIN pg_class c ON c.oid = i.indrelid
+            JOIN pg_namespace n ON n.oid = c.relnamespace AND n.nspname = 'public'
+            CROSS JOIN LATERAL unnest(i.indkey) WITH ORDINALITY AS k(attnum, ord)
+            JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum = k.attnum
+            WHERE i.indpred IS NULL AND i.indexprs IS NULL
+            GROUP BY c.relname, i.indexrelid, i.indisprimary, i.indisunique
             """
         )
     ).fetchall()
-    unique_set = {(t, c) for t, c in unique_cols}
+    keys_by_table: dict[str, dict[str, Any]] = {}
+    for table_name, is_primary, is_unique, key_cols in key_rows:
+        entry = keys_by_table.setdefault(table_name, {"primaryKey": [], "unique": [], "indexes": []})
+        if is_primary:
+            entry["primaryKey"] = list(key_cols)
+        elif is_unique:
+            entry["unique"].append(list(key_cols))
+        else:
+            entry["indexes"].append(list(key_cols))
+
+    # CHECK constraints (definition text as Postgres prints it, e.g. "CHECK ((price >= (0)::numeric))").
+    check_rows = conn.execute(
+        text(
+            """
+            SELECT c.relname, con.conname, pg_get_constraintdef(con.oid)
+            FROM pg_constraint con
+            JOIN pg_class c ON c.oid = con.conrelid
+            JOIN pg_namespace n ON n.oid = c.relnamespace AND n.nspname = 'public'
+            WHERE con.contype = 'c'
+            ORDER BY con.conname
+            """
+        )
+    ).fetchall()
+    checks_by_table: dict[str, list[dict[str, str]]] = {}
+    for table_name, con_name, definition in check_rows:
+        checks_by_table.setdefault(table_name, []).append({"name": con_name, "definition": definition})
 
     tables: list[dict[str, Any]] = []
     relationships: list[dict[str, Any]] = []
@@ -81,6 +113,11 @@ def _introspect(conn: Connection) -> dict[str, Any]:
             {"table": table_name},
         ).fetchall()
 
+        keys = keys_by_table.get(table_name, {"primaryKey": [], "unique": [], "indexes": []})
+        single_unique = {k[0] for k in keys["unique"] if len(k) == 1}
+        if len(keys["primaryKey"]) == 1:
+            single_unique.add(keys["primaryKey"][0])
+
         columns = []
         for col_name, data_type, udt_name, is_nullable, default, is_pk in cols:
             type_label = udt_name if data_type == "USER-DEFINED" else data_type
@@ -91,7 +128,7 @@ def _introspect(conn: Connection) -> dict[str, Any]:
                     "nullable": is_nullable == "YES",
                     "default": default,
                     "isPrimaryKey": bool(is_pk),
-                    "isUnique": (table_name, col_name) in unique_set,
+                    "isUnique": col_name in single_unique,
                     "isForeignKey": False,
                 }
             )
@@ -152,6 +189,15 @@ def _introspect(conn: Connection) -> dict[str, Any]:
                 }
             )
 
-        tables.append({"name": table_name, "columns": columns})
+        tables.append(
+            {
+                "name": table_name,
+                "columns": columns,
+                "primaryKey": keys["primaryKey"],
+                "uniqueConstraints": keys["unique"],
+                "indexes": keys["indexes"],
+                "checks": checks_by_table.get(table_name, []),
+            }
+        )
 
     return {"tables": tables, "relationships": relationships}

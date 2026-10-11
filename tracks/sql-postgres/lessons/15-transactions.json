@@ -1,0 +1,100 @@
+{
+  "id": "15-transactions",
+  "order": 15,
+  "title": "Transactions (advanced)",
+  "summary": "All-or-nothing changes: commit, rollback and why two writes must share one transaction.",
+  "body": "All-or-nothing changes: commit, rollback and why two writes must share one transaction.\n\nWhy it matters: A transfer is two writes. If only one lands, money is created or destroyed. A transaction makes the pair atomic: both commit, or a failure rolls both back.\n\nSQL ↔ ORM: SQLAlchemy Session.begin() context. Prisma $transaction([...]) or $transaction(async (tx) => …). SQL BEGIN … COMMIT (the lab wraps your script for you).",
+  "why": "A transfer is two writes. If only one lands, money is created or destroyed. A transaction makes the pair atomic: both commit, or a failure rolls both back.",
+  "objectives": [
+    "Group related writes in one transaction.",
+    "Understand rollback on error.",
+    "Python: `with Session(engine) as s, s.begin():` — Prisma: `$transaction` — SQL: BEGIN/COMMIT."
+  ],
+  "pitfalls": [
+    "Two separate sessions/calls for one logical change.",
+    "Forgetting to commit.",
+    "Using the global client inside a Prisma interactive transaction."
+  ],
+  "mappingNotes": "SQLAlchemy Session.begin() context. Prisma $transaction([...]) or $transaction(async (tx) => …). SQL BEGIN … COMMIT (the lab wraps your script for you).",
+  "teachAlong": [
+    "Cause: All-or-nothing changes: commit, rollback and why two writes must share one transaction.",
+    "Effect: run the exercise and read the gate's rule ids.",
+    "Replay any run from History."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL — Transactions",
+      "url": "https://www.postgresql.org/docs/current/tutorial-transactions.html"
+    },
+    {
+      "title": "SQLAlchemy — Transactions and Connection Management",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/session_transaction.html"
+    },
+    {
+      "title": "Prisma — Transactions",
+      "url": "https://www.prisma.io/docs/orm/prisma-client/queries/transactions"
+    }
+  ],
+  "level": "advanced",
+  "example": {
+    "language": "sql",
+    "code": "BEGIN;\nUPDATE accounts SET balance = balance - 30 WHERE owner = 'alice';\nUPDATE accounts SET balance = balance + 30 WHERE owner = 'bob';\nCOMMIT;",
+    "sql": "BEGIN;\nUPDATE accounts SET balance = balance - 30 WHERE owner = 'alice';\nUPDATE accounts SET balance = balance + 30 WHERE owner = 'bob';\nCOMMIT;"
+  },
+  "exercise": {
+    "kind": "code",
+    "runnable": true,
+    "language": "sql",
+    "prompt": "Transfer 30 from alice to bob with two UPDATEs. The lab runs your script as ONE transaction, so both land or neither.",
+    "hint": "UPDATE … SET balance = balance - 30 WHERE owner = 'alice'; then the matching credit.",
+    "starterCode": "CREATE TABLE lab_l15_accounts (\n  id SERIAL PRIMARY KEY,\n  owner VARCHAR(40) NOT NULL UNIQUE,\n  balance NUMERIC(10,2) NOT NULL CHECK (balance >= 0)\n);\nINSERT INTO lab_l15_accounts (owner, balance) VALUES ('alice', 100), ('bob', 0);\n\n-- TODO: move 30 from alice to bob\n",
+    "solution": "CREATE TABLE lab_l15_accounts (\n  id SERIAL PRIMARY KEY,\n  owner VARCHAR(40) NOT NULL UNIQUE,\n  balance NUMERIC(10,2) NOT NULL CHECK (balance >= 0)\n);\nINSERT INTO lab_l15_accounts (owner, balance) VALUES ('alice', 100), ('bob', 0);\n\nUPDATE lab_l15_accounts SET balance = balance - 30 WHERE owner = 'alice';\nUPDATE lab_l15_accounts SET balance = balance + 30 WHERE owner = 'bob';\n",
+    "wrongSolutions": [
+      {
+        "label": "debit only — money disappears",
+        "expect": [
+          "missing-data"
+        ],
+        "code": "CREATE TABLE lab_l15_accounts (\n  id SERIAL PRIMARY KEY,\n  owner VARCHAR(40) NOT NULL UNIQUE,\n  balance NUMERIC(10,2) NOT NULL CHECK (balance >= 0)\n);\nINSERT INTO lab_l15_accounts (owner, balance) VALUES ('alice', 100), ('bob', 0);\n\nUPDATE lab_l15_accounts SET balance = balance - 30 WHERE owner = 'alice';\n"
+      },
+      {
+        "label": "overdraws alice — the CHECK aborts the whole script",
+        "expect": [
+          "runtime-error"
+        ],
+        "code": "CREATE TABLE lab_l15_accounts (\n  id SERIAL PRIMARY KEY,\n  owner VARCHAR(40) NOT NULL UNIQUE,\n  balance NUMERIC(10,2) NOT NULL CHECK (balance >= 0)\n);\nINSERT INTO lab_l15_accounts (owner, balance) VALUES ('alice', 100), ('bob', 0);\n\nUPDATE lab_l15_accounts SET balance = balance - 130 WHERE owner = 'alice';\nUPDATE lab_l15_accounts SET balance = balance + 130 WHERE owner = 'bob';\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l15_accounts",
+          "columns": [
+            {
+              "name": "balance",
+              "type": "numeric"
+            }
+          ]
+        }
+      ],
+      "data": [
+        {
+          "sql": "SELECT count(*) FROM lab_l15_accounts WHERE owner = 'alice' AND balance = 70",
+          "min": 1,
+          "message": "alice must end with 70 (100 − 30)."
+        },
+        {
+          "sql": "SELECT count(*) FROM lab_l15_accounts WHERE owner = 'bob' AND balance = 30",
+          "min": 1,
+          "message": "bob must end with exactly 30 — the failed 500 transfer must leave no trace."
+        }
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l15_accounts"
+      ],
+      "highlightRels": []
+    }
+  }
+}

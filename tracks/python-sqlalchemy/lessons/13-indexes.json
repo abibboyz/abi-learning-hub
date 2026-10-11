@@ -1,0 +1,92 @@
+{
+  "id": "13-indexes",
+  "order": 13,
+  "title": "Indexes (advanced)",
+  "summary": "Why foreign keys need an index and how composite index order matters.",
+  "body": "Why foreign keys need an index and how composite index order matters.\n\nWhy it matters: Postgres creates indexes for PRIMARY KEY and UNIQUE automatically — never for foreign keys. Every join, every `WHERE author_id = ?` and every ON DELETE check on the parent then scans the child table.\n\nSQL ↔ ORM: SQLAlchemy mapped_column(..., index=True) / Index(...). Prisma @@index([field]). SQL CREATE INDEX name ON table (col).",
+  "why": "Postgres creates indexes for PRIMARY KEY and UNIQUE automatically — never for foreign keys. Every join, every `WHERE author_id = ?` and every ON DELETE check on the parent then scans the child table.",
+  "objectives": [
+    "Index FK columns explicitly.",
+    "Know that only the LEADING column of a composite index serves single-column lookups.",
+    "Read an index from the schema diagram."
+  ],
+  "pitfalls": [
+    "Assuming REFERENCES creates an index.",
+    "Composite index (title, author_id) for lookups by author_id.",
+    "Indexing every column — each index slows writes."
+  ],
+  "mappingNotes": "SQLAlchemy mapped_column(..., index=True) / Index(...). Prisma @@index([field]). SQL CREATE INDEX name ON table (col).",
+  "teachAlong": [
+    "Cause: Why foreign keys need an index and how composite index order matters.",
+    "Effect: run the exercise and read the gate's rule ids.",
+    "Replay any run from History."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL — Indexes",
+      "url": "https://www.postgresql.org/docs/current/indexes.html"
+    },
+    {
+      "title": "PostgreSQL — Multicolumn Indexes",
+      "url": "https://www.postgresql.org/docs/current/indexes-multicolumn.html"
+    },
+    {
+      "title": "SQLAlchemy — Constraints and Indexes",
+      "url": "https://docs.sqlalchemy.org/en/20/core/constraints.html"
+    },
+    {
+      "title": "Prisma — Indexes",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/indexes"
+    }
+  ],
+  "level": "advanced",
+  "example": {
+    "language": "python",
+    "code": "author_id: Mapped[int] = mapped_column(ForeignKey(\"lab_authors.id\"), index=True)",
+    "sql": "CREATE INDEX lab_books_author_id_idx ON lab_books (author_id);"
+  },
+  "exercise": {
+    "kind": "code",
+    "runnable": true,
+    "language": "python",
+    "prompt": "Postgres does NOT index foreign keys for you. Index lab_l13_books.author_id.",
+    "hint": "mapped_column(ForeignKey(...), index=True)",
+    "starterCode": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabL13Author(Base):\n    __tablename__ = \"lab_l13_authors\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n\n\nclass LabL13Book(Base):\n    __tablename__ = \"lab_l13_books\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n    author_id: Mapped[int] = mapped_column(ForeignKey(\"lab_l13_authors.id\"))\n\n# TODO: index author_id\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+    "solution": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabL13Author(Base):\n    __tablename__ = \"lab_l13_authors\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n\n\nclass LabL13Book(Base):\n    __tablename__ = \"lab_l13_books\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n    author_id: Mapped[int] = mapped_column(ForeignKey(\"lab_l13_authors.id\"), index=True)\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+    "wrongSolutions": [
+      {
+        "label": "FK without an index",
+        "expect": [
+          "missing-index"
+        ],
+        "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabL13Author(Base):\n    __tablename__ = \"lab_l13_authors\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n\n\nclass LabL13Book(Base):\n    __tablename__ = \"lab_l13_books\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n    author_id: Mapped[int] = mapped_column(ForeignKey(\"lab_l13_authors.id\"))\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l13_books",
+          "columns": [
+            {
+              "name": "author_id",
+              "indexed": true,
+              "fk": {
+                "table": "lab_l13_authors",
+                "column": "id"
+              }
+            }
+          ]
+        }
+      ],
+      "resetTables": [
+        "lab_l13_authors"
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l13_books"
+      ],
+      "highlightRels": []
+    }
+  }
+}

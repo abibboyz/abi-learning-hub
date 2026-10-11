@@ -14,11 +14,40 @@ from sqlalchemy import text
 
 from app.config import settings
 from app.db import ensure_meta_tables, get_engine, session_scope
+import re
+
+from app.lab_role import ensure_lab_role, lab_database_url
 from app.runner import UnsafeCodeError, run_lab_code
 from app.schema_introspector import introspect_schema
 from app.seed import reset_to_seed, seed_database
-from app.task_checker import check_requirements
+from app.sql_runner import run_lab_sql
+from app.task_checker import (
+    check_calls,
+    check_data,
+    check_probes,
+    check_requirements,
+    check_stdout,
+    grade_quiz,
+    merge,
+)
 from app import tracks_loader as tracks
+
+PRIVATE_KEYS = ("solution", "wrongSolutions")
+LAB_TABLE = re.compile(r"^lab_[a-z0-9_]{1,58}$")
+
+
+def _public(item: dict[str, Any]) -> dict[str, Any]:
+    """Strip reference/wrong solutions from task or lesson payloads (served only on request)."""
+    out = {k: v for k, v in item.items() if k not in PRIVATE_KEYS}
+    ex = out.get("exercise")
+    if isinstance(ex, dict):
+        ex = {k: v for k, v in ex.items() if k not in PRIVATE_KEYS}
+        if ex.get("kind") == "quiz":  # never ship the answer key
+            ex["questions"] = [
+                {**q, "options": [{"id": o["id"], "text": o["text"]} for o in q["options"]]} for q in ex.get("questions", [])
+            ]
+        out["exercise"] = ex
+    return out
 
 app = FastAPI(title="abi-learning-hub Python API", version="1.0.0")
 
@@ -34,7 +63,8 @@ app.add_middleware(
 class ExecuteBody(BaseModel):
     trackId: str = "python-sqlalchemy"
     taskId: str | None = None
-    code: str = Field(..., min_length=1)
+    lessonId: str | None = None
+    code: str = Field(..., min_length=1, max_length=20_000)
     mode: str = "execute"  # execute | dry-run
     validateOnly: bool = False
 
@@ -52,6 +82,7 @@ def on_startup() -> None:
         engine = get_engine()
         ensure_meta_tables(engine)
         seed_database(engine)
+        ensure_lab_role(engine, settings.database_url)
     except Exception as e:  # noqa: BLE001 — allow API up without DB for unit tests
         print(f"[startup] DB not ready yet: {e}")
 
@@ -91,7 +122,7 @@ def get_track(track_id: str) -> dict[str, Any]:
 @app.get("/tracks/{track_id}/tasks")
 def get_tasks(track_id: str) -> dict[str, Any]:
     try:
-        return {"tasks": tracks.list_tasks(track_id)}
+        return {"tasks": [_public(t) for t in tracks.list_tasks(track_id)]}
     except FileNotFoundError as e:
         raise HTTPException(404, str(e)) from e
 
@@ -99,15 +130,38 @@ def get_tasks(track_id: str) -> dict[str, Any]:
 @app.get("/tracks/{track_id}/tasks/{task_id}")
 def get_task(track_id: str, task_id: str) -> dict[str, Any]:
     try:
-        return tracks.load_task(track_id, task_id)
+        return _public(tracks.load_task(track_id, task_id))
     except FileNotFoundError as e:
         raise HTTPException(404, str(e)) from e
+
+
+@app.get("/tracks/{track_id}/tasks/{task_id}/solution")
+def get_task_solution(track_id: str, task_id: str) -> dict[str, Any]:
+    try:
+        t = tracks.load_task(track_id, task_id)
+    except FileNotFoundError as e:
+        raise HTTPException(404, str(e)) from e
+    if not t.get("solution"):
+        raise HTTPException(404, "No reference solution for this task")
+    return {"solution": t["solution"]}
+
+
+@app.get("/tracks/{track_id}/lessons/{lesson_id}/solution")
+def get_lesson_solution(track_id: str, lesson_id: str) -> dict[str, Any]:
+    try:
+        lesson = tracks.load_lesson(track_id, lesson_id)
+    except FileNotFoundError as e:
+        raise HTTPException(404, str(e)) from e
+    ex = lesson.get("exercise") if isinstance(lesson.get("exercise"), dict) else {}
+    if not ex.get("solution"):
+        raise HTTPException(404, "No reference solution for this lesson")
+    return {"solution": ex["solution"]}
 
 
 @app.get("/tracks/{track_id}/lessons")
 def get_lessons(track_id: str) -> dict[str, Any]:
     try:
-        return {"lessons": tracks.list_lessons(track_id)}
+        return {"lessons": [_public(x) for x in tracks.list_lessons(track_id)]}
     except FileNotFoundError as e:
         raise HTTPException(404, str(e)) from e
 
@@ -115,7 +169,7 @@ def get_lessons(track_id: str) -> dict[str, Any]:
 @app.get("/tracks/{track_id}/lessons/{lesson_id}")
 def get_lesson(track_id: str, lesson_id: str) -> dict[str, Any]:
     try:
-        return tracks.load_lesson(track_id, lesson_id)
+        return _public(tracks.load_lesson(track_id, lesson_id))
     except FileNotFoundError as e:
         raise HTTPException(404, str(e)) from e
 
@@ -128,86 +182,131 @@ def get_schema() -> dict[str, Any]:
         raise HTTPException(503, f"Database unavailable: {e}") from e
 
 
+PYTHON_API_TRACKS = {"python-sqlalchemy": "python", "sql-postgres": "sql"}
+
+
+def _validation(failures: list[dict[str, Any]], matched: list[str] | None = None) -> dict[str, Any]:
+    errors = [f["message"] for f in failures]
+    return {
+        "ok": not failures,
+        "errors": errors,
+        "failures": failures,
+        "matched": matched or [],
+        "message": "; ".join(errors) if failures else "All requirements satisfied — extras are allowed.",
+    }
+
+
 @app.post("/execute")
 def execute(body: ExecuteBody) -> dict[str, Any]:
-    """Task gate: run code → introspect → validate requirements → record history.
+    """Gate: (clean slate) → run learner code → introspect → check schema, data, probes, calls, output.
 
-    On validation failure the DDL may already have run (create_all). We still
-    report failure clearly. For validateOnly with a dry sandbox we'd need
-    transactions — here we use a practical approach:
-    1. Snapshot schema before
-    2. Run code
-    3. Snapshot after + validate
-    4. If task requirements fail, message is specific; caller can reset-lab
+    Every failure is {rule, message, table?, column?, line?}; the same rule ids are used by api-node.
     """
-    if body.trackId != "python-sqlalchemy":
-        raise HTTPException(
-            400,
-            f"This API handles python-sqlalchemy only. Use api-node for {body.trackId}.",
-        )
+    language = PYTHON_API_TRACKS.get(body.trackId)
+    if language is None:
+        raise HTTPException(400, f"This API handles {', '.join(PYTHON_API_TRACKS)}. Use api-node for {body.trackId}.")
 
     engine = get_engine()
-    schema_before = introspect_schema(engine)
-
-    requirements = None
-    task = None
-    if body.taskId:
-        try:
+    requirements: dict[str, Any] | None = None
+    animation: Any = None
+    quiz: list[dict[str, Any]] | None = None
+    try:
+        if body.taskId:
             task = tracks.load_task(body.trackId, body.taskId)
             requirements = task.get("requirements")
-        except FileNotFoundError as e:
-            raise HTTPException(404, str(e)) from e
+            animation = task.get("animation")
+        elif body.lessonId:
+            lesson = tracks.load_lesson(body.trackId, body.lessonId)
+            ex = lesson.get("exercise") if isinstance(lesson.get("exercise"), dict) else {}
+            if ex.get("kind") == "quiz":
+                quiz = ex.get("questions") or []
+            else:
+                requirements = ex.get("requirements")
+                animation = ex.get("animation")
+                if not requirements:
+                    raise HTTPException(400, f"Lesson {body.lessonId} has no runnable exercise.")
+    except FileNotFoundError as e:
+        raise HTTPException(404, str(e)) from e
+    if body.lessonId and not body.taskId:
+        body.mode = f"lesson:{body.lessonId}"[:32]
 
-    try:
-        result = run_lab_code(body.code, settings.database_url)
-    except UnsafeCodeError as e:
+    if quiz is not None:
+        schema = introspect_schema(engine)
+        validation = grade_quiz(quiz, body.code)
+        msg = "Quiz passed!" if validation["ok"] else validation["message"]
+        _record_history(body, validation["ok"], msg, schema, schema, validation)
         return {
-            "success": False,
-            "gate": "rejected",
-            "message": str(e),
-            "schema": schema_before,
-            "validation": {"ok": False, "errors": [str(e)], "matched": []},
+            "success": validation["ok"],
+            "gate": "passed" if validation["ok"] else ("rejected" if validation["failures"][0]["rule"] == "rejected" else "validation_failed"),
+            "message": msg,
+            "schema": schema,
+            "validation": validation,
             "animation": None,
         }
 
+    # Clean slate: drop the tables this exercise checks, so leftovers from an earlier attempt can neither
+    # make a wrong answer pass nor make a right one fail (create_all never alters an existing table).
+    if requirements:
+        _drop_lab_tables([t["name"] for t in requirements.get("tables", [])] + requirements.get("resetTables", []))
+    schema_before = introspect_schema(engine)
+
+    calls = (requirements or {}).get("calls") or []
+    try:
+        if language == "sql":
+            result = run_lab_sql(body.code, lab_database_url(settings.database_url))
+        else:
+            result = run_lab_code(body.code, lab_database_url(settings.database_url), calls=calls)
+    except UnsafeCodeError as e:
+        result = {"ok": False, "rejected": True, "error": str(e), "line": getattr(e, "line", None)}
+
     if not result.get("ok"):
-        _record_history(
-            body, False, result.get("error") or "Runtime error", schema_before, schema_before, None
-        )
+        err = result.get("error") or "Runtime error"
+        rule = "rejected" if result.get("rejected") else "runtime-error"
+        validation = _validation([{"rule": rule, "message": err, "line": result.get("line")}])
+        validation["message"] = err
+        schema_after = introspect_schema(engine)
+        _record_history(body, False, err, schema_before, schema_after, validation)
         return {
             "success": False,
-            "gate": "runtime_error",
-            "message": result.get("error"),
+            "gate": "rejected" if rule == "rejected" else "runtime_error",
+            "message": err,
             "traceback": result.get("traceback"),
-            "schema": schema_before,
-            "validation": None,
+            "stdout": result.get("stdout") or "",
+            "schema": schema_after,
+            "validation": validation,
             "animation": None,
         }
 
     schema_after = introspect_schema(engine)
+    stdout = result.get("stdout") or ""
     validation = None
     if requirements:
         validation = check_requirements(schema_after, requirements)
+        extra: list[dict[str, Any]] = []
+        extra += check_data(requirements.get("data") or [], _scalar)
+        extra += check_probes(requirements.get("probes") or [], _run_probe)
+        extra += check_calls(calls, result.get("calls") or [])
+        extra += check_stdout(requirements.get("stdout"), stdout)
+        validation = merge(validation, extra)
         if not validation["ok"]:
-            _record_history(
-                body, False, validation["message"], schema_before, schema_after, validation
-            )
+            _record_history(body, False, validation["message"], schema_before, schema_after, validation)
             return {
                 "success": False,
                 "gate": "validation_failed",
                 "message": validation["message"],
                 "schema": schema_after,
                 "validation": validation,
+                "stdout": stdout,
                 "animation": None,
-                "note": "Requirements not met — fix your models. Extra columns are OK; missing required ones are not.",
+                "note": "Requirements not met. Extra tables/columns are OK; the listed rules are not.",
             }
 
-    animation = (task or {}).get("animation") if task else None
     msg = "Executed successfully."
     if validation and validation["ok"]:
-        msg = "Task passed! Schema updated — watch the diagram highlight."
+        msg = "Lesson exercise passed!" if body.lessonId and not body.taskId else (
+            "Task passed! Schema updated — watch the diagram highlight."
+        )
     _record_history(body, True, msg, schema_before, schema_after, validation)
-
     if body.taskId and validation and validation["ok"]:
         _upsert_progress(body.trackId, body.taskId, True, body.code)
 
@@ -217,9 +316,40 @@ def execute(body: ExecuteBody) -> dict[str, Any]:
         "message": msg,
         "schema": schema_after,
         "validation": validation,
+        "stdout": stdout,
         "animation": animation,
         "schemaBefore": schema_before,
     }
+
+
+def _drop_lab_tables(names: list[str]) -> None:
+    safe = sorted({n for n in names if LAB_TABLE.match(n)})
+    if not safe:
+        return
+    with get_engine().begin() as conn:
+        for n in safe:
+            conn.execute(text(f'DROP TABLE IF EXISTS "{n}" CASCADE'))
+
+
+def _scalar(sql: str) -> Any:
+    with get_engine().connect() as conn:
+        return conn.execute(text(sql)).scalar()
+
+
+def _run_probe(statements: list[str]) -> int:
+    """Run trusted probe SQL in one transaction that is always rolled back; return the last row count."""
+    conn = get_engine().connect()
+    trans = conn.begin()
+    try:
+        conn.execute(text("SET LOCAL statement_timeout = 5000"))
+        rows = 0
+        for st in statements:
+            res = conn.execute(text(st))
+            rows = len(res.fetchall()) if res.returns_rows else (res.rowcount or 0)
+        return rows
+    finally:
+        trans.rollback()
+        conn.close()
 
 
 def _record_history(

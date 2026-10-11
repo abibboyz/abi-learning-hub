@@ -1,0 +1,99 @@
+{
+  "id": "13-indexes",
+  "order": 13,
+  "title": "Indexes (advanced)",
+  "summary": "Why foreign keys need an index and how composite index order matters.",
+  "body": "Why foreign keys need an index and how composite index order matters.\n\nWhy it matters: Postgres creates indexes for PRIMARY KEY and UNIQUE automatically — never for foreign keys. Every join, every `WHERE author_id = ?` and every ON DELETE check on the parent then scans the child table.\n\nSQL ↔ ORM: SQLAlchemy mapped_column(..., index=True) / Index(...). Prisma @@index([field]). SQL CREATE INDEX name ON table (col).",
+  "why": "Postgres creates indexes for PRIMARY KEY and UNIQUE automatically — never for foreign keys. Every join, every `WHERE author_id = ?` and every ON DELETE check on the parent then scans the child table.",
+  "objectives": [
+    "Index FK columns explicitly.",
+    "Know that only the LEADING column of a composite index serves single-column lookups.",
+    "Read an index from the schema diagram."
+  ],
+  "pitfalls": [
+    "Assuming REFERENCES creates an index.",
+    "Composite index (title, author_id) for lookups by author_id.",
+    "Indexing every column — each index slows writes."
+  ],
+  "mappingNotes": "SQLAlchemy mapped_column(..., index=True) / Index(...). Prisma @@index([field]). SQL CREATE INDEX name ON table (col).",
+  "teachAlong": [
+    "Cause: Why foreign keys need an index and how composite index order matters.",
+    "Effect: run the exercise and read the gate's rule ids.",
+    "Replay any run from History."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL — Indexes",
+      "url": "https://www.postgresql.org/docs/current/indexes.html"
+    },
+    {
+      "title": "PostgreSQL — Multicolumn Indexes",
+      "url": "https://www.postgresql.org/docs/current/indexes-multicolumn.html"
+    },
+    {
+      "title": "SQLAlchemy — Constraints and Indexes",
+      "url": "https://docs.sqlalchemy.org/en/20/core/constraints.html"
+    },
+    {
+      "title": "Prisma — Indexes",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/indexes"
+    }
+  ],
+  "level": "advanced",
+  "example": {
+    "language": "sql",
+    "code": "CREATE INDEX lab_books_author_id_idx ON lab_books (author_id);",
+    "sql": "CREATE INDEX lab_books_author_id_idx ON lab_books (author_id);"
+  },
+  "exercise": {
+    "kind": "code",
+    "runnable": true,
+    "language": "sql",
+    "prompt": "CREATE INDEX on lab_l13_books(author_id).",
+    "hint": "CREATE INDEX lab_l13_books_author_id_idx ON lab_l13_books (author_id);",
+    "starterCode": "CREATE TABLE lab_l13_authors (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_l13_books (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  author_id INTEGER NOT NULL REFERENCES lab_l13_authors(id)\n);\n\n-- TODO: index author_id\n",
+    "solution": "CREATE TABLE lab_l13_authors (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_l13_books (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  author_id INTEGER NOT NULL REFERENCES lab_l13_authors(id)\n);\n\nCREATE INDEX lab_l13_books_author_id_idx ON lab_l13_books (author_id);\n",
+    "wrongSolutions": [
+      {
+        "label": "no index",
+        "expect": [
+          "missing-index"
+        ],
+        "code": "CREATE TABLE lab_l13_authors (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_l13_books (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  author_id INTEGER NOT NULL REFERENCES lab_l13_authors(id)\n);\n"
+      },
+      {
+        "label": "index on (title, author_id) — author_id is not the leading column",
+        "expect": [
+          "missing-index"
+        ],
+        "code": "CREATE TABLE lab_l13_authors (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_l13_books (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  author_id INTEGER NOT NULL REFERENCES lab_l13_authors(id)\n);\n\nCREATE INDEX lab_l13_books_title_idx ON lab_l13_books (title, author_id);\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l13_books",
+          "columns": [
+            {
+              "name": "author_id",
+              "indexed": true,
+              "fk": {
+                "table": "lab_l13_authors",
+                "column": "id"
+              }
+            }
+          ]
+        }
+      ],
+      "resetTables": [
+        "lab_l13_authors"
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l13_books"
+      ],
+      "highlightRels": []
+    }
+  }
+}

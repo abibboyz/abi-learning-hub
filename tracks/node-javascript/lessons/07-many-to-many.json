@@ -9,20 +9,98 @@
     "sql": "junction table with two FOREIGN KEYs"
   },
   "exercise": {
-    "prompt": "Add a junction table with two foreign keys.",
-    "hint": "Both FKs are required for M:N integrity."
+    "kind": "code",
+    "runnable": true,
+    "language": "prisma",
+    "prompt": "Explicit M:N: model LabL07Enrollment (lab_l07_enrollments) with studentId + courseId relations and @@id([studentId, courseId]).",
+    "hint": "Implicit `courses LabL07Course[]` on both sides makes Prisma create its own _CourseToStudent table — the lab wants an explicit junction.",
+    "starterCode": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabL07Student {\n  id          Int                @id @default(autoincrement())\n  name        String\n  enrollments LabL07Enrollment[]\n  @@map(\"lab_l07_students\")\n}\n\nmodel LabL07Course {\n  id          Int                @id @default(autoincrement())\n  title       String\n  enrollments LabL07Enrollment[]\n  @@map(\"lab_l07_courses\")\n}\n\n// TODO: model LabL07Enrollment\n",
+    "solution": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabL07Student {\n  id          Int                @id @default(autoincrement())\n  name        String\n  enrollments LabL07Enrollment[]\n  @@map(\"lab_l07_students\")\n}\n\nmodel LabL07Course {\n  id          Int                @id @default(autoincrement())\n  title       String\n  enrollments LabL07Enrollment[]\n  @@map(\"lab_l07_courses\")\n}\n\nmodel LabL07Enrollment {\n  studentId Int           @map(\"student_id\")\n  courseId  Int           @map(\"course_id\")\n  student   LabL07Student @relation(fields: [studentId], references: [id])\n  course    LabL07Course  @relation(fields: [courseId], references: [id])\n  @@id([studentId, courseId])\n  @@map(\"lab_l07_enrollments\")\n}\n",
+    "wrongSolutions": [
+      {
+        "label": "implicit M:N (no explicit junction model)",
+        "expect": [
+          "missing-table"
+        ],
+        "code": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabL07Student {\n  id      Int            @id @default(autoincrement())\n  name    String\n  courses LabL07Course[]\n  @@map(\"lab_l07_students\")\n}\n\nmodel LabL07Course {\n  id       Int             @id @default(autoincrement())\n  title    String\n  students LabL07Student[]\n  @@map(\"lab_l07_courses\")\n}\n"
+      },
+      {
+        "label": "junction with its own id and no @@unique",
+        "expect": [
+          "missing-composite-key"
+        ],
+        "code": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabL07Student {\n  id          Int                @id @default(autoincrement())\n  name        String\n  enrollments LabL07Enrollment[]\n  @@map(\"lab_l07_students\")\n}\n\nmodel LabL07Course {\n  id          Int                @id @default(autoincrement())\n  title       String\n  enrollments LabL07Enrollment[]\n  @@map(\"lab_l07_courses\")\n}\n\nmodel LabL07Enrollment {\n  id        Int           @id @default(autoincrement())\n  studentId Int           @map(\"student_id\")\n  courseId  Int           @map(\"course_id\")\n  student   LabL07Student @relation(fields: [studentId], references: [id])\n  course    LabL07Course  @relation(fields: [courseId], references: [id])\n  @@map(\"lab_l07_enrollments\")\n}\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l07_students",
+          "columns": [
+            {
+              "name": "id",
+              "pk": true
+            }
+          ]
+        },
+        {
+          "name": "lab_l07_courses",
+          "columns": [
+            {
+              "name": "id",
+              "pk": true
+            }
+          ]
+        },
+        {
+          "name": "lab_l07_enrollments",
+          "columns": [
+            {
+              "name": "student_id",
+              "nullable": false,
+              "fk": {
+                "table": "lab_l07_students",
+                "column": "id"
+              }
+            },
+            {
+              "name": "course_id",
+              "nullable": false,
+              "fk": {
+                "table": "lab_l07_courses",
+                "column": "id"
+              }
+            }
+          ],
+          "uniqueTogether": [
+            [
+              "student_id",
+              "course_id"
+            ]
+          ]
+        }
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l07_students",
+        "lab_l07_courses",
+        "lab_l07_enrollments"
+      ],
+      "highlightRels": []
+    }
   },
-  "body": "Two principals associate via a junction table holding two FKs.\n\nWhy it matters: Posts\u2194tags, students\u2194courses need M:N. A direct FK cannot express 'many on both sides' \u2014 the association table is the relational answer and can carry payload columns (grade, enrolled_at).\n\nSQL \u2194 ORM: SQLAlchemy secondary= / association object \u2194 Prisma implicit/explicit m:n \u2194 junction CREATE TABLE with two REFERENCES.",
-  "why": "Posts\u2194tags, students\u2194courses need M:N. A direct FK cannot express 'many on both sides' \u2014 the association table is the relational answer and can carry payload columns (grade, enrolled_at).",
+  "body": "Two principals associate via a junction table holding two FKs.\n\nWhy it matters: Posts↔tags, students↔courses need M:N. A direct FK cannot express 'many on both sides' — the association table is the relational answer and can carry payload columns (grade, enrolled_at).\n\nSQL ↔ ORM: SQLAlchemy secondary= / association object ↔ Prisma implicit/explicit m:n ↔ junction CREATE TABLE with two REFERENCES.",
+  "why": "Posts↔tags, students↔courses need M:N. A direct FK cannot express 'many on both sides' — the association table is the relational answer and can carry payload columns (grade, enrolled_at).",
   "objectives": [
     "Create two entity tables plus a junction with two FKs.",
     "Optionally add a composite PK or unique pair on (left_id, right_id)."
   ],
   "pitfalls": [
-    "Trying to store arrays of ids in a column \u2014 loses referential integrity.",
+    "Trying to store arrays of ids in a column — loses referential integrity.",
     "Missing one of the two FKs so the gate fails."
   ],
-  "mappingNotes": "SQLAlchemy secondary= / association object \u2194 Prisma implicit/explicit m:n \u2194 junction CREATE TABLE with two REFERENCES.",
+  "mappingNotes": "SQLAlchemy secondary= / association object ↔ Prisma implicit/explicit m:n ↔ junction CREATE TABLE with two REFERENCES.",
   "teachAlong": [
     "Cause: many posts share many tags.",
     "Effect: lab_post_tags(post_id, tag_id) with two FKs.",
@@ -30,16 +108,17 @@
   ],
   "references": [
     {
-      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
       "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
     },
     {
-      "title": "Prisma \u2014 Relations",
+      "title": "Prisma — Relations",
       "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
     },
     {
-      "title": "PostgreSQL \u2014 Foreign Keys",
+      "title": "PostgreSQL — Foreign Keys",
       "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
     }
-  ]
+  ],
+  "level": "intermediate"
 }

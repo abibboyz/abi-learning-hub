@@ -2,17 +2,121 @@
   "id": "12-frameworks",
   "order": 12,
   "title": "Where DB code lives (runtimes)",
-  "summary": "APIs, Next.js server routes, and SPAs \u2014 credentials never ship to the browser.",
+  "summary": "APIs, Next.js server routes, and SPAs — credentials never ship to the browser.",
   "example": {
     "language": "python",
-    "code": "# FastAPI router uses SessionLocal \u2014 not exposed to the browser",
+    "code": "# FastAPI router uses SessionLocal — not exposed to the browser",
     "sql": "-- Postgres only reachable from compose network / server"
   },
   "exercise": {
-    "prompt": "Name three places DB credentials must never appear.",
-    "hint": "Client bundles, public env without server-only prefix, screenshots of .env."
+    "kind": "quiz",
+    "runnable": true,
+    "prompt": "Answer every question — each wrong option explains why it is wrong.",
+    "questions": [
+      {
+        "id": "q1",
+        "prompt": "A React SPA (Vite) shows a list of magazines. Where does the ORM / SQL query run?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Inside the React component, in useEffect",
+            "why": "That code runs in the browser: DATABASE_URL would ship in the JS bundle, and browsers cannot open a Postgres connection anyway."
+          },
+          {
+            "id": "b",
+            "text": "In an API (Node/Express, FastAPI, a Next.js route handler) that the SPA calls over HTTP",
+            "correct": true
+          },
+          {
+            "id": "c",
+            "text": "In a service worker",
+            "why": "A service worker is still the user's browser — same credential leak, no TCP to Postgres."
+          }
+        ]
+      },
+      {
+        "id": "q2",
+        "prompt": "Next.js App Router: which file may import PrismaClient / a DB pool?",
+        "options": [
+          {
+            "id": "a",
+            "text": "A component starting with 'use client'",
+            "why": "'use client' components are bundled for the browser; Next.js refuses server-only modules there."
+          },
+          {
+            "id": "b",
+            "text": "A Server Component or app/api/…/route.ts route handler",
+            "correct": true
+          },
+          {
+            "id": "c",
+            "text": "next.config.js",
+            "why": "That is build configuration, not request-time code — it never serves data."
+          }
+        ]
+      },
+      {
+        "id": "q3",
+        "prompt": "Where should the database URL live in a Next.js app?",
+        "options": [
+          {
+            "id": "a",
+            "text": "NEXT_PUBLIC_DATABASE_URL",
+            "why": "NEXT_PUBLIC_* variables are inlined into the client bundle — anyone can read the password."
+          },
+          {
+            "id": "b",
+            "text": "DATABASE_URL, read only in server code",
+            "correct": true
+          },
+          {
+            "id": "c",
+            "text": "Hard-coded in lib/db.ts",
+            "why": "It ends up in git history and in any bundle that imports the file."
+          }
+        ]
+      },
+      {
+        "id": "q4",
+        "prompt": "Plain Node vs React vs Next: which one is a runtime, which a UI library, which a framework?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Node = JS runtime (servers, scripts); React = UI library; Next.js = React framework with a server",
+            "correct": true
+          },
+          {
+            "id": "b",
+            "text": "All three are interchangeable web frameworks",
+            "why": "Node runs JavaScript outside the browser, React only renders UI, Next.js combines React with server rendering and routes."
+          },
+          {
+            "id": "c",
+            "text": "React can talk to Postgres directly because it is JavaScript",
+            "why": "React code runs where it is rendered; in the browser it has no DB access and must call an API."
+          }
+        ]
+      }
+    ],
+    "solution": "{\"answers\": {\"q1\": \"b\", \"q2\": \"b\", \"q3\": \"b\", \"q4\": \"a\"}}",
+    "wrongSolutions": [
+      {
+        "label": "first option everywhere",
+        "expect": [
+          "wrong-answer"
+        ],
+        "code": "{\"answers\": {\"q1\": \"a\", \"q2\": \"a\", \"q3\": \"a\", \"q4\": \"a\"}}"
+      },
+      {
+        "label": "nothing answered",
+        "expect": [
+          "unanswered"
+        ],
+        "code": "{\"answers\": {}}"
+      }
+    ]
   },
-  "body": "APIs, Next.js server routes, and SPAs \u2014 credentials never ship to the browser.\n\nWhy it matters: Putting DATABASE_URL in client JS leaks secrets. Production hubs keep runners and queries on the server (this app's /api BFF is the learner-facing example).\n\nSQL \u2194 ORM: Browser \u2192 https://localhost:3000/api/* \u2192 internal runners \u2192 Postgres.",
+  "body": "APIs, Next.js server routes, and SPAs — credentials never ship to the browser.\n\nWhy it matters: Putting DATABASE_URL in client JS leaks secrets. Production hubs keep runners and queries on the server (this app's /api BFF is the learner-facing example).\n\nSQL ↔ ORM: Browser → https://localhost:3000/api/* → internal runners → Postgres.",
   "why": "Putting DATABASE_URL in client JS leaks secrets. Production hubs keep runners and queries on the server (this app's /api BFF is the learner-facing example).",
   "objectives": [
     "List safe places for DB access (API process, Next route handlers, workers).",
@@ -20,9 +124,9 @@
   ],
   "pitfalls": [
     "Importing Prisma/pg into Client Components.",
-    "Edge runtimes without native driver support \u2014 prefer Node for DB labs."
+    "Edge runtimes without native driver support — prefer Node for DB labs."
   ],
-  "mappingNotes": "Browser \u2192 https://localhost:3000/api/* \u2192 internal runners \u2192 Postgres.",
+  "mappingNotes": "Browser → https://localhost:3000/api/* → internal runners → Postgres.",
   "teachAlong": [
     "Cause: learner picks a track in the UI.",
     "Effect: BFF routes to python or node runner internally.",
@@ -30,7 +134,7 @@
   ],
   "references": [
     {
-      "title": "Next.js \u2014 Route Handlers",
+      "title": "Next.js — Route Handlers",
       "url": "https://nextjs.org/docs/app/building-your-application/routing/route-handlers"
     },
     {
@@ -38,8 +142,17 @@
       "url": "https://www.prisma.io/docs/orm/prisma-client"
     },
     {
-      "title": "SQLAlchemy \u2014 Engine Configuration",
+      "title": "SQLAlchemy — Engine Configuration",
       "url": "https://docs.sqlalchemy.org/en/20/core/engines.html"
+    },
+    {
+      "title": "Next.js — Server and Client Components",
+      "url": "https://nextjs.org/docs/app/getting-started/server-and-client-components"
+    },
+    {
+      "title": "Next.js — Environment Variables",
+      "url": "https://nextjs.org/docs/app/guides/environment-variables"
     }
-  ]
+  ],
+  "level": "intermediate"
 }

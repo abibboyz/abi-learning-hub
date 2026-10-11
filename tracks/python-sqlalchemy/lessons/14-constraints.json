@@ -1,0 +1,114 @@
+{
+  "id": "14-constraints",
+  "order": 14,
+  "title": "CHECK, UNIQUE & defaults (advanced)",
+  "summary": "Put business rules where every writer must obey them.",
+  "body": "Put business rules where every writer must obey them.\n\nWhy it matters: App-side validation protects one code path. Constraints protect the data from every path — scripts, other services, a psql session, a buggy migration.\n\nSQL ↔ ORM: SQLAlchemy CheckConstraint/UniqueConstraint in __table_args__. Prisma @@unique([a, b]), @default(...); CHECK via a SQL migration. SQL: CHECK (...), UNIQUE (a, b), DEFAULT.",
+  "why": "App-side validation protects one code path. Constraints protect the data from every path — scripts, other services, a psql session, a buggy migration.",
+  "objectives": [
+    "Write CHECK constraints (Python/SQL).",
+    "Use composite UNIQUE for 'one per parent' rules.",
+    "Know what Prisma can and cannot express (no CHECK — use a SQL migration)."
+  ],
+  "pitfalls": [
+    "Validating only in the API.",
+    "A global UNIQUE where the rule is per parent.",
+    "Unnamed constraints — error messages become cryptic."
+  ],
+  "mappingNotes": "SQLAlchemy CheckConstraint/UniqueConstraint in __table_args__. Prisma @@unique([a, b]), @default(...); CHECK via a SQL migration. SQL: CHECK (...), UNIQUE (a, b), DEFAULT.",
+  "teachAlong": [
+    "Cause: Put business rules where every writer must obey them.",
+    "Effect: run the exercise and read the gate's rule ids.",
+    "Replay any run from History."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL — Constraints",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html"
+    },
+    {
+      "title": "SQLAlchemy — Constraints and Indexes",
+      "url": "https://docs.sqlalchemy.org/en/20/core/constraints.html"
+    },
+    {
+      "title": "Prisma — Indexes",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/indexes"
+    }
+  ],
+  "level": "advanced",
+  "example": {
+    "language": "python",
+    "code": "__table_args__ = (CheckConstraint(\"price >= 0\", name=\"ck_price\"),)",
+    "sql": "price NUMERIC(10,2) NOT NULL CHECK (price >= 0)"
+  },
+  "exercise": {
+    "kind": "code",
+    "runnable": true,
+    "language": "python",
+    "prompt": "Rules that must hold for EVERY writer belong in the database: CHECK price >= 0 and stock >= 0 on lab_l14_products.",
+    "hint": "__table_args__ = (CheckConstraint(\"price >= 0\", name=...), ...). The gate tries good and bad INSERTs (rolled back).",
+    "starterCode": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nfrom sqlalchemy import CheckConstraint\n\n\nclass LabL14Product(Base):\n    __tablename__ = \"lab_l14_products\"\n    # TODO: __table_args__ with CheckConstraint(...)\n    id: Mapped[int] = mapped_column(primary_key=True)\n    sku: Mapped[str] = mapped_column(String(32), unique=True)\n    price: Mapped[float] = mapped_column(Numeric(10, 2))\n    stock: Mapped[int] = mapped_column(Integer, server_default=\"0\")\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+    "solution": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nfrom sqlalchemy import CheckConstraint\n\n\nclass LabL14Product(Base):\n    __tablename__ = \"lab_l14_products\"\n    __table_args__ = (\n        CheckConstraint(\"price >= 0\", name=\"ck_l14_price_non_negative\"),\n        CheckConstraint(\"stock >= 0\", name=\"ck_l14_stock_non_negative\"),\n    )\n    id: Mapped[int] = mapped_column(primary_key=True)\n    sku: Mapped[str] = mapped_column(String(32), unique=True)\n    price: Mapped[float] = mapped_column(Numeric(10, 2))\n    stock: Mapped[int] = mapped_column(Integer, server_default=\"0\")\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+    "wrongSolutions": [
+      {
+        "label": "no CHECK constraints",
+        "expect": [
+          "constraint-not-enforced"
+        ],
+        "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nfrom sqlalchemy import CheckConstraint\n\n\nclass LabL14Product(Base):\n    __tablename__ = \"lab_l14_products\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    sku: Mapped[str] = mapped_column(String(32), unique=True)\n    price: Mapped[float] = mapped_column(Numeric(10, 2))\n    stock: Mapped[int] = mapped_column(Integer, server_default=\"0\")\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+      },
+      {
+        "label": "only price is checked",
+        "expect": [
+          "constraint-not-enforced"
+        ],
+        "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nfrom sqlalchemy import CheckConstraint\n\n\nclass LabL14Product(Base):\n    __tablename__ = \"lab_l14_products\"\n    __table_args__ = (\n        CheckConstraint(\"price >= 0\", name=\"ck_l14_price_non_negative\"),\n    )\n    id: Mapped[int] = mapped_column(primary_key=True)\n    sku: Mapped[str] = mapped_column(String(32), unique=True)\n    price: Mapped[float] = mapped_column(Numeric(10, 2))\n    stock: Mapped[int] = mapped_column(Integer, server_default=\"0\")\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l14_products",
+          "columns": [
+            {
+              "name": "sku",
+              "unique": true
+            },
+            {
+              "name": "price",
+              "type": "numeric"
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "sql": [
+            "INSERT INTO lab_l14_products (sku, price) VALUES ('A-1', 9.99)"
+          ],
+          "message": "A normal product (stock defaulting to 0) must be accepted."
+        },
+        {
+          "sql": [
+            "INSERT INTO lab_l14_products (sku, price, stock) VALUES ('A-2', -1, 1)"
+          ],
+          "expect": "error",
+          "message": "A negative price must be rejected by the database."
+        },
+        {
+          "sql": [
+            "INSERT INTO lab_l14_products (sku, price, stock) VALUES ('A-3', 1, -5)"
+          ],
+          "expect": "error",
+          "message": "Negative stock must be rejected by the database."
+        }
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l14_products"
+      ],
+      "highlightRels": []
+    }
+  }
+}

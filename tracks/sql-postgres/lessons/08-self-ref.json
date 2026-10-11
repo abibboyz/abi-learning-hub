@@ -1,0 +1,92 @@
+{
+  "id": "08-self-ref",
+  "order": 8,
+  "title": "Self-referential relationships",
+  "summary": "A table FK-references itself (manager → reports, category trees).",
+  "example": {
+    "language": "sql",
+    "code": "manager_id INTEGER NULL REFERENCES lab_employees(id)",
+    "sql": "manager_id INTEGER NULL REFERENCES lab_employees(id)"
+  },
+  "exercise": {
+    "kind": "code",
+    "runnable": true,
+    "language": "sql",
+    "prompt": "lab_l08_categories.parent_id INTEGER REFERENCES lab_l08_categories(id) — nullable.",
+    "hint": "A table may reference itself.",
+    "starterCode": "CREATE TABLE lab_l08_categories (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL\n  -- TODO: parent_id\n);\n",
+    "solution": "CREATE TABLE lab_l08_categories (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL,\n  parent_id INTEGER REFERENCES lab_l08_categories(id)\n);\n",
+    "wrongSolutions": [
+      {
+        "label": "parent_id NOT NULL",
+        "expect": [
+          "must-be-nullable",
+          "probe-failed"
+        ],
+        "code": "CREATE TABLE lab_l08_categories (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL,\n  parent_id INTEGER NOT NULL REFERENCES lab_l08_categories(id)\n);\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l08_categories",
+          "columns": [
+            {
+              "name": "parent_id",
+              "nullable": true,
+              "fk": {
+                "table": "lab_l08_categories",
+                "column": "id"
+              }
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "sql": [
+            "INSERT INTO lab_l08_categories (id, name, parent_id) VALUES (1, 'Root', NULL), (2, 'Child', 1)"
+          ],
+          "message": "The gate inserts a root category (parent_id NULL) and a child under it."
+        }
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l08_categories"
+      ],
+      "highlightRels": []
+    }
+  },
+  "body": "A table FK-references itself (manager → reports, category trees).\n\nWhy it matters: Org charts and nested categories live in one table. A self-FK (nullable for roots) models hierarchy without inventing extra tables.\n\nSQL ↔ ORM: Same-table ForeignKey / Prisma self relation names (fields + references).",
+  "why": "Org charts and nested categories live in one table. A self-FK (nullable for roots) models hierarchy without inventing extra tables.",
+  "objectives": [
+    "Add nullable parent_id / manager_id referencing the same table's id.",
+    "Explain why roots use NULL."
+  ],
+  "pitfalls": [
+    "NOT NULL on parent_id — then you cannot insert the root row.",
+    "Cycles without application checks."
+  ],
+  "mappingNotes": "Same-table ForeignKey / Prisma self relation names (fields + references).",
+  "teachAlong": [
+    "Cause: employee reports to another employee.",
+    "Effect: manager_id NULL REFERENCES lab_employees(id).",
+    "Roots: manager_id IS NULL."
+  ],
+  "references": [
+    {
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
+    },
+    {
+      "title": "Prisma — Relations",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
+    },
+    {
+      "title": "PostgreSQL — Foreign Keys",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
+    }
+  ],
+  "level": "intermediate"
+}

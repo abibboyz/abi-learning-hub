@@ -3,48 +3,59 @@
   "tracks": [
     {
       "id": "python-sqlalchemy",
-      "title": "Python \u00b7 SQLAlchemy",
+      "title": "Python · SQLAlchemy",
       "language": "python",
       "variant": "orm",
       "runtime": "fastapi",
       "api": "python",
       "description": "Declare models with SQLAlchemy 2.x Mapped columns, relationships, and metadata.create_all.",
       "order": 1,
-      "icon": "\ud83d\udc0d"
+      "icon": "🐍"
     },
     {
       "id": "node-typescript",
-      "title": "Node.js \u00b7 TypeScript",
+      "title": "Node.js · TypeScript",
       "language": "typescript",
       "variant": "orm",
       "runtime": "node",
       "api": "node",
       "description": "Prisma schema + TypeScript client. Strong typing for models and queries.",
       "order": 2,
-      "icon": "\ud83d\udcd8"
+      "icon": "📘"
     },
     {
       "id": "node-javascript",
-      "title": "Node.js \u00b7 JavaScript",
+      "title": "Node.js · JavaScript",
       "language": "javascript",
       "variant": "orm",
       "runtime": "node",
       "api": "node",
-      "description": "Same Prisma patterns without TypeScript \u2014 Zod at the boundaries.",
+      "description": "Same Prisma patterns without TypeScript — Zod at the boundaries.",
       "order": 3,
-      "icon": "\ud83d\udcd2"
+      "icon": "📒"
+    },
+    {
+      "id": "sql-postgres",
+      "title": "Raw SQL · PostgreSQL",
+      "language": "sql",
+      "variant": "sql",
+      "runtime": "postgres",
+      "api": "python",
+      "description": "Write the DDL and queries yourself — CREATE TABLE, REFERENCES, constraints, indexes, JOINs, transactions — executed as a restricted lab role.",
+      "icon": "🐘",
+      "order": 4
     },
     {
       "id": "playwright-typescript",
-      "title": "Playwright \u00b7 TypeScript",
+      "title": "Playwright · TypeScript",
       "language": "typescript",
       "variant": "e2e",
       "runtime": "playwright",
       "api": "playwright",
       "kind": "playwright",
       "description": "Test automation with Playwright Test (UI + API) against a local practice app: locators, web-first assertions, fixtures, POM, auth, mocking, visual, CI.",
-      "order": 4,
-      "icon": "\ud83c\udfad"
+      "order": 5,
+      "icon": "🎭"
     }
   ],
   "howToAdd": "Create tracks/<id>/manifest.json + lessons/ + tasks/. Register in index.json. Set manifest kind (\"orm\" default, \"playwright\") so the UI picks the right lab and the BFF the right runner."

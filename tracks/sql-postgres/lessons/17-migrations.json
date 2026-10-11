@@ -1,0 +1,131 @@
+{
+  "id": "17-migrations",
+  "order": 17,
+  "title": "Migrations (advanced)",
+  "summary": "Evolving a live schema safely: versioned migrations instead of create_all / db push.",
+  "body": "Evolving a live schema safely: versioned migrations instead of create_all / db push.\n\nWhy it matters: create_all and db push are great for labs. In production the schema changes while data exists — you need ordered, reviewed, repeatable migration files.\n\nSQL ↔ ORM: Python: alembic revision --autogenerate + alembic upgrade head. Node: prisma migrate dev / migrate deploy. SQL: numbered .sql files applied in order.",
+  "why": "create_all and db push are great for labs. In production the schema changes while data exists — you need ordered, reviewed, repeatable migration files.",
+  "objectives": [
+    "Know why create_all never alters tables.",
+    "Create versioned migrations (Alembic / prisma migrate).",
+    "Add NOT NULL columns safely (default/backfill)."
+  ],
+  "pitfalls": [
+    "prisma db push in production.",
+    "Adding NOT NULL without a default to a full table.",
+    "Editing an already-applied migration."
+  ],
+  "mappingNotes": "Python: alembic revision --autogenerate + alembic upgrade head. Node: prisma migrate dev / migrate deploy. SQL: numbered .sql files applied in order.",
+  "teachAlong": [
+    "Cause: Evolving a live schema safely: versioned migrations instead of create_all / db push.",
+    "Effect: run the exercise and read the gate's rule ids.",
+    "Replay any run from History."
+  ],
+  "references": [
+    {
+      "title": "Alembic — Tutorial",
+      "url": "https://alembic.sqlalchemy.org/en/latest/tutorial.html"
+    },
+    {
+      "title": "Prisma Migrate — Getting started",
+      "url": "https://www.prisma.io/docs/orm/prisma-migrate/getting-started"
+    },
+    {
+      "title": "PostgreSQL — ALTER TABLE",
+      "url": "https://www.postgresql.org/docs/current/sql-altertable.html"
+    }
+  ],
+  "level": "advanced",
+  "example": {
+    "language": "sql",
+    "code": "ALTER TABLE lab_authors ADD COLUMN bio TEXT NOT NULL DEFAULT '';",
+    "sql": "ALTER TABLE lab_authors ADD COLUMN bio TEXT NOT NULL DEFAULT '';"
+  },
+  "exercise": {
+    "kind": "quiz",
+    "runnable": true,
+    "prompt": "Answer every question — each wrong option explains why it is wrong.",
+    "questions": [
+      {
+        "id": "q1",
+        "prompt": "Your app is live. You add a column to a model. Why is Base.metadata.create_all() not enough?",
+        "options": [
+          {
+            "id": "a",
+            "text": "create_all only creates missing tables — it never ALTERs an existing one",
+            "correct": true
+          },
+          {
+            "id": "b",
+            "text": "It drops and recreates the table, losing data",
+            "why": "It is the opposite: create_all skips tables that exist, so the new column is never added."
+          },
+          {
+            "id": "c",
+            "text": "It works, but slowly",
+            "why": "It does nothing for existing tables — use Alembic (Python) or prisma migrate (Node)."
+          }
+        ]
+      },
+      {
+        "id": "q2",
+        "prompt": "Which command creates a versioned migration file you commit to git?",
+        "options": [
+          {
+            "id": "a",
+            "text": "prisma db push",
+            "why": "db push syncs the schema without a migration history — fine for prototypes, not for production."
+          },
+          {
+            "id": "b",
+            "text": "prisma migrate dev --name add_bio (or alembic revision --autogenerate)",
+            "correct": true
+          },
+          {
+            "id": "c",
+            "text": "prisma generate",
+            "why": "generate only regenerates the TypeScript client; it does not touch the database."
+          }
+        ]
+      },
+      {
+        "id": "q3",
+        "prompt": "You add a NOT NULL column to a table that already has rows. What must the migration do?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Provide a DEFAULT or backfill existing rows before setting NOT NULL",
+            "correct": true
+          },
+          {
+            "id": "b",
+            "text": "Nothing — Postgres fills it with NULL",
+            "why": "NULL violates NOT NULL, so ALTER TABLE fails on a non-empty table."
+          },
+          {
+            "id": "c",
+            "text": "Drop the table first",
+            "why": "That loses production data; add a default or backfill instead."
+          }
+        ]
+      }
+    ],
+    "solution": "{\"answers\": {\"q1\": \"a\", \"q2\": \"b\", \"q3\": \"a\"}}",
+    "wrongSolutions": [
+      {
+        "label": "first option everywhere",
+        "expect": [
+          "wrong-answer"
+        ],
+        "code": "{\"answers\": {\"q1\": \"a\", \"q2\": \"a\", \"q3\": \"a\"}}"
+      },
+      {
+        "label": "nothing answered",
+        "expect": [
+          "unanswered"
+        ],
+        "code": "{\"answers\": {}}"
+      }
+    ]
+  }
+}

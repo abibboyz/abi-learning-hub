@@ -1,0 +1,100 @@
+{
+  "id": "15-transactions",
+  "order": 15,
+  "title": "Transactions (advanced)",
+  "summary": "All-or-nothing changes: commit, rollback and why two writes must share one transaction.",
+  "body": "All-or-nothing changes: commit, rollback and why two writes must share one transaction.\n\nWhy it matters: A transfer is two writes. If only one lands, money is created or destroyed. A transaction makes the pair atomic: both commit, or a failure rolls both back.\n\nSQL ↔ ORM: SQLAlchemy Session.begin() context. Prisma $transaction([...]) or $transaction(async (tx) => …). SQL BEGIN … COMMIT (the lab wraps your script for you).",
+  "why": "A transfer is two writes. If only one lands, money is created or destroyed. A transaction makes the pair atomic: both commit, or a failure rolls both back.",
+  "objectives": [
+    "Group related writes in one transaction.",
+    "Understand rollback on error.",
+    "Python: `with Session(engine) as s, s.begin():` — Prisma: `$transaction` — SQL: BEGIN/COMMIT."
+  ],
+  "pitfalls": [
+    "Two separate sessions/calls for one logical change.",
+    "Forgetting to commit.",
+    "Using the global client inside a Prisma interactive transaction."
+  ],
+  "mappingNotes": "SQLAlchemy Session.begin() context. Prisma $transaction([...]) or $transaction(async (tx) => …). SQL BEGIN … COMMIT (the lab wraps your script for you).",
+  "teachAlong": [
+    "Cause: All-or-nothing changes: commit, rollback and why two writes must share one transaction.",
+    "Effect: run the exercise and read the gate's rule ids.",
+    "Replay any run from History."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL — Transactions",
+      "url": "https://www.postgresql.org/docs/current/tutorial-transactions.html"
+    },
+    {
+      "title": "SQLAlchemy — Transactions and Connection Management",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/session_transaction.html"
+    },
+    {
+      "title": "Prisma — Transactions",
+      "url": "https://www.prisma.io/docs/orm/prisma-client/queries/transactions"
+    }
+  ],
+  "level": "advanced",
+  "example": {
+    "language": "python",
+    "code": "with Session(engine) as s, s.begin():\n    alice.balance -= 30\n    bob.balance += 30",
+    "sql": "BEGIN;\nUPDATE accounts SET balance = balance - 30 WHERE owner = 'alice';\nUPDATE accounts SET balance = balance + 30 WHERE owner = 'bob';\nCOMMIT;"
+  },
+  "exercise": {
+    "kind": "code",
+    "runnable": true,
+    "language": "python",
+    "prompt": "Transfer 30 from alice to bob atomically, then attempt a 500 transfer that must roll back completely.",
+    "hint": "`with Session(engine) as s, s.begin():` commits on success and rolls back on any exception.",
+    "starterCode": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\n\n\nfrom decimal import Decimal\nfrom sqlalchemy import CheckConstraint, select\nfrom sqlalchemy.orm import Session\n\n\nclass LabL15Account(Base):\n    __tablename__ = \"lab_l15_accounts\"\n    __table_args__ = (CheckConstraint(\"balance >= 0\", name=\"ck_l15_balance\"),)\n    id: Mapped[int] = mapped_column(primary_key=True)\n    owner: Mapped[str] = mapped_column(String(40), unique=True)\n    balance: Mapped[Decimal] = mapped_column(Numeric(10, 2))\n\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n\nwith Session(engine) as session, session.begin():\n    session.add_all([LabL15Account(owner=\"alice\", balance=Decimal(\"100\")), LabL15Account(owner=\"bob\", balance=Decimal(\"0\"))])\n\n# TODO: transfer 30 alice → bob in one transaction\n# TODO: try a 500 transfer that fails and rolls back\n",
+    "solution": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\n\n\nfrom decimal import Decimal\nfrom sqlalchemy import CheckConstraint, select\nfrom sqlalchemy.orm import Session\n\n\nclass LabL15Account(Base):\n    __tablename__ = \"lab_l15_accounts\"\n    __table_args__ = (CheckConstraint(\"balance >= 0\", name=\"ck_l15_balance\"),)\n    id: Mapped[int] = mapped_column(primary_key=True)\n    owner: Mapped[str] = mapped_column(String(40), unique=True)\n    balance: Mapped[Decimal] = mapped_column(Numeric(10, 2))\n\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n\nwith Session(engine) as session, session.begin():\n    session.add_all([LabL15Account(owner=\"alice\", balance=Decimal(\"100\")), LabL15Account(owner=\"bob\", balance=Decimal(\"0\"))])\n\n# Move 30 from alice to bob: both updates commit together, or neither does.\nwith Session(engine) as session, session.begin():\n    alice = session.scalars(select(LabL15Account).where(LabL15Account.owner == \"alice\")).one()\n    bob = session.scalars(select(LabL15Account).where(LabL15Account.owner == \"bob\")).one()\n    alice.balance -= Decimal(\"30\")\n    bob.balance += Decimal(\"30\")\n\n# A transfer that would overdraw alice fails as a whole — bob must not receive anything.\ntry:\n    with Session(engine) as session, session.begin():\n        alice = session.scalars(select(LabL15Account).where(LabL15Account.owner == \"alice\")).one()\n        bob = session.scalars(select(LabL15Account).where(LabL15Account.owner == \"bob\")).one()\n        bob.balance += Decimal(\"500\")\n        alice.balance -= Decimal(\"500\")\nexcept Exception as e:\n    print(\"rolled back:\", type(e).__name__)\n",
+    "wrongSolutions": [
+      {
+        "label": "credit and debit in separate transactions (bob keeps the 500)",
+        "expect": [
+          "missing-data"
+        ],
+        "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\n\n\nfrom decimal import Decimal\nfrom sqlalchemy import CheckConstraint, select\nfrom sqlalchemy.orm import Session\n\n\nclass LabL15Account(Base):\n    __tablename__ = \"lab_l15_accounts\"\n    __table_args__ = (CheckConstraint(\"balance >= 0\", name=\"ck_l15_balance\"),)\n    id: Mapped[int] = mapped_column(primary_key=True)\n    owner: Mapped[str] = mapped_column(String(40), unique=True)\n    balance: Mapped[Decimal] = mapped_column(Numeric(10, 2))\n\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n\nwith Session(engine) as session, session.begin():\n    session.add_all([LabL15Account(owner=\"alice\", balance=Decimal(\"100\")), LabL15Account(owner=\"bob\", balance=Decimal(\"0\"))])\n\n# Move 30 from alice to bob: both updates commit together, or neither does.\nwith Session(engine) as session, session.begin():\n    alice = session.scalars(select(LabL15Account).where(LabL15Account.owner == \"alice\")).one()\n    bob = session.scalars(select(LabL15Account).where(LabL15Account.owner == \"bob\")).one()\n    alice.balance -= Decimal(\"30\")\n    bob.balance += Decimal(\"30\")\n\n# A transfer that would overdraw alice fails as a whole — bob must not receive anything.\ntry:\n    with Session(engine) as session, session.begin():\n        alice = session.scalars(select(LabL15Account).where(LabL15Account.owner == \"alice\")).one()\n        bob = session.scalars(select(LabL15Account).where(LabL15Account.owner == \"bob\")).one()\n        bob.balance += Decimal(\"500\")\n    with Session(engine) as session, session.begin():\n        alice = session.scalars(select(LabL15Account).where(LabL15Account.owner == \"alice\")).one()\n        alice.balance -= Decimal(\"500\")\nexcept Exception as e:\n    print(\"rolled back:\", type(e).__name__)\n"
+      },
+      {
+        "label": "forgets to commit the first transfer",
+        "expect": [
+          "missing-data"
+        ],
+        "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\n\n\nfrom decimal import Decimal\nfrom sqlalchemy import CheckConstraint, select\nfrom sqlalchemy.orm import Session\n\n\nclass LabL15Account(Base):\n    __tablename__ = \"lab_l15_accounts\"\n    __table_args__ = (CheckConstraint(\"balance >= 0\", name=\"ck_l15_balance\"),)\n    id: Mapped[int] = mapped_column(primary_key=True)\n    owner: Mapped[str] = mapped_column(String(40), unique=True)\n    balance: Mapped[Decimal] = mapped_column(Numeric(10, 2))\n\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n\nwith Session(engine) as session, session.begin():\n    session.add_all([LabL15Account(owner=\"alice\", balance=Decimal(\"100\")), LabL15Account(owner=\"bob\", balance=Decimal(\"0\"))])\n\n# Move 30 from alice to bob: both updates commit together, or neither does.\nwith Session(engine) as session:\n    alice = session.scalars(select(LabL15Account).where(LabL15Account.owner == \"alice\")).one()\n    bob = session.scalars(select(LabL15Account).where(LabL15Account.owner == \"bob\")).one()\n    alice.balance -= Decimal(\"30\")\n    bob.balance += Decimal(\"30\")\n\n# A transfer that would overdraw alice fails as a whole — bob must not receive anything.\ntry:\n    with Session(engine) as session, session.begin():\n        alice = session.scalars(select(LabL15Account).where(LabL15Account.owner == \"alice\")).one()\n        bob = session.scalars(select(LabL15Account).where(LabL15Account.owner == \"bob\")).one()\n        bob.balance += Decimal(\"500\")\n        alice.balance -= Decimal(\"500\")\nexcept Exception as e:\n    print(\"rolled back:\", type(e).__name__)\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l15_accounts",
+          "columns": [
+            {
+              "name": "balance",
+              "type": "numeric"
+            }
+          ]
+        }
+      ],
+      "data": [
+        {
+          "sql": "SELECT count(*) FROM lab_l15_accounts WHERE owner = 'alice' AND balance = 70",
+          "min": 1,
+          "message": "alice must end with 70 (100 − 30)."
+        },
+        {
+          "sql": "SELECT count(*) FROM lab_l15_accounts WHERE owner = 'bob' AND balance = 30",
+          "min": 1,
+          "message": "bob must end with exactly 30 — the failed 500 transfer must leave no trace."
+        }
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l15_accounts"
+      ],
+      "highlightRels": []
+    }
+  }
+}

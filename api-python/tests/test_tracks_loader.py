@@ -9,11 +9,10 @@ def test_list_tracks():
     assert "node-javascript" in ids
 
 
-def test_ten_tasks():
+def test_twelve_tasks_in_order():
     tasks = list_tasks("python-sqlalchemy")
-    assert len(tasks) == 10
-    assert tasks[0]["order"] == 1
-    assert tasks[-1]["order"] == 10
+    assert len(tasks) == 12
+    assert [t["order"] for t in tasks] == list(range(1, 13))
 
 
 def test_task_has_requirements():
@@ -47,6 +46,22 @@ def test_playwright_manifest_matches_files():
         assert any(r["url"].startswith("https://playwright.dev/") for r in t["references"]), t["id"]
 
 
-def test_existing_tracks_keep_their_kind_default():
-    for tid in ("python-sqlalchemy", "node-typescript", "node-javascript"):
-        assert len(list_tasks(tid)) == 10
+def test_db_tracks_have_the_same_tasks_and_runnable_lessons():
+    from app.tracks_loader import list_lessons, load_manifest
+
+    ids = None
+    for tid in ("python-sqlalchemy", "node-typescript", "node-javascript", "sql-postgres"):
+        m = load_manifest(tid)
+        tasks, lessons = list_tasks(tid), list_lessons(tid)
+        assert "kind" not in m  # default ORM lab
+        assert [t["id"] for t in tasks] == m["taskIds"] and len(tasks) == 12
+        assert [x["id"] for x in lessons] == m["lessonIds"] and len(lessons) == 17
+        ids = ids or m["taskIds"]
+        assert m["taskIds"] == ids
+        for item in tasks + [x["exercise"] for x in lessons]:
+            assert item["solution"] and item["wrongSolutions"], item.get("id") or item.get("prompt")
+            for w in item["wrongSolutions"]:
+                assert w["expect"] and w["label"]
+        for x in lessons:
+            assert x["exercise"]["runnable"] is True
+            assert x["references"] and all(r["url"].startswith("https://") for r in x["references"])

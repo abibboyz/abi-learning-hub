@@ -2,16 +2,16 @@
   "id": "rel-01-create-connect",
   "order": 1,
   "title": "Create & connect",
-  "summary": "Create lab_authors and lab_books with a foreign key from books \u2192 authors.",
-  "description": "Create lab_authors and lab_books with a foreign key from books \u2192 authors.\n\nWhy: You need a connected schema baseline before relationship drills. Creating the first lab table proves the runner, database, and gate are wired.",
+  "summary": "Create lab_authors and lab_books with a foreign key from books → authors.",
+  "description": "Create lab_authors and lab_books with a foreign key from books → authors.\n\nWhy: You need a connected schema baseline before relationship drills. Creating the first lab table proves the runner, database, and gate are wired.",
   "objectives": [
     "Create table lab_authors with id (PK) and name",
-    "Create table lab_books with id (PK), title, and author_id FK \u2192 lab_authors.id"
+    "Create table lab_books with id (PK), title, and author_id FK → lab_authors.id"
   ],
   "hints": [
     "Extra columns are allowed.",
     "Use ForeignKey / @relation fields.",
-    "Read gate errors as cause\u2192effect: each message names what Postgres still lacks."
+    "Read gate errors as cause→effect: each message names what Postgres still lacks."
   ],
   "sqlEquivalent": "CREATE TABLE lab_authors (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL\n);\nCREATE TABLE lab_books (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  author_id INTEGER NOT NULL REFERENCES lab_authors(id)\n);",
   "requirements": {
@@ -67,7 +67,7 @@
   "trackId": "python-sqlalchemy",
   "why": "You need a connected schema baseline before relationship drills. Creating the first lab table proves the runner, database, and gate are wired.",
   "pitfalls": [
-    "Wrong table name prefix \u2014 gate looks for lab_ tables.",
+    "Wrong table name prefix — gate looks for lab_ tables.",
     "Forgetting create_all / migration so nothing appears in Postgres."
   ],
   "teachAlong": [
@@ -77,17 +77,34 @@
   ],
   "references": [
     {
-      "title": "PostgreSQL \u2014 CREATE TABLE",
+      "title": "PostgreSQL — CREATE TABLE",
       "url": "https://www.postgresql.org/docs/current/sql-createtable.html"
     },
     {
-      "title": "SQLAlchemy \u2014 Mapped Column Declarative",
+      "title": "SQLAlchemy — Mapped Column Declarative",
       "url": "https://docs.sqlalchemy.org/en/20/orm/declarative_tables.html"
     },
     {
-      "title": "Prisma \u2014 Schema Reference",
+      "title": "Prisma — Schema Reference",
       "url": "https://www.prisma.io/docs/orm/reference/prisma-schema-reference"
     }
   ],
-  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres \u2014 only real tables/FKs count."
+  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres — only real tables/FKs count.",
+  "solution": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabAuthor(Base):\n    __tablename__ = \"lab_authors\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    books: Mapped[list[\"LabBook\"]] = relationship(back_populates=\"author\")\n\n\nclass LabBook(Base):\n    __tablename__ = \"lab_books\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n    author_id: Mapped[int] = mapped_column(ForeignKey(\"lab_authors.id\"))\n    author: Mapped[\"LabAuthor\"] = relationship(back_populates=\"books\")\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+  "wrongSolutions": [
+    {
+      "label": "author_id is a plain integer (no ForeignKey)",
+      "expect": [
+        "not-foreign-key"
+      ],
+      "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabAuthor(Base):\n    __tablename__ = \"lab_authors\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n\n\nclass LabBook(Base):\n    __tablename__ = \"lab_books\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n    author_id: Mapped[int] = mapped_column(Integer)\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+    },
+    {
+      "label": "forgot the books table",
+      "expect": [
+        "missing-table"
+      ],
+      "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabAuthor(Base):\n    __tablename__ = \"lab_authors\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+    }
+  ]
 }

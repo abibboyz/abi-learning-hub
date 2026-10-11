@@ -1,0 +1,131 @@
+{
+  "id": "16-n-plus-one",
+  "order": 16,
+  "title": "N+1 queries & eager loading (advanced)",
+  "summary": "Why lazy relationship access in a loop explodes into N+1 queries — and the fixes.",
+  "body": "Why lazy relationship access in a loop explodes into N+1 queries — and the fixes.\n\nWhy it matters: ORMs make relationships look like attributes. Touching one in a loop silently runs one query per row; at 1 000 rows that is 1 001 round-trips.\n\nSQL ↔ ORM: SQLAlchemy selectinload/joinedload. Prisma include/select. SQL: one JOIN or WHERE id = ANY(...).",
+  "why": "ORMs make relationships look like attributes. Touching one in a loop silently runs one query per row; at 1 000 rows that is 1 001 round-trips.",
+  "objectives": [
+    "Spot the N+1 pattern.",
+    "Use selectinload/joinedload or Prisma include.",
+    "Know when a JOIN duplicates parent rows."
+  ],
+  "pitfalls": [
+    "Accessing relationships in templates/serializers.",
+    "joinedload on big collections.",
+    "Fixing N+1 with an index (it only makes each query faster)."
+  ],
+  "mappingNotes": "SQLAlchemy selectinload/joinedload. Prisma include/select. SQL: one JOIN or WHERE id = ANY(...).",
+  "teachAlong": [
+    "Cause: Why lazy relationship access in a loop explodes into N+1 queries — and the fixes.",
+    "Effect: run the exercise and read the gate's rule ids.",
+    "Replay any run from History."
+  ],
+  "references": [
+    {
+      "title": "SQLAlchemy — Relationship Loading Techniques",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/queryguide/relationships.html"
+    },
+    {
+      "title": "Prisma — Relation queries (include)",
+      "url": "https://www.prisma.io/docs/orm/prisma-client/queries/relation-queries"
+    },
+    {
+      "title": "PostgreSQL — SELECT",
+      "url": "https://www.postgresql.org/docs/current/sql-select.html"
+    }
+  ],
+  "level": "advanced",
+  "example": {
+    "language": "prisma",
+    "code": "prisma.author.findMany({ include: { books: true } })",
+    "sql": "SELECT a.name, b.title FROM authors a JOIN books b ON b.author_id = a.id;"
+  },
+  "exercise": {
+    "kind": "quiz",
+    "runnable": true,
+    "prompt": "Answer every question — each wrong option explains why it is wrong.",
+    "questions": [
+      {
+        "id": "q1",
+        "prompt": "You load 50 authors, then access author.books in a loop. With lazy loading, how many queries run?",
+        "options": [
+          {
+            "id": "a",
+            "text": "1",
+            "why": "Only if the books were eager-loaded; lazy loading fetches each author's books on first access."
+          },
+          {
+            "id": "b",
+            "text": "51 — one for the authors plus one per author (the N+1 problem)",
+            "correct": true
+          },
+          {
+            "id": "c",
+            "text": "2",
+            "why": "That is what selectinload / include gives you — not the lazy default."
+          }
+        ]
+      },
+      {
+        "id": "q2",
+        "prompt": "Which call loads authors AND their books in a fixed number of queries?",
+        "options": [
+          {
+            "id": "a",
+            "text": "SQLAlchemy: select(Author).options(selectinload(Author.books)); Prisma: findMany({ include: { books: true } }); SQL: one JOIN",
+            "correct": true
+          },
+          {
+            "id": "b",
+            "text": "Calling session.refresh(author) for each author",
+            "why": "That is still one query per author."
+          },
+          {
+            "id": "c",
+            "text": "Adding an index on books.author_id",
+            "why": "An index makes each query faster but does not reduce the number of queries."
+          }
+        ]
+      },
+      {
+        "id": "q3",
+        "prompt": "When is joinedload (one JOIN) worse than selectinload (two queries)?",
+        "options": [
+          {
+            "id": "a",
+            "text": "For one-to-many collections: the JOIN repeats every author column for each book row",
+            "correct": true
+          },
+          {
+            "id": "b",
+            "text": "Never",
+            "why": "Large collections multiply rows in a JOIN; selectinload avoids that duplication."
+          },
+          {
+            "id": "c",
+            "text": "Only on SQLite",
+            "why": "Row duplication happens on every database."
+          }
+        ]
+      }
+    ],
+    "solution": "{\"answers\": {\"q1\": \"b\", \"q2\": \"a\", \"q3\": \"a\"}}",
+    "wrongSolutions": [
+      {
+        "label": "first option everywhere",
+        "expect": [
+          "wrong-answer"
+        ],
+        "code": "{\"answers\": {\"q1\": \"a\", \"q2\": \"a\", \"q3\": \"a\"}}"
+      },
+      {
+        "label": "nothing answered",
+        "expect": [
+          "unanswered"
+        ],
+        "code": "{\"answers\": {}}"
+      }
+    ]
+  }
+}

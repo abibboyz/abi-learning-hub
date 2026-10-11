@@ -1,0 +1,106 @@
+{
+  "id": "09-cascades",
+  "order": 9,
+  "title": "Cascades & loading",
+  "summary": "ON DELETE / ORM cascade and how you load related rows.",
+  "example": {
+    "language": "sql",
+    "code": "category_id INTEGER REFERENCES lab_categories(id) ON DELETE CASCADE",
+    "sql": "category_id INTEGER REFERENCES lab_categories(id) ON DELETE CASCADE"
+  },
+  "exercise": {
+    "kind": "code",
+    "runnable": true,
+    "language": "sql",
+    "prompt": "lab_l09_comments.post_id ... REFERENCES lab_l09_posts(id) ON DELETE CASCADE.",
+    "hint": "Without ON DELETE the parent delete fails while children exist.",
+    "starterCode": "CREATE TABLE lab_l09_posts (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL\n);\n\n-- TODO: the child table\n",
+    "solution": "CREATE TABLE lab_l09_posts (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL\n);\n\nCREATE TABLE lab_l09_comments (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  post_id INTEGER NOT NULL REFERENCES lab_l09_posts(id) ON DELETE CASCADE\n);\n",
+    "wrongSolutions": [
+      {
+        "label": "no ON DELETE",
+        "expect": [
+          "wrong-on-delete",
+          "probe-failed"
+        ],
+        "code": "CREATE TABLE lab_l09_posts (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL\n);\n\nCREATE TABLE lab_l09_comments (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  post_id INTEGER NOT NULL REFERENCES lab_l09_posts(id)\n);\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l09_posts",
+          "columns": [
+            {
+              "name": "id",
+              "pk": true
+            }
+          ]
+        },
+        {
+          "name": "lab_l09_comments",
+          "columns": [
+            {
+              "name": "post_id",
+              "nullable": false,
+              "fk": {
+                "table": "lab_l09_posts",
+                "column": "id",
+                "onDelete": "CASCADE"
+              }
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "sql": [
+            "INSERT INTO lab_l09_posts (id, name) VALUES (1, 'Hello')",
+            "INSERT INTO lab_l09_comments (title, post_id) VALUES ('First!', 1)",
+            "DELETE FROM lab_l09_posts WHERE id = 1"
+          ],
+          "message": "The gate deletes a post that has a comment — the database must remove the comment with it."
+        }
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l09_posts",
+        "lab_l09_comments"
+      ],
+      "highlightRels": []
+    }
+  },
+  "body": "ON DELETE / ORM cascade and how you load related rows.\n\nWhy it matters: Deleting a parent without a plan orphans children or fails the DELETE. Loading without include/selectinload causes N+1 queries in real apps.\n\nSQL ↔ ORM: SQL ON DELETE CASCADE ↔ Prisma onDelete: Cascade ↔ SQLAlchemy ForeignKey(..., ondelete='CASCADE') / relationship cascade options.",
+  "why": "Deleting a parent without a plan orphans children or fails the DELETE. Loading without include/selectinload causes N+1 queries in real apps.",
+  "objectives": [
+    "Choose ON DELETE CASCADE vs SET NULL vs RESTRICT intentionally.",
+    "Contrast DB-level ON DELETE with ORM cascade flags.",
+    "Prefer explicit loading strategies for related collections."
+  ],
+  "pitfalls": [
+    "CASCADE everywhere — easy demos, dangerous production defaults.",
+    "N+1 queries from lazy loads in a loop."
+  ],
+  "mappingNotes": "SQL ON DELETE CASCADE ↔ Prisma onDelete: Cascade ↔ SQLAlchemy ForeignKey(..., ondelete='CASCADE') / relationship cascade options.",
+  "teachAlong": [
+    "Cause: parent row deleted.",
+    "Effect: DB applies ON DELETE policy to child FKs.",
+    "Loading: ask for related rows in one query when you need them."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL — Foreign Keys",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
+    },
+    {
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
+    },
+    {
+      "title": "Prisma — Relations",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
+    }
+  ],
+  "level": "intermediate"
+}

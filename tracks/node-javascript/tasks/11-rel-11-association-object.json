@@ -1,0 +1,141 @@
+{
+  "id": "rel-11-association-object",
+  "order": 11,
+  "title": "Association object (M:N with payload)",
+  "summary": "Members ↔ projects where the link itself has data: role and joined_at.",
+  "description": "Members ↔ projects where the link itself has data: role and joined_at.\n\nWhy: A plain junction only says *that* two rows are linked. As soon as the link has attributes (role, date, grade, quantity) it becomes a model of its own — an association object — with a composite key and its own columns.",
+  "objectives": [
+    "lab_members and lab_projects",
+    "lab_memberships: member_id + project_id FKs (ON DELETE CASCADE), composite key",
+    "role (NOT NULL text) and joined_at (NOT NULL timestamp, default now())"
+  ],
+  "hints": [
+    "Model the junction as a class/model, not a bare secondary table.",
+    "The pair (member_id, project_id) is the key; role and joined_at are payload."
+  ],
+  "sqlEquivalent": "CREATE TABLE lab_members (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_projects (id SERIAL PRIMARY KEY, title VARCHAR(200) NOT NULL);\nCREATE TABLE lab_memberships (\n  member_id  INTEGER NOT NULL REFERENCES lab_members(id) ON DELETE CASCADE,\n  project_id INTEGER NOT NULL REFERENCES lab_projects(id) ON DELETE CASCADE,\n  role       VARCHAR(40) NOT NULL,\n  joined_at  TIMESTAMPTZ NOT NULL DEFAULT now(),\n  PRIMARY KEY (member_id, project_id)\n);\n",
+  "requirements": {
+    "tables": [
+      {
+        "name": "lab_members",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          }
+        ]
+      },
+      {
+        "name": "lab_projects",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          }
+        ]
+      },
+      {
+        "name": "lab_memberships",
+        "columns": [
+          {
+            "name": "member_id",
+            "nullable": false,
+            "fk": {
+              "table": "lab_members",
+              "column": "id",
+              "onDelete": "CASCADE"
+            }
+          },
+          {
+            "name": "project_id",
+            "nullable": false,
+            "fk": {
+              "table": "lab_projects",
+              "column": "id",
+              "onDelete": "CASCADE"
+            }
+          },
+          {
+            "name": "role",
+            "type": "text",
+            "nullable": false
+          },
+          {
+            "name": "joined_at",
+            "type": "timestamp",
+            "nullable": false
+          }
+        ],
+        "uniqueTogether": [
+          [
+            "member_id",
+            "project_id"
+          ]
+        ]
+      }
+    ]
+  },
+  "animation": {
+    "highlightTables": [
+      "lab_members",
+      "lab_projects",
+      "lab_memberships"
+    ],
+    "highlightRels": [
+      "lab_memberships.member_id",
+      "lab_memberships.project_id"
+    ]
+  },
+  "highlightHint": [
+    "lab_members",
+    "lab_projects",
+    "lab_memberships"
+  ],
+  "starterCode": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\n// TODO: LabMember, LabProject and the association model LabMembership (lab_memberships)\n",
+  "language": "prisma",
+  "trackId": "node-javascript",
+  "why": "A plain junction only says *that* two rows are linked. As soon as the link has attributes (role, date, grade, quantity) it becomes a model of its own — an association object — with a composite key and its own columns.",
+  "pitfalls": [
+    "Using relationship(secondary=...) — there is nowhere to store the role.",
+    "Giving the junction a surrogate id and forgetting the composite UNIQUE."
+  ],
+  "teachAlong": [
+    "Cause: the link needs data.",
+    "Effect: the junction becomes an entity with a composite key.",
+    "Diagram: two FK arrows into lab_memberships plus its own columns."
+  ],
+  "references": [
+    {
+      "title": "SQLAlchemy 2.0 — Association Object",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html#association-object"
+    },
+    {
+      "title": "Prisma — Many-to-many relations (explicit)",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations/many-to-many-relations"
+    },
+    {
+      "title": "PostgreSQL — Constraints",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html"
+    }
+  ],
+  "mappingNotes": "Compare your code with the Equivalent SQL panel. The gate introspects Postgres and runs rolled-back probe INSERTs.",
+  "level": "advanced",
+  "solution": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabMember {\n  id          Int             @id @default(autoincrement())\n  name        String\n  memberships LabMembership[]\n  @@map(\"lab_members\")\n}\n\nmodel LabProject {\n  id          Int             @id @default(autoincrement())\n  title       String\n  memberships LabMembership[]\n  @@map(\"lab_projects\")\n}\n\nmodel LabMembership {\n  memberId  Int        @map(\"member_id\")\n  projectId Int        @map(\"project_id\")\n  role      String     @db.VarChar(40)\n  joinedAt  DateTime   @default(now()) @map(\"joined_at\")\n  member    LabMember  @relation(fields: [memberId], references: [id], onDelete: Cascade)\n  project   LabProject @relation(fields: [projectId], references: [id], onDelete: Cascade)\n  @@id([memberId, projectId])\n  @@map(\"lab_memberships\")\n}\n",
+  "wrongSolutions": [
+    {
+      "label": "role optional",
+      "expect": [
+        "must-be-not-null"
+      ],
+      "code": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabMember {\n  id          Int             @id @default(autoincrement())\n  name        String\n  memberships LabMembership[]\n  @@map(\"lab_members\")\n}\n\nmodel LabProject {\n  id          Int             @id @default(autoincrement())\n  title       String\n  memberships LabMembership[]\n  @@map(\"lab_projects\")\n}\n\nmodel LabMembership {\n  memberId  Int        @map(\"member_id\")\n  projectId Int        @map(\"project_id\")\n  role      String?    @db.VarChar(40)\n  joinedAt  DateTime   @default(now()) @map(\"joined_at\")\n  member    LabMember  @relation(fields: [memberId], references: [id], onDelete: Cascade)\n  project   LabProject @relation(fields: [projectId], references: [id], onDelete: Cascade)\n  @@id([memberId, projectId])\n  @@map(\"lab_memberships\")\n}\n"
+    },
+    {
+      "label": "no composite key (Prisma would also demand an @id)",
+      "expect": [
+        "rejected"
+      ],
+      "code": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabMember {\n  id          Int             @id @default(autoincrement())\n  name        String\n  memberships LabMembership[]\n  @@map(\"lab_members\")\n}\n\nmodel LabProject {\n  id          Int             @id @default(autoincrement())\n  title       String\n  memberships LabMembership[]\n  @@map(\"lab_projects\")\n}\n\nmodel LabMembership {\n  memberId  Int        @map(\"member_id\")\n  projectId Int        @map(\"project_id\")\n  role      String     @db.VarChar(40)\n  joinedAt  DateTime   @default(now()) @map(\"joined_at\")\n  member    LabMember  @relation(fields: [memberId], references: [id], onDelete: Cascade)\n  project   LabProject @relation(fields: [projectId], references: [id], onDelete: Cascade)\n  @@map(\"lab_memberships\")\n}\n"
+    }
+  ],
+  "starterCodePrisma": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\n// TODO: LabMember, LabProject and the association model LabMembership (lab_memberships)\n"
+}

@@ -2,8 +2,8 @@
   "id": "rel-06-many-to-many",
   "order": 6,
   "title": "Many-to-many + association",
-  "summary": "Learners \u2194 classes through lab_class_enrollments.",
-  "description": "Learners \u2194 classes through lab_class_enrollments.\n\nWhy: M:N cannot be a single FK. The junction table with two FKs preserves integrity and leaves room for association attributes.",
+  "summary": "Learners ↔ classes through lab_class_enrollments.",
+  "description": "Learners ↔ classes through lab_class_enrollments.\n\nWhy: M:N cannot be a single FK. The junction table with two FKs preserves integrity and leaves room for association attributes.",
   "objectives": [
     "lab_learners",
     "lab_classes",
@@ -11,7 +11,7 @@
   ],
   "hints": [
     "Association tables hold both FKs.",
-    "Read gate errors as cause\u2192effect: each message names what Postgres still lacks."
+    "Read gate errors as cause→effect: each message names what Postgres still lacks."
   ],
   "sqlEquivalent": "CREATE TABLE lab_learners (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_classes (id SERIAL PRIMARY KEY, title VARCHAR(200) NOT NULL);\nCREATE TABLE lab_class_enrollments (\n  learner_id INTEGER NOT NULL REFERENCES lab_learners(id) ON DELETE CASCADE,\n  class_id INTEGER NOT NULL REFERENCES lab_classes(id) ON DELETE CASCADE,\n  grade VARCHAR(2),\n  PRIMARY KEY (learner_id, class_id)\n);",
   "requirements": {
@@ -57,6 +57,12 @@
               "column": "id"
             }
           }
+        ],
+        "uniqueTogether": [
+          [
+            "learner_id",
+            "class_id"
+          ]
         ]
       }
     ]
@@ -86,23 +92,40 @@
     "Storing tag ids as a CSV/array column."
   ],
   "teachAlong": [
-    "Cause: many\u2194many.",
+    "Cause: many↔many.",
     "Effect: junction with two FKs.",
     "Diagram shows two arrows into the junction."
   ],
   "references": [
     {
-      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
       "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
     },
     {
-      "title": "Prisma \u2014 Relations",
+      "title": "Prisma — Relations",
       "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
     },
     {
-      "title": "PostgreSQL \u2014 Foreign Keys",
+      "title": "PostgreSQL — Foreign Keys",
       "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
     }
   ],
-  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres \u2014 only real tables/FKs count."
+  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres — only real tables/FKs count.",
+  "solution": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabLearner(Base):\n    __tablename__ = \"lab_learners\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n\n\nclass LabClass(Base):\n    __tablename__ = \"lab_classes\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n\n\nclass LabClassEnrollment(Base):\n    __tablename__ = \"lab_class_enrollments\"\n    learner_id: Mapped[int] = mapped_column(ForeignKey(\"lab_learners.id\"), primary_key=True)\n    class_id: Mapped[int] = mapped_column(ForeignKey(\"lab_classes.id\"), primary_key=True)\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+  "wrongSolutions": [
+    {
+      "label": "junction table without a composite key (duplicates allowed)",
+      "expect": [
+        "missing-composite-key"
+      ],
+      "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabLearner(Base):\n    __tablename__ = \"lab_learners\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n\n\nclass LabClass(Base):\n    __tablename__ = \"lab_classes\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n\n\nclass LabClassEnrollment(Base):\n    __tablename__ = \"lab_class_enrollments\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    learner_id: Mapped[int] = mapped_column(ForeignKey(\"lab_learners.id\"))\n    class_id: Mapped[int] = mapped_column(ForeignKey(\"lab_classes.id\"))\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+    },
+    {
+      "label": "only one side has a FK",
+      "expect": [
+        "not-foreign-key"
+      ],
+      "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabLearner(Base):\n    __tablename__ = \"lab_learners\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n\n\nclass LabClass(Base):\n    __tablename__ = \"lab_classes\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n\n\nclass LabClassEnrollment(Base):\n    __tablename__ = \"lab_class_enrollments\"\n    learner_id: Mapped[int] = mapped_column(ForeignKey(\"lab_learners.id\"), primary_key=True)\n    class_id: Mapped[int] = mapped_column(Integer, primary_key=True)\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+    }
+  ]
 }

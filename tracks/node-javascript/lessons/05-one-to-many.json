@@ -2,18 +2,66 @@
   "id": "05-one-to-many",
   "order": 5,
   "title": "One-to-many (1:N)",
-  "summary": "One parent owns many children \u2014 FK on the child.",
+  "summary": "One parent owns many children — FK on the child.",
   "example": {
     "language": "prisma",
     "code": "model LabPublisher {\n  id Int @id @default(autoincrement())\n  name String\n  magazines LabMagazine[]\n  @@map(\"lab_publishers\")\n}\nmodel LabMagazine {\n  id Int @id @default(autoincrement())\n  title String\n  publisherId Int @map(\"publisher_id\")\n  publisher LabPublisher @relation(fields: [publisherId], references: [id])\n  @@map(\"lab_magazines\")\n}\n",
     "sql": "FK publisher_id ON lab_magazines REFERENCES lab_publishers(id)"
   },
   "exercise": {
-    "prompt": "Model publishers that own many magazines (FK on magazines).",
-    "hint": "Do not put a unique constraint on publisher_id."
+    "kind": "code",
+    "runnable": true,
+    "language": "prisma",
+    "prompt": "LabL05Team has `children LabL05Player[]`; LabL05Player has teamId (@map(\"team_id\")) + @relation. Not @unique.",
+    "hint": "The list side (Team[]) has no column; the @relation side owns the FK.",
+    "starterCode": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabL05Team {\n  id   Int    @id @default(autoincrement())\n  name String\n  @@map(\"lab_l05_teams\")\n}\n\n// TODO: the child model\n",
+    "solution": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabL05Team {\n  id       Int    @id @default(autoincrement())\n  name     String\n  children LabL05Player[]\n  @@map(\"lab_l05_teams\")\n}\n\nmodel LabL05Player {\n  id    Int    @id @default(autoincrement())\n  title String\n  teamId Int @map(\"team_id\")\n  team LabL05Team @relation(fields: [teamId], references: [id])\n  @@map(\"lab_l05_players\")\n}\n",
+    "wrongSolutions": [
+      {
+        "label": "@unique on teamId",
+        "expect": [
+          "must-not-be-unique"
+        ],
+        "code": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabL05Team {\n  id       Int    @id @default(autoincrement())\n  name     String\n  child    LabL05Player?\n  @@map(\"lab_l05_teams\")\n}\n\nmodel LabL05Player {\n  id    Int    @id @default(autoincrement())\n  title String\n  teamId Int @unique @map(\"team_id\")\n  team LabL05Team @relation(fields: [teamId], references: [id])\n  @@map(\"lab_l05_players\")\n}\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l05_teams",
+          "columns": [
+            {
+              "name": "id",
+              "pk": true
+            }
+          ]
+        },
+        {
+          "name": "lab_l05_players",
+          "columns": [
+            {
+              "name": "team_id",
+              "nullable": false,
+              "unique": false,
+              "fk": {
+                "table": "lab_l05_teams",
+                "column": "id"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l05_teams",
+        "lab_l05_players"
+      ],
+      "highlightRels": []
+    }
   },
-  "body": "One parent owns many children \u2014 FK on the child.\n\nWhy it matters: 1:N is the most common business relationship (publisher\u2192magazines, customer\u2192orders). Modeling it correctly prevents duplicate parent rows and enables simple JOINs.\n\nSQL \u2194 ORM: Child FK + parent collection. SQL only needs the FK; ORM adds navigation.",
-  "why": "1:N is the most common business relationship (publisher\u2192magazines, customer\u2192orders). Modeling it correctly prevents duplicate parent rows and enables simple JOINs.",
+  "body": "One parent owns many children — FK on the child.\n\nWhy it matters: 1:N is the most common business relationship (publisher→magazines, customer→orders). Modeling it correctly prevents duplicate parent rows and enables simple JOINs.\n\nSQL ↔ ORM: Child FK + parent collection. SQL only needs the FK; ORM adds navigation.",
+  "why": "1:N is the most common business relationship (publisher→magazines, customer→orders). Modeling it correctly prevents duplicate parent rows and enables simple JOINs.",
   "objectives": [
     "Create parent + child tables.",
     "Put publisher_id (or equivalent) on the child with FK.",
@@ -26,21 +74,22 @@
   "mappingNotes": "Child FK + parent collection. SQL only needs the FK; ORM adds navigation.",
   "teachAlong": [
     "Cause: one publisher publishes many magazines.",
-    "Effect: lab_magazines.publisher_id \u2192 lab_publishers.id.",
+    "Effect: lab_magazines.publisher_id → lab_publishers.id.",
     "Gate: both tables + FK must exist; extras allowed."
   ],
   "references": [
     {
-      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
       "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
     },
     {
-      "title": "Prisma \u2014 Relations",
+      "title": "Prisma — Relations",
       "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
     },
     {
-      "title": "PostgreSQL \u2014 Foreign Keys",
+      "title": "PostgreSQL — Foreign Keys",
       "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
     }
-  ]
+  ],
+  "level": "beginner"
 }

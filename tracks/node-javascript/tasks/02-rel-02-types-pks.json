@@ -8,8 +8,8 @@
     "Create lab_products with id PK, sku, price, in_stock"
   ],
   "hints": [
-    "Map bool \u2192 BOOLEAN, Decimal \u2192 NUMERIC.",
-    "Read gate errors as cause\u2192effect: each message names what Postgres still lacks."
+    "Map bool → BOOLEAN, Decimal → NUMERIC.",
+    "Read gate errors as cause→effect: each message names what Postgres still lacks."
   ],
   "sqlEquivalent": "CREATE TABLE lab_products (\n  id SERIAL PRIMARY KEY,\n  sku VARCHAR(64) UNIQUE NOT NULL,\n  price NUMERIC(10,2) NOT NULL,\n  in_stock BOOLEAN DEFAULT TRUE\n);",
   "requirements": {
@@ -19,16 +19,21 @@
         "columns": [
           {
             "name": "id",
-            "pk": true
+            "pk": true,
+            "type": "integer"
           },
           {
-            "name": "sku"
+            "name": "sku",
+            "type": "text",
+            "unique": true
           },
           {
-            "name": "price"
+            "name": "price",
+            "type": "numeric"
           },
           {
-            "name": "in_stock"
+            "name": "in_stock",
+            "type": "boolean"
           }
         ]
       }
@@ -43,8 +48,8 @@
   "highlightHint": [
     "lab_products"
   ],
-  "starterCode": "// JavaScript track \u2014 same Prisma DSL\nmodel LabProduct {\n  id      Int     @id @default(autoincrement())\n  sku     String  @unique\n  price   Decimal @db.Decimal(10, 2)\n  inStock Boolean @default(true) @map(\"in_stock\")\n  @@map(\"lab_products\")\n}\n",
-  "starterCodePrisma": "model LabProduct {\n  id      Int     @id @default(autoincrement())\n  sku     String  @unique\n  price   Decimal @db.Decimal(10, 2)\n  inStock Boolean @default(true) @map(\"in_stock\")\n  @@map(\"lab_products\")\n}\n",
+  "starterCode": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabProduct {\n  id Int @id @default(autoincrement())\n  // TODO: sku (unique String), price (Decimal), inStock (Boolean, @map(\"in_stock\"))\n  @@map(\"lab_products\")\n}\n",
+  "starterCodePrisma": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabProduct {\n  id Int @id @default(autoincrement())\n  // TODO: sku (unique String), price (Decimal), inStock (Boolean, @map(\"in_stock\"))\n  @@map(\"lab_products\")\n}\n",
   "language": "javascript",
   "trackId": "node-javascript",
   "why": "Types and primary keys are the anchors every FK will reference. Get PKs wrong and later relationship tasks cannot attach constraints.",
@@ -59,17 +64,34 @@
   ],
   "references": [
     {
-      "title": "PostgreSQL \u2014 CREATE TABLE",
+      "title": "PostgreSQL — CREATE TABLE",
       "url": "https://www.postgresql.org/docs/current/sql-createtable.html"
     },
     {
-      "title": "SQLAlchemy \u2014 Mapped Column Declarative",
+      "title": "SQLAlchemy — Mapped Column Declarative",
       "url": "https://docs.sqlalchemy.org/en/20/orm/declarative_tables.html"
     },
     {
-      "title": "Prisma \u2014 Schema Reference",
+      "title": "Prisma — Schema Reference",
       "url": "https://www.prisma.io/docs/orm/reference/prisma-schema-reference"
     }
   ],
-  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres \u2014 only real tables/FKs count."
+  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres — only real tables/FKs count.",
+  "solution": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabProduct {\n  id      Int     @id @default(autoincrement())\n  sku     String  @unique\n  price   Decimal @db.Decimal(10, 2)\n  inStock Boolean @default(true) @map(\"in_stock\")\n  @@map(\"lab_products\")\n}\n",
+  "wrongSolutions": [
+    {
+      "label": "price as Float, inStock as Int",
+      "expect": [
+        "wrong-type"
+      ],
+      "code": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabProduct {\n  id      Int    @id @default(autoincrement())\n  sku     String @unique\n  price   Float\n  inStock Int    @map(\"in_stock\")\n  @@map(\"lab_products\")\n}\n"
+    },
+    {
+      "label": "sku not @unique",
+      "expect": [
+        "not-unique"
+      ],
+      "code": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabProduct {\n  id      Int     @id @default(autoincrement())\n  sku     String\n  price   Decimal\n  inStock Boolean @default(true) @map(\"in_stock\")\n  @@map(\"lab_products\")\n}\n"
+    }
+  ]
 }

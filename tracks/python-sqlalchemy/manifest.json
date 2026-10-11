@@ -1,15 +1,15 @@
 {
   "id": "python-sqlalchemy",
-  "title": "Python \u00b7 SQLAlchemy",
+  "title": "Python · SQLAlchemy",
   "language": "python",
   "variant": "orm",
   "runtime": "fastapi",
   "api": "python",
   "order": 1,
-  "icon": "\ud83d\udc0d",
+  "icon": "🐍",
   "description": "Declare models with SQLAlchemy 2.x Mapped columns, relationships, and metadata.create_all.",
   "prerequisites": {
-    "title": "Python \u00b7 SQLAlchemy setup",
+    "title": "Python · SQLAlchemy setup",
     "lockedByDefault": true,
     "install": "pip install sqlalchemy psycopg[binary]",
     "code": "import os\nfrom sqlalchemy import create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Session\n\nDATABASE_URL = os.environ[\"DATABASE_URL\"]\nengine = create_engine(DATABASE_URL, pool_pre_ping=True)\n\nclass Base(DeclarativeBase):\n    pass\n",
@@ -43,7 +43,9 @@
     "rel-07-self-referential",
     "rel-08-cascades-loading",
     "rel-09-insert-query",
-    "rel-10-mini-domain"
+    "rel-10-mini-domain",
+    "rel-11-association-object",
+    "rel-12-constraints-indexes"
   ],
   "lessonIds": [
     "01-connections",
@@ -57,6 +59,11 @@
     "09-cascades",
     "10-query-joins",
     "11-validation",
-    "12-frameworks"
+    "12-frameworks",
+    "13-indexes",
+    "14-constraints",
+    "15-transactions",
+    "16-n-plus-one",
+    "17-migrations"
   ]
 }

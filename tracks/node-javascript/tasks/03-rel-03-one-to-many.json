@@ -10,7 +10,7 @@
   ],
   "hints": [
     "FK lives on the many side.",
-    "Read gate errors as cause\u2192effect: each message names what Postgres still lacks."
+    "Read gate errors as cause→effect: each message names what Postgres still lacks."
   ],
   "sqlEquivalent": "CREATE TABLE lab_publishers (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_magazines (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  publisher_id INTEGER NOT NULL REFERENCES lab_publishers(id)\n);",
   "requirements": {
@@ -42,7 +42,8 @@
             "fk": {
               "table": "lab_publishers",
               "column": "id"
-            }
+            },
+            "unique": false
           }
         ]
       }
@@ -61,8 +62,8 @@
     "lab_publishers",
     "lab_magazines"
   ],
-  "starterCode": "// JavaScript track \u2014 same Prisma DSL\nmodel LabPublisher {\n  id Int @id @default(autoincrement())\n  name String\n  magazines LabMagazine[]\n  @@map(\"lab_publishers\")\n}\nmodel LabMagazine {\n  id Int @id @default(autoincrement())\n  title String\n  publisherId Int @map(\"publisher_id\")\n  publisher LabPublisher @relation(fields: [publisherId], references: [id])\n  @@map(\"lab_magazines\")\n}\n",
-  "starterCodePrisma": "model LabPublisher {\n  id Int @id @default(autoincrement())\n  name String\n  magazines LabMagazine[]\n  @@map(\"lab_publishers\")\n}\nmodel LabMagazine {\n  id Int @id @default(autoincrement())\n  title String\n  publisherId Int @map(\"publisher_id\")\n  publisher LabPublisher @relation(fields: [publisherId], references: [id])\n  @@map(\"lab_magazines\")\n}\n",
+  "starterCode": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabPublisher {\n  id   Int    @id @default(autoincrement())\n  name String\n  // TODO: magazines LabMagazine[]\n  @@map(\"lab_publishers\")\n}\n\nmodel LabMagazine {\n  id    Int    @id @default(autoincrement())\n  title String\n  // TODO: publisherId (@map(\"publisher_id\")) + publisher @relation(...)\n  @@map(\"lab_magazines\")\n}\n",
+  "starterCodePrisma": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabPublisher {\n  id   Int    @id @default(autoincrement())\n  name String\n  // TODO: magazines LabMagazine[]\n  @@map(\"lab_publishers\")\n}\n\nmodel LabMagazine {\n  id    Int    @id @default(autoincrement())\n  title String\n  // TODO: publisherId (@map(\"publisher_id\")) + publisher @relation(...)\n  @@map(\"lab_magazines\")\n}\n",
   "language": "javascript",
   "trackId": "node-javascript",
   "why": "1:N is the workhorse relationship. Putting the FK on the magazine (child) is what lets one publisher own many magazines without duplicating publisher rows.",
@@ -72,22 +73,32 @@
   ],
   "teachAlong": [
     "Cause: one publisher, many magazines.",
-    "Effect: child.publisher_id FK \u2192 parent.id.",
+    "Effect: child.publisher_id FK → parent.id.",
     "Diagram highlights both tables + the FK line."
   ],
   "references": [
     {
-      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
       "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
     },
     {
-      "title": "Prisma \u2014 Relations",
+      "title": "Prisma — Relations",
       "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
     },
     {
-      "title": "PostgreSQL \u2014 Foreign Keys",
+      "title": "PostgreSQL — Foreign Keys",
       "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
     }
   ],
-  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres \u2014 only real tables/FKs count."
+  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres — only real tables/FKs count.",
+  "solution": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabPublisher {\n  id        Int           @id @default(autoincrement())\n  name      String\n  magazines LabMagazine[]\n  @@map(\"lab_publishers\")\n}\n\nmodel LabMagazine {\n  id          Int          @id @default(autoincrement())\n  title       String\n  publisherId Int          @map(\"publisher_id\")\n  publisher   LabPublisher @relation(fields: [publisherId], references: [id])\n  @@map(\"lab_magazines\")\n}\n",
+  "wrongSolutions": [
+    {
+      "label": "@unique on publisherId makes it 1:1",
+      "expect": [
+        "must-not-be-unique"
+      ],
+      "code": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabPublisher {\n  id       Int          @id @default(autoincrement())\n  name     String\n  magazine LabMagazine?\n  @@map(\"lab_publishers\")\n}\n\nmodel LabMagazine {\n  id          Int          @id @default(autoincrement())\n  title       String\n  publisherId Int          @unique @map(\"publisher_id\")\n  publisher   LabPublisher @relation(fields: [publisherId], references: [id])\n  @@map(\"lab_magazines\")\n}\n"
+    }
+  ]
 }

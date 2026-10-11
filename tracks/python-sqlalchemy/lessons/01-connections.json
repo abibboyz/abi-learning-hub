@@ -9,15 +9,46 @@
     "sql": "-- connection string shape\n-- postgresql://USER:PASSWORD@HOST:5432/DBNAME"
   },
   "exercise": {
-    "prompt": "Create a client/engine from DATABASE_URL and run SELECT 1.",
-    "hint": "SQLAlchemy Session or PrismaClient \u2014 credentials stay on the server."
+    "kind": "code",
+    "runnable": true,
+    "language": "python",
+    "prompt": "Create an engine from DATABASE_URL, open a connection, run SELECT 1 and print the result.",
+    "hint": "create_engine(DATABASE_URL) → engine.connect() → conn.execute(text('SELECT 1')).scalar().",
+    "starterCode": "from sqlalchemy import create_engine, text\n\n# TODO: engine from DATABASE_URL, run SELECT 1, print the scalar result\n",
+    "solution": "from sqlalchemy import create_engine, text\n\nengine = create_engine(DATABASE_URL, pool_pre_ping=True)\nwith engine.connect() as conn:\n    print(conn.execute(text(\"SELECT 1\")).scalar())\n",
+    "wrongSolutions": [
+      {
+        "label": "runs the query but never prints it",
+        "expect": [
+          "missing-output"
+        ],
+        "code": "from sqlalchemy import create_engine, text\n\nengine = create_engine(DATABASE_URL)\nwith engine.connect() as conn:\n    conn.execute(text(\"SELECT 1\"))\n"
+      },
+      {
+        "label": "hard-coded URL to a database that is not there",
+        "expect": [
+          "runtime-error"
+        ],
+        "code": "from sqlalchemy import create_engine, text\n\nengine = create_engine(\"postgresql+psycopg://nobody:nopass@127.0.0.1:1/nowhere\")\nwith engine.connect() as conn:\n    print(conn.execute(text(\"SELECT 1\")).scalar())\n"
+      }
+    ],
+    "requirements": {
+      "stdout": {
+        "contains": "1",
+        "message": "Print the value SELECT 1 returns."
+      }
+    },
+    "animation": {
+      "highlightTables": [],
+      "highlightRels": []
+    }
   },
-  "body": "How applications open a durable channel to Postgres before any ORM work.\n\nWhy it matters: Without a connection (engine/client/pool), every model definition is just text. The connection string decides host, database, credentials, and SSL \u2014 get this wrong and relationship labs fail before you write a single FK.\n\nSQL \u2194 ORM: SQLAlchemy: create_engine(DATABASE_URL) + Session. Prisma: datasource db { url = env(\"DATABASE_URL\") } + PrismaClient. Raw SQL: psql or pg.Pool with the same URL.",
-  "why": "Without a connection (engine/client/pool), every model definition is just text. The connection string decides host, database, credentials, and SSL \u2014 get this wrong and relationship labs fail before you write a single FK.",
+  "body": "How applications open a durable channel to Postgres before any ORM work.\n\nWhy it matters: Without a connection (engine/client/pool), every model definition is just text. The connection string decides host, database, credentials, and SSL — get this wrong and relationship labs fail before you write a single FK.\n\nSQL ↔ ORM: SQLAlchemy: create_engine(DATABASE_URL) + Session. Prisma: datasource db { url = env(\"DATABASE_URL\") } + PrismaClient. Raw SQL: psql or pg.Pool with the same URL.",
+  "why": "Without a connection (engine/client/pool), every model definition is just text. The connection string decides host, database, credentials, and SSL — get this wrong and relationship labs fail before you write a single FK.",
   "objectives": [
     "Explain what a DATABASE_URL encodes (user, password, host, port, database).",
     "Create an engine (SQLAlchemy) or PrismaClient / pg Pool (Node).",
-    "Keep credentials server-side \u2014 never in browser bundles."
+    "Keep credentials server-side — never in browser bundles."
   ],
   "pitfalls": [
     "Hard-coding passwords in committed files.",
@@ -32,7 +63,7 @@
   ],
   "references": [
     {
-      "title": "SQLAlchemy \u2014 Engine Configuration",
+      "title": "SQLAlchemy — Engine Configuration",
       "url": "https://docs.sqlalchemy.org/en/20/core/engines.html"
     },
     {
@@ -40,7 +71,7 @@
       "url": "https://www.prisma.io/docs/orm/prisma-client"
     },
     {
-      "title": "PostgreSQL \u2014 CREATE TABLE",
+      "title": "PostgreSQL — CREATE TABLE",
       "url": "https://www.postgresql.org/docs/current/sql-createtable.html"
     },
     {
@@ -48,8 +79,13 @@
       "url": "https://node-postgres.com/"
     },
     {
-      "title": "Next.js \u2014 Route Handlers",
+      "title": "Next.js — Route Handlers",
       "url": "https://nextjs.org/docs/app/building-your-application/routing/route-handlers"
+    },
+    {
+      "title": "Prisma — Data sources",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/overview/data-sources"
     }
-  ]
+  ],
+  "level": "beginner"
 }

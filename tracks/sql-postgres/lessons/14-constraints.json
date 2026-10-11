@@ -1,0 +1,114 @@
+{
+  "id": "14-constraints",
+  "order": 14,
+  "title": "CHECK, UNIQUE & defaults (advanced)",
+  "summary": "Put business rules where every writer must obey them.",
+  "body": "Put business rules where every writer must obey them.\n\nWhy it matters: App-side validation protects one code path. Constraints protect the data from every path — scripts, other services, a psql session, a buggy migration.\n\nSQL ↔ ORM: SQLAlchemy CheckConstraint/UniqueConstraint in __table_args__. Prisma @@unique([a, b]), @default(...); CHECK via a SQL migration. SQL: CHECK (...), UNIQUE (a, b), DEFAULT.",
+  "why": "App-side validation protects one code path. Constraints protect the data from every path — scripts, other services, a psql session, a buggy migration.",
+  "objectives": [
+    "Write CHECK constraints (Python/SQL).",
+    "Use composite UNIQUE for 'one per parent' rules.",
+    "Know what Prisma can and cannot express (no CHECK — use a SQL migration)."
+  ],
+  "pitfalls": [
+    "Validating only in the API.",
+    "A global UNIQUE where the rule is per parent.",
+    "Unnamed constraints — error messages become cryptic."
+  ],
+  "mappingNotes": "SQLAlchemy CheckConstraint/UniqueConstraint in __table_args__. Prisma @@unique([a, b]), @default(...); CHECK via a SQL migration. SQL: CHECK (...), UNIQUE (a, b), DEFAULT.",
+  "teachAlong": [
+    "Cause: Put business rules where every writer must obey them.",
+    "Effect: run the exercise and read the gate's rule ids.",
+    "Replay any run from History."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL — Constraints",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html"
+    },
+    {
+      "title": "SQLAlchemy — Constraints and Indexes",
+      "url": "https://docs.sqlalchemy.org/en/20/core/constraints.html"
+    },
+    {
+      "title": "Prisma — Indexes",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/indexes"
+    }
+  ],
+  "level": "advanced",
+  "example": {
+    "language": "sql",
+    "code": "price NUMERIC(10,2) NOT NULL CHECK (price >= 0)",
+    "sql": "price NUMERIC(10,2) NOT NULL CHECK (price >= 0)"
+  },
+  "exercise": {
+    "kind": "code",
+    "runnable": true,
+    "language": "sql",
+    "prompt": "Add CHECK (price >= 0) and CHECK (stock >= 0) to lab_l14_products.",
+    "hint": "Column-level CHECK (…) or a table-level CONSTRAINT name CHECK (…).",
+    "starterCode": "CREATE TABLE lab_l14_products (\n  id SERIAL PRIMARY KEY,\n  sku VARCHAR(32) NOT NULL UNIQUE,\n  price NUMERIC(10,2) NOT NULL /* TODO */,\n  stock INTEGER NOT NULL DEFAULT 0 /* TODO */\n);\n",
+    "solution": "CREATE TABLE lab_l14_products (\n  id SERIAL PRIMARY KEY,\n  sku VARCHAR(32) NOT NULL UNIQUE,\n  price NUMERIC(10,2) NOT NULL CHECK (price >= 0),\n  stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0)\n);\n",
+    "wrongSolutions": [
+      {
+        "label": "no CHECKs",
+        "expect": [
+          "constraint-not-enforced"
+        ],
+        "code": "CREATE TABLE lab_l14_products (\n  id SERIAL PRIMARY KEY,\n  sku VARCHAR(32) NOT NULL UNIQUE,\n  price NUMERIC(10,2) NOT NULL,\n  stock INTEGER NOT NULL DEFAULT 0\n);\n"
+      },
+      {
+        "label": "CHECK (price > -100) — still allows negatives",
+        "expect": [
+          "constraint-not-enforced"
+        ],
+        "code": "CREATE TABLE lab_l14_products (\n  id SERIAL PRIMARY KEY,\n  sku VARCHAR(32) NOT NULL UNIQUE,\n  price NUMERIC(10,2) NOT NULL CHECK (price > -100),\n  stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0)\n);\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l14_products",
+          "columns": [
+            {
+              "name": "sku",
+              "unique": true
+            },
+            {
+              "name": "price",
+              "type": "numeric"
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "sql": [
+            "INSERT INTO lab_l14_products (sku, price) VALUES ('A-1', 9.99)"
+          ],
+          "message": "A normal product (stock defaulting to 0) must be accepted."
+        },
+        {
+          "sql": [
+            "INSERT INTO lab_l14_products (sku, price, stock) VALUES ('A-2', -1, 1)"
+          ],
+          "expect": "error",
+          "message": "A negative price must be rejected by the database."
+        },
+        {
+          "sql": [
+            "INSERT INTO lab_l14_products (sku, price, stock) VALUES ('A-3', 1, -5)"
+          ],
+          "expect": "error",
+          "message": "Negative stock must be rejected by the database."
+        }
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l14_products"
+      ],
+      "highlightRels": []
+    }
+  }
+}

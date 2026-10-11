@@ -1,0 +1,114 @@
+{
+  "id": "rel-09-insert-query",
+  "order": 9,
+  "title": "Insert + query across relationships",
+  "summary": "Create lab_teams / lab_players with FK relationship.",
+  "description": "Create lab_teams / lab_players with FK relationship.\n\nWhy: Inserts must respect FKs; queries must JOIN/include to reassemble the graph — schema alone is not enough for production thinking.",
+  "objectives": [
+    "lab_teams (id PK, name)",
+    "lab_players (id PK, name, team_id FK)"
+  ],
+  "hints": [
+    "JOIN queries prove the relationship.",
+    "Read gate errors as cause→effect: each message names what Postgres still lacks."
+  ],
+  "sqlEquivalent": "CREATE TABLE lab_teams (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_players (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL,\n  team_id INTEGER NOT NULL REFERENCES lab_teams(id)\n);",
+  "requirements": {
+    "tables": [
+      {
+        "name": "lab_teams",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "name"
+          }
+        ]
+      },
+      {
+        "name": "lab_players",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "name"
+          },
+          {
+            "name": "team_id",
+            "fk": {
+              "table": "lab_teams",
+              "column": "id"
+            },
+            "nullable": false
+          }
+        ]
+      }
+    ],
+    "data": [
+      {
+        "sql": "SELECT count(*) FROM lab_teams",
+        "min": 2,
+        "message": "Insert at least two teams (and commit the session)."
+      },
+      {
+        "sql": "SELECT count(*) FROM lab_players p JOIN lab_teams t ON t.id = p.team_id",
+        "min": 3,
+        "message": "Insert at least three players that belong to a team — the JOIN must return them."
+      }
+    ]
+  },
+  "animation": {
+    "highlightTables": [
+      "lab_teams",
+      "lab_players"
+    ],
+    "highlightRels": [
+      "lab_players.team_id"
+    ]
+  },
+  "highlightHint": [
+    "lab_teams",
+    "lab_players"
+  ],
+  "starterCode": "-- Write the CREATE TABLE statements (and INSERTs where asked) for this task.\n-- Tables must be named exactly as in the objectives.\n",
+  "language": "sql",
+  "trackId": "sql-postgres",
+  "why": "Inserts must respect FKs; queries must JOIN/include to reassemble the graph — schema alone is not enough for production thinking.",
+  "pitfalls": [
+    "Inserting child before parent.",
+    "Forgetting to expose the FK column the JOIN needs."
+  ],
+  "teachAlong": [
+    "Cause: normalized data.",
+    "Effect: INSERT order + JOIN/include to read."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL — Joins",
+      "url": "https://www.postgresql.org/docs/current/tutorial-join.html"
+    },
+    {
+      "title": "Prisma Client API",
+      "url": "https://www.prisma.io/docs/orm/prisma-client"
+    },
+    {
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
+    }
+  ],
+  "mappingNotes": "Raw SQL is what every ORM generates. The gate introspects the same Postgres catalog for all tracks.",
+  "solution": "CREATE TABLE lab_teams (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_players (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL,\n  team_id INTEGER NOT NULL REFERENCES lab_teams(id)\n);\n\nINSERT INTO lab_teams (name) VALUES ('Reds'), ('Blues');\nINSERT INTO lab_players (name, team_id)\n  SELECT p.name, t.id FROM (VALUES ('Ana', 'Reds'), ('Ben', 'Reds'), ('Chen', 'Blues')) AS p(name, team)\n  JOIN lab_teams t ON t.name = p.team;\n\nSELECT p.name AS player, t.name AS team FROM lab_players p JOIN lab_teams t ON t.id = p.team_id ORDER BY p.name;\n",
+  "wrongSolutions": [
+    {
+      "label": "tables only, no rows",
+      "expect": [
+        "missing-data"
+      ],
+      "code": "CREATE TABLE lab_teams (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_players (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL,\n  team_id INTEGER NOT NULL REFERENCES lab_teams(id)\n);\n"
+    }
+  ]
+}

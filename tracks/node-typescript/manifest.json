@@ -1,15 +1,15 @@
 {
   "id": "node-typescript",
-  "title": "Node.js \u00b7 TypeScript",
+  "title": "Node.js · TypeScript",
   "language": "typescript",
   "variant": "orm",
   "runtime": "node",
   "api": "node",
   "order": 2,
-  "icon": "\ud83d\udcd8",
+  "icon": "📘",
   "description": "Prisma schema + TypeScript client. Strong typing for models and queries.",
   "prerequisites": {
-    "title": "Node.js \u00b7 TypeScript setup",
+    "title": "Node.js · TypeScript setup",
     "lockedByDefault": true,
     "install": "npm install @prisma/client && npm install -D prisma typescript tsx zod",
     "code": "DATABASE_URL=\"postgresql://hub:hub_secret@localhost:5432/learning_hub\"\n\nimport { PrismaClient } from \"@prisma/client\";\nconst prisma = new PrismaClient();\n",
@@ -22,7 +22,7 @@
       "points": [
         "Prisma/pg live in the API process",
         "DATABASE_URL is a server env var",
-        "Expose HTTP JSON \u2014 never ship credentials to clients"
+        "Expose HTTP JSON — never ship credentials to clients"
       ]
     },
     "react-spa": {
@@ -30,7 +30,7 @@
       "points": [
         "Browser calls your API with fetch",
         "No pg/Prisma in client bundles",
-        "Auth tokens \u2260 database passwords"
+        "Auth tokens ≠ database passwords"
       ]
     },
     "nextjs-app-router": {
@@ -38,7 +38,7 @@
       "points": [
         "DB access in Server Components / Route Handlers",
         "Prefer Node runtime for native drivers",
-        "Edge runtime lacks full pg support \u2014 use Node for Prisma"
+        "Edge runtime lacks full pg support — use Node for Prisma"
       ]
     }
   },
@@ -74,7 +74,9 @@
     "rel-07-self-referential",
     "rel-08-cascades-loading",
     "rel-09-insert-query",
-    "rel-10-mini-domain"
+    "rel-10-mini-domain",
+    "rel-11-association-object",
+    "rel-12-constraints-indexes"
   ],
   "lessonIds": [
     "01-connections",
@@ -88,6 +90,11 @@
     "09-cascades",
     "10-query-joins",
     "11-validation",
-    "12-frameworks"
+    "12-frameworks",
+    "13-indexes",
+    "14-constraints",
+    "15-transactions",
+    "16-n-plus-one",
+    "17-migrations"
   ]
 }

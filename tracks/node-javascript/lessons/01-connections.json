@@ -9,15 +9,50 @@
     "sql": "-- same Prisma client; validate inputs with Zod at boundaries"
   },
   "exercise": {
-    "prompt": "Create a client/engine from DATABASE_URL and run SELECT 1.",
-    "hint": "SQLAlchemy Session or PrismaClient \u2014 credentials stay on the server."
+    "kind": "code",
+    "runnable": true,
+    "language": "prisma",
+    "prompt": "Write the Prisma datasource block for this hub: PostgreSQL, URL from the DATABASE_URL environment variable.",
+    "hint": "datasource db { provider = \"postgresql\"  url = env(\"DATABASE_URL\") }",
+    "starterCode": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\n// TODO: datasource db { ... }\n\ngenerator client {\n  provider = \"prisma-client-js\"\n}\n",
+    "solution": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\ngenerator client {\n  provider = \"prisma-client-js\"\n}\n",
+    "wrongSolutions": [
+      {
+        "label": "password hard-coded in the schema",
+        "expect": [
+          "hardcoded-url"
+        ],
+        "code": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\ndatasource db {\n  provider = \"postgresql\"\n  url      = \"postgresql://hub:hub_secret@localhost:5432/learning_hub\"\n}\n"
+      },
+      {
+        "label": "wrong provider",
+        "expect": [
+          "wrong-provider"
+        ],
+        "code": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\ndatasource db {\n  provider = \"mysql\"\n  url      = env(\"DATABASE_URL\")\n}\n"
+      },
+      {
+        "label": "no datasource block at all",
+        "expect": [
+          "missing-datasource"
+        ],
+        "code": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\ngenerator client {\n  provider = \"prisma-client-js\"\n}\n"
+      }
+    ],
+    "requirements": {
+      "datasource": true
+    },
+    "animation": {
+      "highlightTables": [],
+      "highlightRels": []
+    }
   },
-  "body": "How applications open a durable channel to Postgres before any ORM work.\n\nWhy it matters: Without a connection (engine/client/pool), every model definition is just text. The connection string decides host, database, credentials, and SSL \u2014 get this wrong and relationship labs fail before you write a single FK.\n\nSQL \u2194 ORM: SQLAlchemy: create_engine(DATABASE_URL) + Session. Prisma: datasource db { url = env(\"DATABASE_URL\") } + PrismaClient. Raw SQL: psql or pg.Pool with the same URL.",
-  "why": "Without a connection (engine/client/pool), every model definition is just text. The connection string decides host, database, credentials, and SSL \u2014 get this wrong and relationship labs fail before you write a single FK.",
+  "body": "How applications open a durable channel to Postgres before any ORM work.\n\nWhy it matters: Without a connection (engine/client/pool), every model definition is just text. The connection string decides host, database, credentials, and SSL — get this wrong and relationship labs fail before you write a single FK.\n\nSQL ↔ ORM: SQLAlchemy: create_engine(DATABASE_URL) + Session. Prisma: datasource db { url = env(\"DATABASE_URL\") } + PrismaClient. Raw SQL: psql or pg.Pool with the same URL.",
+  "why": "Without a connection (engine/client/pool), every model definition is just text. The connection string decides host, database, credentials, and SSL — get this wrong and relationship labs fail before you write a single FK.",
   "objectives": [
     "Explain what a DATABASE_URL encodes (user, password, host, port, database).",
     "Create an engine (SQLAlchemy) or PrismaClient / pg Pool (Node).",
-    "Keep credentials server-side \u2014 never in browser bundles."
+    "Keep credentials server-side — never in browser bundles."
   ],
   "pitfalls": [
     "Hard-coding passwords in committed files.",
@@ -32,7 +67,7 @@
   ],
   "references": [
     {
-      "title": "SQLAlchemy \u2014 Engine Configuration",
+      "title": "SQLAlchemy — Engine Configuration",
       "url": "https://docs.sqlalchemy.org/en/20/core/engines.html"
     },
     {
@@ -40,7 +75,7 @@
       "url": "https://www.prisma.io/docs/orm/prisma-client"
     },
     {
-      "title": "PostgreSQL \u2014 CREATE TABLE",
+      "title": "PostgreSQL — CREATE TABLE",
       "url": "https://www.postgresql.org/docs/current/sql-createtable.html"
     },
     {
@@ -48,8 +83,13 @@
       "url": "https://node-postgres.com/"
     },
     {
-      "title": "Next.js \u2014 Route Handlers",
+      "title": "Next.js — Route Handlers",
       "url": "https://nextjs.org/docs/app/building-your-application/routing/route-handlers"
+    },
+    {
+      "title": "Prisma — Data sources",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/overview/data-sources"
     }
-  ]
+  ],
+  "level": "beginner"
 }

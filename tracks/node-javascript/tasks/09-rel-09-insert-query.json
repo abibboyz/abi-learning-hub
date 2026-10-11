@@ -3,14 +3,14 @@
   "order": 9,
   "title": "Insert + query across relationships",
   "summary": "Create lab_teams / lab_players with FK relationship.",
-  "description": "Create lab_teams / lab_players with FK relationship.\n\nWhy: Inserts must respect FKs; queries must JOIN/include to reassemble the graph \u2014 schema alone is not enough for production thinking.",
+  "description": "Create lab_teams / lab_players with FK relationship.\n\nWhy: Inserts must respect FKs; queries must JOIN/include to reassemble the graph — schema alone is not enough for production thinking.",
   "objectives": [
     "lab_teams (id PK, name)",
     "lab_players (id PK, name, team_id FK)"
   ],
   "hints": [
     "JOIN queries prove the relationship.",
-    "Read gate errors as cause\u2192effect: each message names what Postgres still lacks."
+    "Read gate errors as cause→effect: each message names what Postgres still lacks."
   ],
   "sqlEquivalent": "CREATE TABLE lab_teams (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_players (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL,\n  team_id INTEGER NOT NULL REFERENCES lab_teams(id)\n);",
   "requirements": {
@@ -42,9 +42,21 @@
             "fk": {
               "table": "lab_teams",
               "column": "id"
-            }
+            },
+            "nullable": false
           }
         ]
+      }
+    ],
+    "probes": [
+      {
+        "sql": [
+          "INSERT INTO lab_teams (id, name) VALUES (9001, 'Reds'), (9002, 'Blues')",
+          "INSERT INTO lab_players (name, team_id) VALUES ('Ana', 9001), ('Ben', 9001), ('Chen', 9002)",
+          "SELECT p.name, t.name FROM lab_players p JOIN lab_teams t ON t.id = p.team_id"
+        ],
+        "minRows": 3,
+        "message": "The gate inserts 2 teams + 3 players into your schema (rolled back afterwards) and joins them — the JOIN must return all 3 players."
       }
     ]
   },
@@ -61,11 +73,11 @@
     "lab_teams",
     "lab_players"
   ],
-  "starterCode": "// JavaScript track \u2014 same Prisma DSL\nmodel LabTeam {\n  id Int @id @default(autoincrement())\n  name String\n  players LabPlayer[]\n  @@map(\"lab_teams\")\n}\nmodel LabPlayer {\n  id Int @id @default(autoincrement())\n  name String\n  teamId Int @map(\"team_id\")\n  team LabTeam @relation(fields: [teamId], references: [id])\n  @@map(\"lab_players\")\n}\n",
-  "starterCodePrisma": "model LabTeam {\n  id Int @id @default(autoincrement())\n  name String\n  players LabPlayer[]\n  @@map(\"lab_teams\")\n}\nmodel LabPlayer {\n  id Int @id @default(autoincrement())\n  name String\n  teamId Int @map(\"team_id\")\n  team LabTeam @relation(fields: [teamId], references: [id])\n  @@map(\"lab_players\")\n}\n",
+  "starterCode": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabTeam {\n  id   Int    @id @default(autoincrement())\n  name String\n  // TODO: players LabPlayer[]\n  @@map(\"lab_teams\")\n}\n\n// TODO: model LabPlayer — id, name, teamId (@map(\"team_id\")) + team @relation, @@map(\"lab_players\")\n",
+  "starterCodePrisma": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabTeam {\n  id   Int    @id @default(autoincrement())\n  name String\n  // TODO: players LabPlayer[]\n  @@map(\"lab_teams\")\n}\n\n// TODO: model LabPlayer — id, name, teamId (@map(\"team_id\")) + team @relation, @@map(\"lab_players\")\n",
   "language": "javascript",
   "trackId": "node-javascript",
-  "why": "Inserts must respect FKs; queries must JOIN/include to reassemble the graph \u2014 schema alone is not enough for production thinking.",
+  "why": "Inserts must respect FKs; queries must JOIN/include to reassemble the graph — schema alone is not enough for production thinking.",
   "pitfalls": [
     "Inserting child before parent.",
     "Forgetting to expose the FK column the JOIN needs."
@@ -76,7 +88,7 @@
   ],
   "references": [
     {
-      "title": "PostgreSQL \u2014 Joins",
+      "title": "PostgreSQL — Joins",
       "url": "https://www.postgresql.org/docs/current/tutorial-join.html"
     },
     {
@@ -84,9 +96,19 @@
       "url": "https://www.prisma.io/docs/orm/prisma-client"
     },
     {
-      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
       "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
     }
   ],
-  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres \u2014 only real tables/FKs count."
+  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres — only real tables/FKs count.",
+  "solution": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabTeam {\n  id      Int         @id @default(autoincrement())\n  name    String\n  players LabPlayer[]\n  @@map(\"lab_teams\")\n}\n\nmodel LabPlayer {\n  id     Int     @id @default(autoincrement())\n  name   String\n  teamId Int     @map(\"team_id\")\n  team   LabTeam @relation(fields: [teamId], references: [id])\n  @@map(\"lab_players\")\n}\n",
+  "wrongSolutions": [
+    {
+      "label": "player.teamId is optional — orphan players and an empty INNER JOIN",
+      "expect": [
+        "must-be-not-null"
+      ],
+      "code": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabTeam {\n  id      Int         @id @default(autoincrement())\n  name    String\n  players LabPlayer[]\n  @@map(\"lab_teams\")\n}\n\nmodel LabPlayer {\n  id     Int      @id @default(autoincrement())\n  name   String\n  teamId Int?     @map(\"team_id\")\n  team   LabTeam? @relation(fields: [teamId], references: [id])\n  @@map(\"lab_players\")\n}\n"
+    }
+  ]
 }

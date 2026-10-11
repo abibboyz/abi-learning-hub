@@ -2,24 +2,70 @@
   "id": "08-self-ref",
   "order": 8,
   "title": "Self-referential relationships",
-  "summary": "A table FK-references itself (manager \u2192 reports, category trees).",
+  "summary": "A table FK-references itself (manager → reports, category trees).",
   "example": {
     "language": "python",
     "code": "manager_id: Mapped[int | None] = mapped_column(ForeignKey('lab_employees.id'))",
     "sql": "manager_id INTEGER NULL REFERENCES lab_employees(id)"
   },
   "exercise": {
-    "prompt": "Add a self-referential nullable FK.",
-    "hint": "Root rows need NULL."
+    "kind": "code",
+    "runnable": true,
+    "language": "python",
+    "prompt": "A category tree: lab_l08_categories.parent_id → lab_l08_categories.id, nullable (the root has no parent).",
+    "hint": "Mapped[int | None]; relationship(remote_side=[id]) for the parent side.",
+    "starterCode": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabL08Category(Base):\n    __tablename__ = \"lab_l08_categories\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    # TODO: parent_id (self FK), parent, children\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+    "solution": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabL08Category(Base):\n    __tablename__ = \"lab_l08_categories\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    parent_id: Mapped[int | None] = mapped_column(ForeignKey(\"lab_l08_categories.id\"))\n    parent: Mapped[\"LabL08Category | None\"] = relationship(remote_side=[id], back_populates=\"children\")\n    children: Mapped[list[\"LabL08Category\"]] = relationship(back_populates=\"parent\")\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+    "wrongSolutions": [
+      {
+        "label": "parent_id NOT NULL — the root cannot be inserted",
+        "expect": [
+          "must-be-nullable",
+          "probe-failed"
+        ],
+        "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabL08Category(Base):\n    __tablename__ = \"lab_l08_categories\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    parent_id: Mapped[int] = mapped_column(ForeignKey(\"lab_l08_categories.id\"))\n    parent: Mapped[\"LabL08Category | None\"] = relationship(remote_side=[id], back_populates=\"children\")\n    children: Mapped[list[\"LabL08Category\"]] = relationship(back_populates=\"parent\")\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l08_categories",
+          "columns": [
+            {
+              "name": "parent_id",
+              "nullable": true,
+              "fk": {
+                "table": "lab_l08_categories",
+                "column": "id"
+              }
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "sql": [
+            "INSERT INTO lab_l08_categories (id, name, parent_id) VALUES (1, 'Root', NULL), (2, 'Child', 1)"
+          ],
+          "message": "The gate inserts a root category (parent_id NULL) and a child under it."
+        }
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l08_categories"
+      ],
+      "highlightRels": []
+    }
   },
-  "body": "A table FK-references itself (manager \u2192 reports, category trees).\n\nWhy it matters: Org charts and nested categories live in one table. A self-FK (nullable for roots) models hierarchy without inventing extra tables.\n\nSQL \u2194 ORM: Same-table ForeignKey / Prisma self relation names (fields + references).",
+  "body": "A table FK-references itself (manager → reports, category trees).\n\nWhy it matters: Org charts and nested categories live in one table. A self-FK (nullable for roots) models hierarchy without inventing extra tables.\n\nSQL ↔ ORM: Same-table ForeignKey / Prisma self relation names (fields + references).",
   "why": "Org charts and nested categories live in one table. A self-FK (nullable for roots) models hierarchy without inventing extra tables.",
   "objectives": [
     "Add nullable parent_id / manager_id referencing the same table's id.",
     "Explain why roots use NULL."
   ],
   "pitfalls": [
-    "NOT NULL on parent_id \u2014 then you cannot insert the root row.",
+    "NOT NULL on parent_id — then you cannot insert the root row.",
     "Cycles without application checks."
   ],
   "mappingNotes": "Same-table ForeignKey / Prisma self relation names (fields + references).",
@@ -30,16 +76,17 @@
   ],
   "references": [
     {
-      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
       "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
     },
     {
-      "title": "Prisma \u2014 Relations",
+      "title": "Prisma — Relations",
       "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
     },
     {
-      "title": "PostgreSQL \u2014 Foreign Keys",
+      "title": "PostgreSQL — Foreign Keys",
       "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
     }
-  ]
+  ],
+  "level": "intermediate"
 }

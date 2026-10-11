@@ -9,20 +9,85 @@
     "sql": "SELECT m.title, p.name FROM lab_magazines m JOIN lab_publishers p ON p.id = m.publisher_id;"
   },
   "exercise": {
-    "prompt": "Sketch a JOIN that returns child rows with parent names.",
-    "hint": "Join on the FK column you created earlier."
+    "kind": "code",
+    "runnable": true,
+    "language": "python",
+    "prompt": "Insert 2 publishers and 3 magazines, commit, then SELECT magazine titles JOINed with publisher names and print them.",
+    "hint": "session.commit() makes the rows visible to everyone else; select(...).join(LabL10Magazine.publisher).",
+    "starterCode": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabL10Publisher(Base):\n    __tablename__ = \"lab_l10_publishers\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    magazines: Mapped[list[\"LabL10Magazine\"]] = relationship(back_populates=\"publisher\")\n\n\nclass LabL10Magazine(Base):\n    __tablename__ = \"lab_l10_magazines\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n    publisher_id: Mapped[int] = mapped_column(ForeignKey(\"lab_l10_publishers.id\"))\n    publisher: Mapped[LabL10Publisher] = relationship(back_populates=\"magazines\")\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n\n# TODO: insert rows with a Session, commit, then run a JOIN and print each row\n",
+    "solution": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabL10Publisher(Base):\n    __tablename__ = \"lab_l10_publishers\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    magazines: Mapped[list[\"LabL10Magazine\"]] = relationship(back_populates=\"publisher\")\n\n\nclass LabL10Magazine(Base):\n    __tablename__ = \"lab_l10_magazines\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n    publisher_id: Mapped[int] = mapped_column(ForeignKey(\"lab_l10_publishers.id\"))\n    publisher: Mapped[LabL10Publisher] = relationship(back_populates=\"magazines\")\n\nfrom sqlalchemy import select\nfrom sqlalchemy.orm import Session\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n\nwith Session(engine) as session:\n    acme = LabL10Publisher(name=\"Acme\")\n    globex = LabL10Publisher(name=\"Globex\")\n    session.add_all([\n        LabL10Magazine(title=\"Monthly Review\", publisher=acme),\n        LabL10Magazine(title=\"Data Weekly\", publisher=acme),\n        LabL10Magazine(title=\"Outdoor Life\", publisher=globex),\n    ])\n    session.commit()\n\n    stmt = select(LabL10Magazine.title, LabL10Publisher.name).join(LabL10Magazine.publisher).order_by(LabL10Magazine.title)\n    for title, publisher in session.execute(stmt):\n        print(f\"{title} | {publisher}\")\n",
+    "wrongSolutions": [
+      {
+        "label": "never commits (rows vanish when the session closes)",
+        "expect": [
+          "missing-data"
+        ],
+        "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabL10Publisher(Base):\n    __tablename__ = \"lab_l10_publishers\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    magazines: Mapped[list[\"LabL10Magazine\"]] = relationship(back_populates=\"publisher\")\n\n\nclass LabL10Magazine(Base):\n    __tablename__ = \"lab_l10_magazines\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n    publisher_id: Mapped[int] = mapped_column(ForeignKey(\"lab_l10_publishers.id\"))\n    publisher: Mapped[LabL10Publisher] = relationship(back_populates=\"magazines\")\n\nfrom sqlalchemy import select\nfrom sqlalchemy.orm import Session\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n\nwith Session(engine) as session:\n    acme = LabL10Publisher(name=\"Acme\")\n    globex = LabL10Publisher(name=\"Globex\")\n    session.add_all([\n        LabL10Magazine(title=\"Monthly Review\", publisher=acme),\n        LabL10Magazine(title=\"Data Weekly\", publisher=acme),\n        LabL10Magazine(title=\"Outdoor Life\", publisher=globex),\n    ])\n    session.flush()\n\n    stmt = select(LabL10Magazine.title, LabL10Publisher.name).join(LabL10Magazine.publisher).order_by(LabL10Magazine.title)\n    for title, publisher in session.execute(stmt):\n        print(f\"{title} | {publisher}\")\n"
+      },
+      {
+        "label": "inserts but prints nothing",
+        "expect": [
+          "missing-output"
+        ],
+        "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabL10Publisher(Base):\n    __tablename__ = \"lab_l10_publishers\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    magazines: Mapped[list[\"LabL10Magazine\"]] = relationship(back_populates=\"publisher\")\n\n\nclass LabL10Magazine(Base):\n    __tablename__ = \"lab_l10_magazines\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n    publisher_id: Mapped[int] = mapped_column(ForeignKey(\"lab_l10_publishers.id\"))\n    publisher: Mapped[LabL10Publisher] = relationship(back_populates=\"magazines\")\n\nfrom sqlalchemy import select\nfrom sqlalchemy.orm import Session\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n\nwith Session(engine) as session:\n    acme = LabL10Publisher(name=\"Acme\")\n    globex = LabL10Publisher(name=\"Globex\")\n    session.add_all([\n        LabL10Magazine(title=\"Monthly Review\", publisher=acme),\n        LabL10Magazine(title=\"Data Weekly\", publisher=acme),\n        LabL10Magazine(title=\"Outdoor Life\", publisher=globex),\n    ])\n    session.commit()\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l10_publishers",
+          "columns": [
+            {
+              "name": "id",
+              "pk": true
+            }
+          ]
+        },
+        {
+          "name": "lab_l10_magazines",
+          "columns": [
+            {
+              "name": "publisher_id",
+              "nullable": false,
+              "fk": {
+                "table": "lab_l10_publishers",
+                "column": "id"
+              }
+            }
+          ]
+        }
+      ],
+      "data": [
+        {
+          "sql": "SELECT count(*) FROM lab_l10_magazines m JOIN lab_l10_publishers p ON p.id = m.publisher_id",
+          "min": 3,
+          "message": "Insert 3 magazines that belong to publishers (and commit) — the JOIN must find them."
+        }
+      ],
+      "stdout": {
+        "contains": "Monthly Review | Acme",
+        "message": "Print each row as `title | publisher`."
+      }
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l10_publishers",
+        "lab_l10_magazines"
+      ],
+      "highlightRels": []
+    }
   },
-  "body": "Write rows that respect FKs, then JOIN / include to read graphs.\n\nWhy it matters: Schema without queries is incomplete. Inserts must satisfy FKs; reads use JOINs (or ORM include) to reassemble the relationship graph you modeled.\n\nSQL \u2194 ORM: SQL JOIN \u2194 SQLAlchemy selectinload/joinedload \u2194 Prisma include/select.",
+  "body": "Write rows that respect FKs, then JOIN / include to read graphs.\n\nWhy it matters: Schema without queries is incomplete. Inserts must satisfy FKs; reads use JOINs (or ORM include) to reassemble the relationship graph you modeled.\n\nSQL ↔ ORM: SQL JOIN ↔ SQLAlchemy selectinload/joinedload ↔ Prisma include/select.",
   "why": "Schema without queries is incomplete. Inserts must satisfy FKs; reads use JOINs (or ORM include) to reassemble the relationship graph you modeled.",
   "objectives": [
     "Insert parent before child when FKs are required.",
     "Read across a relationship with JOIN or ORM navigation."
   ],
   "pitfalls": [
-    "Inserting child first \u2192 FK violation.",
+    "Inserting child first → FK violation.",
     "Selecting only one table and wondering where related fields went."
   ],
-  "mappingNotes": "SQL JOIN \u2194 SQLAlchemy selectinload/joinedload \u2194 Prisma include/select.",
+  "mappingNotes": "SQL JOIN ↔ SQLAlchemy selectinload/joinedload ↔ Prisma include/select.",
   "teachAlong": [
     "Cause: data is normalized across tables.",
     "Effect: JOIN/include reconstitutes the object graph.",
@@ -30,16 +95,17 @@
   ],
   "references": [
     {
-      "title": "PostgreSQL \u2014 Joins",
+      "title": "PostgreSQL — Joins",
       "url": "https://www.postgresql.org/docs/current/tutorial-join.html"
     },
     {
-      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
       "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
     },
     {
       "title": "Prisma Client API",
       "url": "https://www.prisma.io/docs/orm/prisma-client"
     }
-  ]
+  ],
+  "level": "intermediate"
 }
