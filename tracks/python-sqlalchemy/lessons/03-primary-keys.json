@@ -2,17 +2,69 @@
   "id": "03-primary-keys",
   "order": 3,
   "title": "Primary keys",
-  "summary": "A PK uniquely identifies each row \u2014 the target of every foreign key.",
+  "summary": "A PK uniquely identifies each row — the target of every foreign key.",
   "example": {
     "language": "python",
     "code": "id: Mapped[int] = mapped_column(primary_key=True)",
     "sql": "id SERIAL PRIMARY KEY"
   },
   "exercise": {
-    "prompt": "Ensure your lab table has an integer primary key named id.",
-    "hint": "Task gate checks isPrimaryKey on id."
+    "kind": "code",
+    "runnable": true,
+    "language": "python",
+    "prompt": "Natural vs surrogate keys: lab_l03_countries keyed by its 2-letter `code` (String(2) PK), lab_l03_cities keyed by an integer id.",
+    "hint": "primary_key=True works on any column type — not only integers.",
+    "starterCode": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\n# TODO: LabL03Country (code is the PK), LabL03City (integer id PK)\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+    "solution": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabL03Country(Base):\n    __tablename__ = \"lab_l03_countries\"\n    code: Mapped[str] = mapped_column(String(2), primary_key=True)\n    name: Mapped[str] = mapped_column(String(80))\n\n\nclass LabL03City(Base):\n    __tablename__ = \"lab_l03_cities\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(80))\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+    "wrongSolutions": [
+      {
+        "label": "surrogate id on countries, code only unique",
+        "expect": [
+          "not-primary-key"
+        ],
+        "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabL03Country(Base):\n    __tablename__ = \"lab_l03_countries\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    code: Mapped[str] = mapped_column(String(2), unique=True)\n    name: Mapped[str] = mapped_column(String(80))\n\n\nclass LabL03City(Base):\n    __tablename__ = \"lab_l03_cities\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(80))\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l03_countries",
+          "columns": [
+            {
+              "name": "code",
+              "pk": true,
+              "type": "text"
+            },
+            {
+              "name": "name",
+              "nullable": false
+            }
+          ]
+        },
+        {
+          "name": "lab_l03_cities",
+          "columns": [
+            {
+              "name": "id",
+              "pk": true,
+              "type": "integer"
+            },
+            {
+              "name": "name"
+            }
+          ]
+        }
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l03_countries",
+        "lab_l03_cities"
+      ],
+      "highlightRels": []
+    }
   },
-  "body": "A PK uniquely identifies each row \u2014 the target of every foreign key.\n\nWhy it matters: Foreign keys point at primary (or unique) keys. Without a stable PK, you cannot express 1:N, 1:1, or M:N safely, and ON DELETE behavior becomes undefined.\n\nSQL \u2194 ORM: SQLAlchemy primary_key=True \u2194 Prisma @id \u2194 SQL PRIMARY KEY.",
+  "body": "A PK uniquely identifies each row — the target of every foreign key.\n\nWhy it matters: Foreign keys point at primary (or unique) keys. Without a stable PK, you cannot express 1:N, 1:1, or M:N safely, and ON DELETE behavior becomes undefined.\n\nSQL ↔ ORM: SQLAlchemy primary_key=True ↔ Prisma @id ↔ SQL PRIMARY KEY.",
   "why": "Foreign keys point at primary (or unique) keys. Without a stable PK, you cannot express 1:N, 1:1, or M:N safely, and ON DELETE behavior becomes undefined.",
   "objectives": [
     "Mark a surrogate integer id as PRIMARY KEY.",
@@ -20,10 +72,10 @@
     "Prefer stable surrogate keys in labs; add UNIQUE for natural keys separately."
   ],
   "pitfalls": [
-    "Forgetting @id / primary_key=True \u2014 table exists but relationships cannot attach.",
-    "Composite PKs too early \u2014 fine in production, noisy while learning basics."
+    "Forgetting @id / primary_key=True — table exists but relationships cannot attach.",
+    "Composite PKs too early — fine in production, noisy while learning basics."
   ],
-  "mappingNotes": "SQLAlchemy primary_key=True \u2194 Prisma @id \u2194 SQL PRIMARY KEY.",
+  "mappingNotes": "SQLAlchemy primary_key=True ↔ Prisma @id ↔ SQL PRIMARY KEY.",
   "teachAlong": [
     "Cause: row needs a durable identity.",
     "Effect: PK constraint + index created.",
@@ -31,16 +83,17 @@
   ],
   "references": [
     {
-      "title": "PostgreSQL \u2014 CREATE TABLE",
+      "title": "PostgreSQL — CREATE TABLE",
       "url": "https://www.postgresql.org/docs/current/sql-createtable.html"
     },
     {
-      "title": "SQLAlchemy \u2014 Mapped Column Declarative",
+      "title": "SQLAlchemy — Mapped Column Declarative",
       "url": "https://docs.sqlalchemy.org/en/20/orm/declarative_tables.html"
     },
     {
-      "title": "Prisma \u2014 Schema Reference",
+      "title": "Prisma — Schema Reference",
       "url": "https://www.prisma.io/docs/orm/reference/prisma-schema-reference"
     }
-  ]
+  ],
+  "level": "beginner"
 }

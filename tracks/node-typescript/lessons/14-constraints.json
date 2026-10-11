@@ -1,0 +1,117 @@
+{
+  "id": "14-constraints",
+  "order": 14,
+  "title": "CHECK, UNIQUE & defaults (advanced)",
+  "summary": "Put business rules where every writer must obey them.",
+  "body": "Put business rules where every writer must obey them.\n\nWhy it matters: App-side validation protects one code path. Constraints protect the data from every path — scripts, other services, a psql session, a buggy migration.\n\nSQL ↔ ORM: SQLAlchemy CheckConstraint/UniqueConstraint in __table_args__. Prisma @@unique([a, b]), @default(...); CHECK via a SQL migration. SQL: CHECK (...), UNIQUE (a, b), DEFAULT.",
+  "why": "App-side validation protects one code path. Constraints protect the data from every path — scripts, other services, a psql session, a buggy migration.",
+  "objectives": [
+    "Write CHECK constraints (Python/SQL).",
+    "Use composite UNIQUE for 'one per parent' rules.",
+    "Know what Prisma can and cannot express (no CHECK — use a SQL migration)."
+  ],
+  "pitfalls": [
+    "Validating only in the API.",
+    "A global UNIQUE where the rule is per parent.",
+    "Unnamed constraints — error messages become cryptic."
+  ],
+  "mappingNotes": "SQLAlchemy CheckConstraint/UniqueConstraint in __table_args__. Prisma @@unique([a, b]), @default(...); CHECK via a SQL migration. SQL: CHECK (...), UNIQUE (a, b), DEFAULT.",
+  "teachAlong": [
+    "Cause: Put business rules where every writer must obey them.",
+    "Effect: run the exercise and read the gate's rule ids.",
+    "Replay any run from History."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL — Constraints",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html"
+    },
+    {
+      "title": "SQLAlchemy — Constraints and Indexes",
+      "url": "https://docs.sqlalchemy.org/en/20/core/constraints.html"
+    },
+    {
+      "title": "Prisma — Indexes",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/indexes"
+    }
+  ],
+  "level": "advanced",
+  "example": {
+    "language": "prisma",
+    "code": "@@unique([storeId, sku])",
+    "sql": "price NUMERIC(10,2) NOT NULL CHECK (price >= 0)"
+  },
+  "exercise": {
+    "kind": "code",
+    "runnable": true,
+    "language": "prisma",
+    "prompt": "Prisma has no CHECK attribute, but it has composite uniques and defaults: the same SKU may exist once PER STORE (@@unique([storeId, sku])), stock defaults to 0.",
+    "hint": "A global @unique on sku would forbid the same SKU in two stores. (CHECK constraints need a SQL migration in Prisma.)",
+    "starterCode": "model LabL14Store {\n  id    Int                @id @default(autoincrement())\n  name  String\n  items LabL14Inventory[]\n  @@map(\"lab_l14_stores\")\n}\n\nmodel LabL14Inventory {\n  id      Int         @id @default(autoincrement())\n  storeId Int         @map(\"store_id\")\n  sku     String      @db.VarChar(32)\n  stock   Int         @default(0)\n  store   LabL14Store @relation(fields: [storeId], references: [id])\n  // TODO: one row per (store, sku)\n  @@map(\"lab_l14_inventory\")\n}\n",
+    "solution": "model LabL14Store {\n  id    Int                @id @default(autoincrement())\n  name  String\n  items LabL14Inventory[]\n  @@map(\"lab_l14_stores\")\n}\n\nmodel LabL14Inventory {\n  id      Int         @id @default(autoincrement())\n  storeId Int         @map(\"store_id\")\n  sku     String      @db.VarChar(32)\n  stock   Int         @default(0)\n  store   LabL14Store @relation(fields: [storeId], references: [id])\n  @@unique([storeId, sku])\n  @@map(\"lab_l14_inventory\")\n}\n",
+    "wrongSolutions": [
+      {
+        "label": "global @unique on sku",
+        "expect": [
+          "must-not-be-unique",
+          "probe-failed",
+          "missing-composite-key"
+        ],
+        "code": "model LabL14Store {\n  id    Int                @id @default(autoincrement())\n  name  String\n  items LabL14Inventory[]\n  @@map(\"lab_l14_stores\")\n}\n\nmodel LabL14Inventory {\n  id      Int         @id @default(autoincrement())\n  storeId Int         @map(\"store_id\")\n  sku     String      @db.VarChar(32) @unique\n  stock   Int         @default(0)\n  store   LabL14Store @relation(fields: [storeId], references: [id])\n  @@map(\"lab_l14_inventory\")\n}\n"
+      },
+      {
+        "label": "no uniqueness at all",
+        "expect": [
+          "missing-composite-key",
+          "constraint-not-enforced"
+        ],
+        "code": "model LabL14Store {\n  id    Int                @id @default(autoincrement())\n  name  String\n  items LabL14Inventory[]\n  @@map(\"lab_l14_stores\")\n}\n\nmodel LabL14Inventory {\n  id      Int         @id @default(autoincrement())\n  storeId Int         @map(\"store_id\")\n  sku     String      @db.VarChar(32)\n  stock   Int         @default(0)\n  store   LabL14Store @relation(fields: [storeId], references: [id])\n  @@map(\"lab_l14_inventory\")\n}\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l14_inventory",
+          "columns": [
+            {
+              "name": "sku",
+              "unique": false
+            }
+          ],
+          "uniqueTogether": [
+            [
+              "store_id",
+              "sku"
+            ]
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "sql": [
+            "INSERT INTO lab_l14_stores (id, name) VALUES (1, 'North'), (2, 'South')",
+            "INSERT INTO lab_l14_inventory (store_id, sku) VALUES (1, 'A-1'), (2, 'A-1')"
+          ],
+          "message": "The same SKU in two different stores must be allowed (stock defaults to 0)."
+        },
+        {
+          "sql": [
+            "INSERT INTO lab_l14_stores (id, name) VALUES (1, 'North')",
+            "INSERT INTO lab_l14_inventory (store_id, sku) VALUES (1, 'A-1'), (1, 'A-1')"
+          ],
+          "expect": "error",
+          "message": "The same SKU twice in ONE store must be rejected."
+        }
+      ],
+      "resetTables": [
+        "lab_l14_stores"
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l14_inventory"
+      ],
+      "highlightRels": []
+    }
+  }
+}

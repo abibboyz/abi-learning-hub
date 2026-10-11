@@ -1,0 +1,87 @@
+{
+  "id": "rel-07-self-referential",
+  "order": 7,
+  "title": "Self-referential",
+  "summary": "Staff who report to other staff via manager_id.",
+  "description": "Staff who report to other staff via manager_id.\n\nWhy: Hierarchies live in one table via a self-FK. Nullable manager_id is what allows root rows.",
+  "objectives": [
+    "lab_staff (id PK, name, manager_id nullable FK → lab_staff.id)"
+  ],
+  "hints": [
+    "Self-FK: same table on both ends.",
+    "Read gate errors as cause→effect: each message names what Postgres still lacks."
+  ],
+  "sqlEquivalent": "CREATE TABLE lab_staff (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL,\n  manager_id INTEGER REFERENCES lab_staff(id) ON DELETE SET NULL\n);",
+  "requirements": {
+    "tables": [
+      {
+        "name": "lab_staff",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "name"
+          },
+          {
+            "name": "manager_id",
+            "fk": {
+              "table": "lab_staff",
+              "column": "id"
+            },
+            "nullable": true
+          }
+        ]
+      }
+    ]
+  },
+  "animation": {
+    "highlightTables": [
+      "lab_staff"
+    ],
+    "highlightRels": [
+      "lab_staff.manager_id"
+    ]
+  },
+  "highlightHint": [
+    "lab_staff"
+  ],
+  "starterCode": "-- Write the CREATE TABLE statements (and INSERTs where asked) for this task.\n-- Tables must be named exactly as in the objectives.\n",
+  "language": "sql",
+  "trackId": "sql-postgres",
+  "why": "Hierarchies live in one table via a self-FK. Nullable manager_id is what allows root rows.",
+  "pitfalls": [
+    "NOT NULL self-FK so the root cannot be inserted."
+  ],
+  "teachAlong": [
+    "Cause: hierarchy in one entity.",
+    "Effect: nullable self-FK.",
+    "NULL = root."
+  ],
+  "references": [
+    {
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
+    },
+    {
+      "title": "Prisma — Relations",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
+    },
+    {
+      "title": "PostgreSQL — Foreign Keys",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
+    }
+  ],
+  "mappingNotes": "Raw SQL is what every ORM generates. The gate introspects the same Postgres catalog for all tracks.",
+  "solution": "CREATE TABLE lab_staff (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL,\n  manager_id INTEGER REFERENCES lab_staff(id) ON DELETE SET NULL\n);\n",
+  "wrongSolutions": [
+    {
+      "label": "manager_id NOT NULL",
+      "expect": [
+        "must-be-nullable"
+      ],
+      "code": "CREATE TABLE lab_staff (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL,\n  manager_id INTEGER NOT NULL REFERENCES lab_staff(id)\n);\n"
+    }
+  ]
+}

@@ -1,252 +1,380 @@
 /**
- * Constrained Prisma-schema lab runner.
- * Parses model blocks → CREATE TABLE / ALTER FK. No unrestricted shell.
+ * Prisma schema → PostgreSQL DDL for the lab (no Prisma engine, no shell).
+ *
+ * Follows Prisma's own mapping rules so what passes here would behave the same with `prisma migrate`:
+ *  - table = model name unless @@map, column = field name unless @map (no silent snake_casing),
+ *  - String → text (or @db.VarChar(n) / @db.Text …), DateTime → timestamp(3), Decimal → decimal(65,30)
+ *    unless @db.Decimal(p,s), Int @default(autoincrement()) → serial,
+ *  - @id/@@id, @unique/@@unique, @@index, @relation(fields, references, onDelete, onUpdate).
+ * Anything it does not understand is an explicit error with a line number (never silently skipped).
+ * Every identifier is validated, so the generated SQL can only create lab_ tables.
  */
 
-export type RunResult = { ok: boolean; sql: string[]; error?: string };
-
-type Field = {
-  name: string;
-  type: string;
-  optional: boolean;
-  attributes: string[];
-  rawAttrs: string;
+export type DatasourceInfo = { provider: string | null; url: { env?: string; literal?: string } | null; line: number };
+export type RunResult = {
+  ok: boolean;
+  sql: string[];
+  tables: string[];
+  datasource: DatasourceInfo | null;
+  error?: string;
+  line?: number;
 };
 
-type Model = {
-  name: string;
-  table: string;
-  fields: Field[];
-  mapAttrs: string[];
-};
+type Field = { name: string; type: string; optional: boolean; list: boolean; attrs: string[]; line: number };
+type Model = { name: string; table: string; fields: Field[]; blockAttrs: { text: string; line: number }[]; line: number };
 
-function stripComments(src: string) {
-  return src.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+class SchemaError extends Error {
+  constructor(message: string, public line?: number) {
+    super(message);
+  }
 }
 
-/** Split attributes keeping parentheses intact */
-function splitAttrs(raw: string): string[] {
-  const attrs: string[] = [];
+const SCALARS = new Set(["String", "Int", "BigInt", "Boolean", "DateTime", "Decimal", "Float", "Json", "Bytes"]);
+const IDENT = /^[A-Za-z_][A-Za-z0-9_]{0,62}$/;
+const REFERENTIAL: Record<string, string> = {
+  Cascade: "CASCADE",
+  SetNull: "SET NULL",
+  Restrict: "RESTRICT",
+  NoAction: "NO ACTION",
+  SetDefault: "SET DEFAULT",
+};
+const FIELD_ATTRS = new Set(["@id", "@default", "@unique", "@map", "@relation", "@updatedAt", "@ignore"]);
+
+/** Replace comments with spaces so line numbers stay correct. */
+function stripComments(src: string) {
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .replace(/\/\/[^\n]*/g, (m) => " ".repeat(m.length));
+}
+
+/** Split `@a @b(x, y(z)) @db.VarChar(20)` keeping parentheses and strings intact. */
+function splitAttrs(raw: string, line: number): string[] {
+  const out: string[] = [];
   let i = 0;
   const s = raw.trim();
   while (i < s.length) {
     while (i < s.length && /\s/.test(s[i])) i++;
     if (i >= s.length) break;
-    if (s[i] !== "@" && s[i] !== "/") {
-      // skip stray tokens
-      while (i < s.length && !/\s/.test(s[i])) i++;
-      continue;
-    }
-    const start = i;
-    i++;
-    while (i < s.length && /[A-Za-z0-9_]/.test(s[i])) i++;
+    if (s[i] !== "@") throw new SchemaError(`Unexpected \`${s.slice(i).split(/\s/)[0]}\` — attributes start with @.`, line);
+    const start = i++;
+    while (i < s.length && /[A-Za-z0-9_.@]/.test(s[i])) i++;
     if (s[i] === "(") {
       let depth = 0;
+      let inStr = false;
       do {
-        if (s[i] === "(") depth++;
-        else if (s[i] === ")") depth--;
+        const ch = s[i];
+        if (ch === '"' && s[i - 1] !== "\\") inStr = !inStr;
+        else if (!inStr && ch === "(") depth++;
+        else if (!inStr && ch === ")") depth--;
         i++;
       } while (i < s.length && depth > 0);
+      if (depth !== 0) throw new SchemaError("Unbalanced parentheses in attribute.", line);
     }
-    attrs.push(s.slice(start, i).trim());
+    out.push(s.slice(start, i));
   }
-  return attrs.filter(Boolean);
+  return out;
 }
 
-function parseModels(src: string): Model[] {
-  const clean = stripComments(src);
+function argOf(attr: string): string {
+  const i = attr.indexOf("(");
+  return i < 0 ? "" : attr.slice(i + 1, attr.lastIndexOf(")")).trim();
+}
+
+function listArg(s: string, key: string | null, line: number): string[] | null {
+  const re = key ? new RegExp(`${key}\\s*:\\s*\\[([^\\]]*)\\]`) : /^\s*\[([^\]]*)\]/;
+  const m = s.match(re);
+  if (!m) return null;
+  const items = m[1].split(",").map((x) => x.trim().replace(/\(.*\)$/, "")).filter(Boolean);
+  for (const it of items) if (!IDENT.test(it)) throw new SchemaError(`Invalid field name \`${it}\`.`, line);
+  return items;
+}
+
+function parse(src: string): { models: Model[]; datasource: DatasourceInfo | null } {
+  const lines = stripComments(src).split("\n");
   const models: Model[] = [];
-  const re = /model\s+(\w+)\s*\{([^}]*)\}/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(clean))) {
-    const name = m[1];
-    const body = m[2];
-    const lines = body
-      .split("\n")
-      .map((l) => l.trim())
-      .filter(Boolean);
-    const fields: Field[] = [];
-    const mapAttrs: string[] = [];
-    let table = name;
-    for (const line of lines) {
-      if (line.startsWith("@@")) {
-        mapAttrs.push(line);
-        const map = line.match(/@@map\(\s*"([^"]+)"\s*\)/);
-        if (map) table = map[1];
+  let datasource: DatasourceInfo | null = null;
+  let i = 0;
+  while (i < lines.length) {
+    const ln = i + 1;
+    const t = lines[i].trim();
+    i++;
+    if (!t) continue;
+    const head = t.match(/^(model|datasource|generator|enum|type|view)\s+(\w+)\s*\{\s*$/);
+    if (!head) {
+      throw new SchemaError(
+        `Unexpected \`${t.slice(0, 40)}\` outside a block. Expected \`model Name {\` (or datasource/generator).`,
+        ln
+      );
+    }
+    const [, kind, name] = head;
+    const body: { text: string; line: number }[] = [];
+    let closed = false;
+    while (i < lines.length) {
+      const bt = lines[i].trim();
+      i++;
+      if (bt === "}") {
+        closed = true;
+        break;
+      }
+      if (/^(model|datasource|generator|enum)\s+\w+\s*\{/.test(bt)) break;
+      if (bt) body.push({ text: bt, line: i });
+    }
+    if (!closed) throw new SchemaError(`Block \`${kind} ${name}\` is missing its closing }.`, ln);
+    if (kind === "enum" || kind === "type" || kind === "view") {
+      throw new SchemaError(
+        `\`${kind}\` blocks are not supported by the lab translator — use a String field (and validate values with Zod).`,
+        ln
+      );
+    }
+    if (kind === "generator") continue;
+    if (kind === "datasource") {
+      const get = (k: string) => body.find((b) => new RegExp(`^${k}\\s*=`).test(b.text))?.text.split("=").slice(1).join("=").trim();
+      const prov = get("provider");
+      const url = get("url");
+      const envM = url?.match(/^env\(\s*"([^"]+)"\s*\)$/);
+      const litM = url?.match(/^"([^"]*)"$/);
+      datasource = {
+        provider: prov ? prov.replace(/^"|"$/g, "") : null,
+        url: envM ? { env: envM[1] } : litM ? { literal: litM[1] } : null,
+        line: ln,
+      };
+      continue;
+    }
+    const model: Model = { name, table: name, fields: [], blockAttrs: [], line: ln };
+    for (const b of body) {
+      if (b.text.startsWith("@@")) {
+        model.blockAttrs.push(b);
         continue;
       }
-      const fm = line.match(/^(\w+)\s+(\w+)(\??)\s*(.*)$/);
-      if (!fm) continue;
-      const rawAttrs = fm[4] || "";
-      fields.push({
+      const fm = b.text.match(/^(\w+)\s+(\w+)(\[\])?(\?)?\s*(.*)$/);
+      if (!fm) throw new SchemaError(`Cannot read field \`${b.text}\` — expected \`name Type @attributes\`.`, b.line);
+      model.fields.push({
         name: fm[1],
         type: fm[2],
-        optional: fm[3] === "?",
-        attributes: splitAttrs(rawAttrs),
-        rawAttrs,
+        list: Boolean(fm[3]),
+        optional: Boolean(fm[4]),
+        attrs: splitAttrs(fm[5] || "", b.line),
+        line: b.line,
       });
     }
-    models.push({ name, table, fields, mapAttrs });
-  }
-  return models;
-}
-
-function attrHas(attrs: string[], prefix: string) {
-  return attrs.some((a) => a.startsWith(prefix));
-}
-
-function mapAttr(attrs: string[], key: string): string | null {
-  const a = attrs.find((x) => x.startsWith(key));
-  if (!a) return null;
-  const m = a.match(/\(\s*"([^"]+)"\s*\)/) || a.match(/\(\s*([^)]+)\s*\)/);
-  return m ? m[1].replace(/['"]/g, "") : null;
-}
-
-function sqlType(field: Field): string | null {
-  const scalars = new Set(["String", "Int", "Boolean", "DateTime", "Decimal", "Float", "BigInt"]);
-  if (!scalars.has(field.type)) return null;
-
-  if (attrHas(field.attributes, "@db.Decimal") || field.type === "Decimal") {
-    const d = field.attributes.find((a) => a.startsWith("@db.Decimal"));
-    if (d) {
-      const nums = d.match(/(\d+)\s*,\s*(\d+)/);
-      if (nums) return `NUMERIC(${nums[1]},${nums[2]})`;
+    for (const a of model.blockAttrs) {
+      if (a.text.startsWith("@@map")) {
+        const m = a.text.match(/^@@map\(\s*(?:name\s*:\s*)?"([^"]+)"\s*\)$/);
+        if (!m) throw new SchemaError('Use @@map("lab_table_name").', a.line);
+        model.table = m[1];
+      }
     }
-    return "NUMERIC(10,2)";
+    models.push(model);
   }
-  switch (field.type) {
-    case "Int":
-      return attrHas(field.attributes, "@default(autoincrement") ? "SERIAL" : "INTEGER";
-    case "String":
-      return "VARCHAR(200)";
-    case "Boolean":
-      return "BOOLEAN";
-    case "DateTime":
-      return "TIMESTAMPTZ";
-    case "Float":
-      return "DOUBLE PRECISION";
-    case "BigInt":
-      return "BIGINT";
-    default:
-      return "TEXT";
-  }
+  return { models, datasource };
 }
 
-function columnName(field: Field) {
-  return mapAttr(field.attributes, "@map") || camelToSnake(field.name);
+function column(f: Field) {
+  const m = f.attrs.find((a) => a.startsWith("@map"));
+  if (!m) return f.name;
+  const v = argOf(m).match(/^(?:name\s*:\s*)?"([^"]+)"$/);
+  if (!v) throw new SchemaError('Use @map("column_name").', f.line);
+  return v[1];
 }
 
-function camelToSnake(s: string) {
-  return s.replace(/[A-Z]/g, (c) => "_" + c.toLowerCase()).replace(/^_/, "");
+function q(id: string, line?: number) {
+  if (!IDENT.test(id)) throw new SchemaError(`Invalid identifier \`${id}\` (letters, digits, _; max 63).`, line);
+  return `"${id}"`;
+}
+
+function cname(s: string) {
+  return s.slice(0, 63);
+}
+
+function sqlType(f: Field): string {
+  const db = f.attrs.find((a) => a.startsWith("@db."));
+  const auto = f.attrs.some((a) => /^@default\(\s*autoincrement\(\)\s*\)$/.test(a));
+  if (db) {
+    const m = db.match(/^@db\.(\w+)(?:\(([^)]*)\))?$/);
+    const name = m?.[1];
+    const args = (m?.[2] || "").split(",").map((x) => x.trim()).filter(Boolean);
+    if (args.some((a) => !/^\d{1,4}$/.test(a))) throw new SchemaError(`Invalid arguments in ${db}.`, f.line);
+    const allowed: Record<string, string[]> = {
+      VarChar: ["String"], Char: ["String"], Text: ["String"], Uuid: ["String"],
+      Decimal: ["Decimal"], Money: ["Decimal"], Real: ["Float"], DoublePrecision: ["Float"],
+      SmallInt: ["Int"], Integer: ["Int"], BigInt: ["BigInt"],
+      Date: ["DateTime"], Timestamp: ["DateTime"], Timestamptz: ["DateTime"], Time: ["DateTime"],
+      Boolean: ["Boolean"], JsonB: ["Json"], Json: ["Json"],
+    };
+    if (!name || !allowed[name]) throw new SchemaError(`Unsupported native type ${db}.`, f.line);
+    if (!allowed[name].includes(f.type)) {
+      throw new SchemaError(`${db} cannot be used on a ${f.type} field (only ${allowed[name].join("/")}).`, f.line);
+    }
+    const a = args.length ? `(${args.join(",")})` : "";
+    const map: Record<string, string> = {
+      VarChar: `VARCHAR${a}`, Char: `CHAR${a}`, Text: "TEXT", Uuid: "UUID", Decimal: `DECIMAL${a}`, Money: "MONEY",
+      Real: "REAL", DoublePrecision: "DOUBLE PRECISION", SmallInt: "SMALLINT", Integer: auto ? "SERIAL" : "INTEGER",
+      BigInt: auto ? "BIGSERIAL" : "BIGINT", Date: "DATE", Timestamp: `TIMESTAMP${a}`, Timestamptz: `TIMESTAMPTZ${a}`,
+      Time: `TIME${a}`, Boolean: "BOOLEAN", JsonB: "JSONB", Json: "JSON",
+    };
+    return map[name];
+  }
+  switch (f.type) {
+    case "String": return "TEXT";
+    case "Int": return auto ? "SERIAL" : "INTEGER";
+    case "BigInt": return auto ? "BIGSERIAL" : "BIGINT";
+    case "Boolean": return "BOOLEAN";
+    case "DateTime": return "TIMESTAMP(3)";
+    case "Decimal": return "DECIMAL(65,30)";
+    case "Float": return "DOUBLE PRECISION";
+    case "Json": return "JSONB";
+    case "Bytes": return "BYTEA";
+  }
+  throw new SchemaError(`Unknown type ${f.type}.`, f.line);
+}
+
+function defaultClause(f: Field): string {
+  const d = f.attrs.find((a) => a.startsWith("@default"));
+  if (!d) return "";
+  const v = argOf(d);
+  if (v === "autoincrement()" || v === "uuid()" || v === "cuid()" || /^(uuid|cuid|nanoid|ulid)\(.*\)$/.test(v)) return "";
+  if (v === "now()") return " DEFAULT CURRENT_TIMESTAMP";
+  if (v === "true" || v === "false") return ` DEFAULT ${v.toUpperCase()}`;
+  if (/^-?\d+(\.\d+)?$/.test(v)) return ` DEFAULT ${v}`;
+  const s = v.match(/^"((?:[^"\\]|\\.)*)"$/);
+  if (s) return ` DEFAULT '${s[1].replace(/'/g, "''")}'`;
+  if (v.startsWith("dbgenerated")) throw new SchemaError("dbgenerated() is not allowed in the lab.", f.line);
+  throw new SchemaError(`Unsupported default @default(${v}).`, f.line);
 }
 
 export function prismaModelsToSql(source: string): RunResult {
+  const empty = { sql: [] as string[], tables: [] as string[], datasource: null };
   try {
-    if (/[;`]\s*(drop|truncate|alter\s+role|copy\s+)/i.test(source)) {
-      return { ok: false, sql: [], error: "Forbidden SQL-like content in schema." };
-    }
-    const models = parseModels(source);
-    if (!models.length) {
-      return {
-        ok: false,
-        sql: [],
-        error: "No Prisma `model` blocks found. Paste model definitions with @@map table names.",
-      };
-    }
-
+    const { models, datasource } = parse(source);
+    const byName = new Map(models.map((m) => [m.name, m]));
     const sql: string[] = [];
-    const fkDeferred: string[] = [];
+    const after: string[] = [];
 
     for (const model of models) {
       if (!model.table.startsWith("lab_")) {
-        return {
-          ok: false,
-          sql: [],
-          error: `Table map for ${model.name} must start with lab_ (got ${model.table}).`,
-        };
-      }
-      const cols: string[] = [];
-      const pkCols: string[] = [];
-
-      for (const field of model.fields) {
-        const st = sqlType(field);
-        if (!st) continue;
-        const cname = columnName(field);
-        const parts = [`"${cname}" ${st}`];
-        if (attrHas(field.attributes, "@id")) pkCols.push(cname);
-        if (attrHas(field.attributes, "@unique")) parts.push("UNIQUE");
-        if (!field.optional && !attrHas(field.attributes, "@default") && st !== "SERIAL") {
-          parts.push("NOT NULL");
-        }
-        if (attrHas(field.attributes, "@default(true)")) parts.push("DEFAULT TRUE");
-        if (attrHas(field.attributes, "@default(false)")) parts.push("DEFAULT FALSE");
-        const defStr = field.attributes.find((a) => a.startsWith('@default("'));
-        if (defStr) {
-          const v = defStr.match(/@default\("([^"]*)"\)/);
-          if (v) parts.push(`DEFAULT '${v[1].replace(/'/g, "''")}'`);
-        }
-        cols.push(parts.join(" "));
-      }
-
-      for (const field of model.fields) {
-        const relAttr =
-          field.attributes.find((a) => a.startsWith("@relation")) ||
-          (field.rawAttrs.includes("@relation")
-            ? field.rawAttrs.slice(field.rawAttrs.indexOf("@relation"))
-            : null);
-        if (!relAttr) continue;
-        const fieldsM = relAttr.match(/fields:\s*\[([^\]]+)\]/);
-        const refsM = relAttr.match(/references:\s*\[([^\]]+)\]/);
-        if (!fieldsM || !refsM) continue;
-        const localField = fieldsM[1].trim();
-        const refField = refsM[1].trim();
-        const localFieldObj = model.fields.find((f) => f.name === localField);
-        const localCol = localFieldObj ? columnName(localFieldObj) : camelToSnake(localField);
-        const targetModel = models.find((m) => m.name === field.type);
-        if (!targetModel) continue;
-        const targetFieldObj = targetModel.fields.find((f) => f.name === refField);
-        const targetCol = targetFieldObj ? columnName(targetFieldObj) : camelToSnake(refField);
-        const onDelete = /onDelete:\s*Cascade/i.test(relAttr)
-          ? " ON DELETE CASCADE"
-          : /onDelete:\s*SetNull/i.test(relAttr)
-            ? " ON DELETE SET NULL"
-            : "";
-        fkDeferred.push(
-          `ALTER TABLE "${model.table}" ADD CONSTRAINT "${model.table}_${localCol}_fkey" FOREIGN KEY ("${localCol}") REFERENCES "${targetModel.table}"("${targetCol}")${onDelete}`
+        throw new SchemaError(
+          `Model ${model.name} maps to table \`${model.table}\` — lab tables must start with lab_. ` +
+            `Add @@map("lab_…") (Prisma uses the model name as the table name otherwise).`,
+          model.line
         );
       }
-
-      const idAttr = model.mapAttrs.find((a) => a.startsWith("@@id"));
-      if (idAttr) {
-        const ids = idAttr.match(/@@id\(\[([^\]]+)\]\)/);
-        if (ids) {
-          const names = ids[1].split(",").map((s) => {
-            const fn = s.trim();
-            const f = model.fields.find((x) => x.name === fn);
-            return `"${f ? columnName(f) : camelToSnake(fn)}"`;
-          });
-          cols.push(`PRIMARY KEY (${names.join(", ")})`);
+      const table = q(model.table, model.line);
+      const cols: string[] = [];
+      const pk: string[] = [];
+      for (const f of model.fields) {
+        for (const a of f.attrs) {
+          const base = a.startsWith("@db.") ? "@db" : a.replace(/\(.*$/s, "");
+          if (base !== "@db" && !FIELD_ATTRS.has(base)) {
+            throw new SchemaError(`Unknown attribute ${base} on ${model.name}.${f.name}.`, f.line);
+          }
         }
-      } else if (pkCols.length === 1) {
-        const c = cols.find((x) => x.startsWith(`"${pkCols[0]}"`));
-        if (c && c.includes("SERIAL") && !c.includes("PRIMARY KEY")) {
-          const idx = cols.indexOf(c);
-          cols[idx] = c.replace("SERIAL", "SERIAL PRIMARY KEY");
-        } else if (c && !c.includes("PRIMARY KEY") && !c.includes("SERIAL")) {
-          cols.push(`PRIMARY KEY ("${pkCols[0]}")`);
+        if (!SCALARS.has(f.type)) {
+          const target = byName.get(f.type);
+          if (!target) {
+            throw new SchemaError(
+              `Unknown type \`${f.type}\` on ${model.name}.${f.name} — it is not a Prisma scalar and no model ` +
+                `named ${f.type} exists in this schema (check the spelling).`,
+              f.line
+            );
+          }
+          const rel = f.attrs.find((a) => a.startsWith("@relation"));
+          const args = rel ? argOf(rel) : "";
+          const fields = listArg(args, "fields", f.line);
+          const refs = listArg(args, "references", f.line);
+          if (!fields && !refs) continue; // back-relation / list side: no column on this table
+          if (f.list) throw new SchemaError(`A list field (${f.name} ${f.type}[]) cannot hold fields/references.`, f.line);
+          if (!fields || !refs || fields.length !== refs.length) {
+            throw new SchemaError(`@relation on ${model.name}.${f.name} needs fields: [...] and references: [...] of equal length.`, f.line);
+          }
+          const local = fields.map((n) => {
+            const lf = model.fields.find((x) => x.name === n);
+            if (!lf) throw new SchemaError(`@relation fields: [${n}] — ${model.name} has no field ${n}.`, f.line);
+            if (!SCALARS.has(lf.type)) throw new SchemaError(`${n} must be a scalar field to hold the foreign key.`, f.line);
+            if (lf.optional !== f.optional) {
+              throw new SchemaError(
+                `${model.name}.${f.name} and its foreign-key field ${n} must both be optional (?) or both required — ` +
+                  `Prisma rejects the mix.`,
+                f.line
+              );
+            }
+            return column(lf);
+          });
+          const remote = refs.map((n) => {
+            const tf = target.fields.find((x) => x.name === n);
+            if (!tf) throw new SchemaError(`@relation references: [${n}] — ${target.name} has no field ${n}.`, f.line);
+            return column(tf);
+          });
+          let actions = "";
+          for (const [key, kw] of [["onDelete", "DELETE"], ["onUpdate", "UPDATE"]] as const) {
+            const m = args.match(new RegExp(`${key}\\s*:\\s*(\\w+)`));
+            if (m) {
+              if (!REFERENTIAL[m[1]]) {
+                throw new SchemaError(`${key}: ${m[1]} is not a referential action (Cascade, SetNull, Restrict, NoAction, SetDefault).`, f.line);
+              }
+              actions += ` ON ${kw} ${REFERENTIAL[m[1]]}`;
+            }
+          }
+          after.push(
+            `ALTER TABLE ${table} ADD CONSTRAINT ${q(cname(`${model.table}_${local.join("_")}_fkey`))} FOREIGN KEY (${local
+              .map((c) => q(c))
+              .join(", ")}) REFERENCES ${q(target.table)} (${remote.map((c) => q(c)).join(", ")})${actions}`
+          );
+          continue;
+        }
+        if (f.list) throw new SchemaError(`Scalar lists (${f.type}[]) are not supported in the lab.`, f.line);
+        const c = column(f);
+        let def = `${q(c, f.line)} ${sqlType(f)}`;
+        if (!f.optional) def += " NOT NULL";
+        def += defaultClause(f);
+        cols.push(def);
+        if (f.attrs.includes("@id") || f.attrs.some((a) => a.startsWith("@id("))) pk.push(c);
+        if (f.attrs.some((a) => a === "@unique" || a.startsWith("@unique("))) {
+          after.push(`CREATE UNIQUE INDEX ${q(cname(`${model.table}_${c}_key`))} ON ${table} (${q(c)})`);
         }
       }
-
-      sql.push(`CREATE TABLE IF NOT EXISTS "${model.table}" (\n  ${cols.join(",\n  ")}\n)`);
+      const resolve = (names: string[], line: number) =>
+        names.map((n) => {
+          const f = model.fields.find((x) => x.name === n);
+          if (!f) throw new SchemaError(`${model.name} has no field ${n}.`, line);
+          return column(f);
+        });
+      for (const a of model.blockAttrs) {
+        const kind = a.text.match(/^@@(\w+)/)?.[1];
+        if (kind === "map") continue;
+        const list = listArg(argOf(a.text), null, a.line) || listArg(argOf(a.text), "fields", a.line);
+        if (kind === "id") {
+          if (!list) throw new SchemaError("Use @@id([fieldA, fieldB]).", a.line);
+          if (pk.length) throw new SchemaError(`${model.name} has both @id and @@id — pick one.`, a.line);
+          pk.push(...resolve(list, a.line));
+        } else if (kind === "unique" || kind === "index") {
+          if (!list) throw new SchemaError(`Use @@${kind}([fieldA, fieldB]).`, a.line);
+          const cs = resolve(list, a.line);
+          const suffix = kind === "unique" ? "key" : "idx";
+          after.push(
+            `CREATE ${kind === "unique" ? "UNIQUE " : ""}INDEX ${q(cname(`${model.table}_${cs.join("_")}_${suffix}`))} ON ${table} (${cs
+              .map((c) => q(c))
+              .join(", ")})`
+          );
+        } else {
+          throw new SchemaError(`Unsupported block attribute @@${kind}.`, a.line);
+        }
+      }
+      if (!pk.length) {
+        throw new SchemaError(`Model ${model.name} has no @id or @@id — Prisma requires a unique identifier.`, model.line);
+      }
+      cols.push(`CONSTRAINT ${q(cname(`${model.table}_pkey`))} PRIMARY KEY (${pk.map((c) => q(c)).join(", ")})`);
+      sql.push(`CREATE TABLE ${table} (\n  ${cols.join(",\n  ")}\n);`);
     }
-
-    for (const fk of fkDeferred) {
-      sql.push(fk.endsWith(";") ? fk : fk + ";");
-    }
-
-    const normalized = sql.map((s) => (s.trim().endsWith(";") ? s.trim() : s.trim() + ";"));
-    return { ok: true, sql: normalized };
+    return {
+      ok: true,
+      sql: [...sql, ...after.map((s) => s + ";")],
+      tables: models.map((m) => m.table),
+      datasource,
+    };
   } catch (e) {
-    return { ok: false, sql: [], error: e instanceof Error ? e.message : String(e) };
+    if (e instanceof SchemaError) {
+      return { ...empty, ok: false, error: e.message + (e.line ? ` (line ${e.line})` : ""), line: e.line };
+    }
+    return { ...empty, ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }

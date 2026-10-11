@@ -1,0 +1,69 @@
+{
+  "id": "sql-postgres",
+  "title": "Raw SQL · PostgreSQL",
+  "language": "sql",
+  "variant": "sql",
+  "runtime": "postgres",
+  "api": "python",
+  "order": 4,
+  "icon": "🐘",
+  "description": "Write the DDL and queries yourself — CREATE TABLE, REFERENCES, constraints, indexes, JOINs, transactions — executed as a restricted lab role.",
+  "prerequisites": {
+    "title": "Raw SQL setup",
+    "lockedByDefault": true,
+    "install": "psql \"$DATABASE_URL\"   # or any SQL client",
+    "code": "-- Your script runs as ONE transaction as the non-superuser role hub_lab.\n-- Tables must be named lab_…; SELECT results are shown below the editor.\nSELECT current_user, version();\n",
+    "connection": null,
+    "notes": null
+  },
+  "runtimePanels": {
+    "psql": {
+      "title": "Postgres directly",
+      "points": [
+        "Every ORM in this hub emits this SQL.",
+        "Constraints live in the database, not in app code.",
+        "The lab rolls back the whole script on any error."
+      ]
+    }
+  },
+  "validationCatalog": [
+    {
+      "id": "check",
+      "title": "CHECK constraints",
+      "example": "price NUMERIC(10,2) NOT NULL CHECK (price >= 0)"
+    }
+  ],
+  "taskIds": [
+    "rel-01-create-connect",
+    "rel-02-types-pks",
+    "rel-03-one-to-many",
+    "rel-04-many-to-one",
+    "rel-05-one-to-one",
+    "rel-06-many-to-many",
+    "rel-07-self-referential",
+    "rel-08-cascades-loading",
+    "rel-09-insert-query",
+    "rel-10-mini-domain",
+    "rel-11-association-object",
+    "rel-12-constraints-indexes"
+  ],
+  "lessonIds": [
+    "01-connections",
+    "02-tables-columns",
+    "03-primary-keys",
+    "04-foreign-keys",
+    "05-one-to-many",
+    "06-one-to-one",
+    "07-many-to-many",
+    "08-self-ref",
+    "09-cascades",
+    "10-query-joins",
+    "11-validation",
+    "12-frameworks",
+    "13-indexes",
+    "14-constraints",
+    "15-transactions",
+    "16-n-plus-one",
+    "17-migrations"
+  ]
+}

@@ -9,10 +9,77 @@
     "sql": "ON DELETE CASCADE"
   },
   "exercise": {
-    "prompt": "Add an FK with an explicit ON DELETE policy.",
-    "hint": "Match the task's required onDelete value."
+    "kind": "code",
+    "runnable": true,
+    "language": "prisma",
+    "prompt": "LabL09Comment.postId → LabL09Post with onDelete: Cascade.",
+    "hint": "@relation(fields: [postId], references: [id], onDelete: Cascade)",
+    "starterCode": "model LabL09Post {\n  id   Int    @id @default(autoincrement())\n  name String\n  @@map(\"lab_l09_posts\")\n}\n\n// TODO: the child model\n",
+    "solution": "model LabL09Post {\n  id       Int    @id @default(autoincrement())\n  name     String\n  children LabL09Comment[]\n  @@map(\"lab_l09_posts\")\n}\n\nmodel LabL09Comment {\n  id    Int    @id @default(autoincrement())\n  title String\n  postId Int @map(\"post_id\")\n  post LabL09Post @relation(fields: [postId], references: [id], onDelete: Cascade)\n  @@map(\"lab_l09_comments\")\n}\n",
+    "wrongSolutions": [
+      {
+        "label": "default referential action",
+        "expect": [
+          "wrong-on-delete",
+          "probe-failed"
+        ],
+        "code": "model LabL09Post {\n  id       Int    @id @default(autoincrement())\n  name     String\n  children LabL09Comment[]\n  @@map(\"lab_l09_posts\")\n}\n\nmodel LabL09Comment {\n  id    Int    @id @default(autoincrement())\n  title String\n  postId Int @map(\"post_id\")\n  post LabL09Post @relation(fields: [postId], references: [id])\n  @@map(\"lab_l09_comments\")\n}\n"
+      },
+      {
+        "label": "Restrict",
+        "expect": [
+          "wrong-on-delete",
+          "probe-failed"
+        ],
+        "code": "model LabL09Post {\n  id       Int    @id @default(autoincrement())\n  name     String\n  children LabL09Comment[]\n  @@map(\"lab_l09_posts\")\n}\n\nmodel LabL09Comment {\n  id    Int    @id @default(autoincrement())\n  title String\n  postId Int @map(\"post_id\")\n  post LabL09Post @relation(fields: [postId], references: [id], onDelete: Restrict)\n  @@map(\"lab_l09_comments\")\n}\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l09_posts",
+          "columns": [
+            {
+              "name": "id",
+              "pk": true
+            }
+          ]
+        },
+        {
+          "name": "lab_l09_comments",
+          "columns": [
+            {
+              "name": "post_id",
+              "nullable": false,
+              "fk": {
+                "table": "lab_l09_posts",
+                "column": "id",
+                "onDelete": "CASCADE"
+              }
+            }
+          ]
+        }
+      ],
+      "probes": [
+        {
+          "sql": [
+            "INSERT INTO lab_l09_posts (id, name) VALUES (1, 'Hello')",
+            "INSERT INTO lab_l09_comments (title, post_id) VALUES ('First!', 1)",
+            "DELETE FROM lab_l09_posts WHERE id = 1"
+          ],
+          "message": "The gate deletes a post that has a comment — the database must remove the comment with it."
+        }
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l09_posts",
+        "lab_l09_comments"
+      ],
+      "highlightRels": []
+    }
   },
-  "body": "ON DELETE / ORM cascade and how you load related rows.\n\nWhy it matters: Deleting a parent without a plan orphans children or fails the DELETE. Loading without include/selectinload causes N+1 queries in real apps.\n\nSQL \u2194 ORM: SQL ON DELETE CASCADE \u2194 Prisma onDelete: Cascade \u2194 SQLAlchemy ForeignKey(..., ondelete='CASCADE') / relationship cascade options.",
+  "body": "ON DELETE / ORM cascade and how you load related rows.\n\nWhy it matters: Deleting a parent without a plan orphans children or fails the DELETE. Loading without include/selectinload causes N+1 queries in real apps.\n\nSQL ↔ ORM: SQL ON DELETE CASCADE ↔ Prisma onDelete: Cascade ↔ SQLAlchemy ForeignKey(..., ondelete='CASCADE') / relationship cascade options.",
   "why": "Deleting a parent without a plan orphans children or fails the DELETE. Loading without include/selectinload causes N+1 queries in real apps.",
   "objectives": [
     "Choose ON DELETE CASCADE vs SET NULL vs RESTRICT intentionally.",
@@ -20,10 +87,10 @@
     "Prefer explicit loading strategies for related collections."
   ],
   "pitfalls": [
-    "CASCADE everywhere \u2014 easy demos, dangerous production defaults.",
+    "CASCADE everywhere — easy demos, dangerous production defaults.",
     "N+1 queries from lazy loads in a loop."
   ],
-  "mappingNotes": "SQL ON DELETE CASCADE \u2194 Prisma onDelete: Cascade \u2194 SQLAlchemy ForeignKey(..., ondelete='CASCADE') / relationship cascade options.",
+  "mappingNotes": "SQL ON DELETE CASCADE ↔ Prisma onDelete: Cascade ↔ SQLAlchemy ForeignKey(..., ondelete='CASCADE') / relationship cascade options.",
   "teachAlong": [
     "Cause: parent row deleted.",
     "Effect: DB applies ON DELETE policy to child FKs.",
@@ -31,16 +98,17 @@
   ],
   "references": [
     {
-      "title": "PostgreSQL \u2014 Foreign Keys",
+      "title": "PostgreSQL — Foreign Keys",
       "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
     },
     {
-      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
       "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
     },
     {
-      "title": "Prisma \u2014 Relations",
+      "title": "Prisma — Relations",
       "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
     }
-  ]
+  ],
+  "level": "intermediate"
 }

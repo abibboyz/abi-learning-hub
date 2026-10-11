@@ -2,15 +2,15 @@
   "id": "rel-08-cascades-loading",
   "order": 8,
   "title": "Cascades & loading",
-  "summary": "Categories \u2192 items with ON DELETE CASCADE.",
-  "description": "Categories \u2192 items with ON DELETE CASCADE.\n\nWhy: Cascades encode delete policy in the database so apps do not leave orphans or rely only on ORM memory.",
+  "summary": "Categories → items with ON DELETE CASCADE.",
+  "description": "Categories → items with ON DELETE CASCADE.\n\nWhy: Cascades encode delete policy in the database so apps do not leave orphans or rely only on ORM memory.",
   "objectives": [
     "lab_categories",
     "lab_items with category_id FK ON DELETE CASCADE"
   ],
   "hints": [
     "Check onDelete in the diagram after success.",
-    "Read gate errors as cause\u2192effect: each message names what Postgres still lacks."
+    "Read gate errors as cause→effect: each message names what Postgres still lacks."
   ],
   "sqlEquivalent": "CREATE TABLE lab_categories (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_items (\n  id SERIAL PRIMARY KEY,\n  label VARCHAR(200) NOT NULL,\n  category_id INTEGER NOT NULL REFERENCES lab_categories(id) ON DELETE CASCADE\n);",
   "requirements": {
@@ -76,17 +76,27 @@
   ],
   "references": [
     {
-      "title": "PostgreSQL \u2014 Foreign Keys",
+      "title": "PostgreSQL — Foreign Keys",
       "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
     },
     {
-      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
       "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
     },
     {
-      "title": "Prisma \u2014 Relations",
+      "title": "Prisma — Relations",
       "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
     }
   ],
-  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres \u2014 only real tables/FKs count."
+  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres — only real tables/FKs count.",
+  "solution": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabCategory(Base):\n    __tablename__ = \"lab_categories\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    items: Mapped[list[\"LabItem\"]] = relationship(\n        back_populates=\"category\", cascade=\"all, delete-orphan\", passive_deletes=True, lazy=\"selectin\"\n    )\n\n\nclass LabItem(Base):\n    __tablename__ = \"lab_items\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    label: Mapped[str] = mapped_column(String(120))\n    category_id: Mapped[int] = mapped_column(ForeignKey(\"lab_categories.id\", ondelete=\"CASCADE\"))\n    category: Mapped[\"LabCategory\"] = relationship(back_populates=\"items\")\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+  "wrongSolutions": [
+    {
+      "label": "ORM cascade only — the database FK has no ON DELETE",
+      "expect": [
+        "wrong-on-delete"
+      ],
+      "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabCategory(Base):\n    __tablename__ = \"lab_categories\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    items: Mapped[list[\"LabItem\"]] = relationship(cascade=\"all, delete-orphan\")\n\n\nclass LabItem(Base):\n    __tablename__ = \"lab_items\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    label: Mapped[str] = mapped_column(String(120))\n    category_id: Mapped[int] = mapped_column(ForeignKey(\"lab_categories.id\"))\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+    }
+  ]
 }

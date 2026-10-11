@@ -10,7 +10,7 @@
   ],
   "hints": [
     "FK lives on the many side.",
-    "Read gate errors as cause\u2192effect: each message names what Postgres still lacks."
+    "Read gate errors as cause→effect: each message names what Postgres still lacks."
   ],
   "sqlEquivalent": "CREATE TABLE lab_publishers (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_magazines (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  publisher_id INTEGER NOT NULL REFERENCES lab_publishers(id)\n);",
   "requirements": {
@@ -42,7 +42,8 @@
             "fk": {
               "table": "lab_publishers",
               "column": "id"
-            }
+            },
+            "unique": false
           }
         ]
       }
@@ -71,22 +72,39 @@
   ],
   "teachAlong": [
     "Cause: one publisher, many magazines.",
-    "Effect: child.publisher_id FK \u2192 parent.id.",
+    "Effect: child.publisher_id FK → parent.id.",
     "Diagram highlights both tables + the FK line."
   ],
   "references": [
     {
-      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
       "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
     },
     {
-      "title": "Prisma \u2014 Relations",
+      "title": "Prisma — Relations",
       "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
     },
     {
-      "title": "PostgreSQL \u2014 Foreign Keys",
+      "title": "PostgreSQL — Foreign Keys",
       "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
     }
   ],
-  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres \u2014 only real tables/FKs count."
+  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres — only real tables/FKs count.",
+  "solution": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabPublisher(Base):\n    __tablename__ = \"lab_publishers\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    magazines: Mapped[list[\"LabMagazine\"]] = relationship(back_populates=\"publisher\")\n\n\nclass LabMagazine(Base):\n    __tablename__ = \"lab_magazines\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n    publisher_id: Mapped[int] = mapped_column(ForeignKey(\"lab_publishers.id\"))\n    publisher: Mapped[\"LabPublisher\"] = relationship(back_populates=\"magazines\")\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+  "wrongSolutions": [
+    {
+      "label": "FK on the wrong side (publisher points at a magazine)",
+      "expect": [
+        "missing-column"
+      ],
+      "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabMagazine(Base):\n    __tablename__ = \"lab_magazines\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n\n\nclass LabPublisher(Base):\n    __tablename__ = \"lab_publishers\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    magazine_id: Mapped[int] = mapped_column(ForeignKey(\"lab_magazines.id\"))\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+    },
+    {
+      "label": "UNIQUE on publisher_id turns 1:N into 1:1",
+      "expect": [
+        "must-not-be-unique"
+      ],
+      "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabPublisher(Base):\n    __tablename__ = \"lab_publishers\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n\n\nclass LabMagazine(Base):\n    __tablename__ = \"lab_magazines\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n    publisher_id: Mapped[int] = mapped_column(ForeignKey(\"lab_publishers.id\"), unique=True)\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+    }
+  ]
 }

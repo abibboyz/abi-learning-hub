@@ -1,0 +1,94 @@
+{
+  "id": "06-one-to-one",
+  "order": 6,
+  "title": "One-to-one (1:1)",
+  "summary": "Each parent pairs with at most one child — usually a UNIQUE FK.",
+  "example": {
+    "language": "sql",
+    "code": "account_id INTEGER UNIQUE NOT NULL REFERENCES lab_accounts(id)",
+    "sql": "account_id INTEGER UNIQUE NOT NULL REFERENCES lab_accounts(id)"
+  },
+  "exercise": {
+    "kind": "code",
+    "runnable": true,
+    "language": "sql",
+    "prompt": "lab_l06_profiles.user_id INTEGER NOT NULL UNIQUE REFERENCES lab_l06_users(id).",
+    "hint": "UNIQUE on the FK column turns 1:N into 1:1.",
+    "starterCode": "CREATE TABLE lab_l06_users (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL\n);\n\n-- TODO: the child table\n",
+    "solution": "CREATE TABLE lab_l06_users (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL\n);\n\nCREATE TABLE lab_l06_profiles (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  user_id INTEGER NOT NULL UNIQUE REFERENCES lab_l06_users(id)\n);\n",
+    "wrongSolutions": [
+      {
+        "label": "no UNIQUE",
+        "expect": [
+          "not-unique"
+        ],
+        "code": "CREATE TABLE lab_l06_users (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL\n);\n\nCREATE TABLE lab_l06_profiles (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  user_id INTEGER NOT NULL REFERENCES lab_l06_users(id)\n);\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l06_users",
+          "columns": [
+            {
+              "name": "id",
+              "pk": true
+            }
+          ]
+        },
+        {
+          "name": "lab_l06_profiles",
+          "columns": [
+            {
+              "name": "user_id",
+              "nullable": false,
+              "unique": true,
+              "fk": {
+                "table": "lab_l06_users",
+                "column": "id"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l06_users",
+        "lab_l06_profiles"
+      ],
+      "highlightRels": []
+    }
+  },
+  "body": "Each parent pairs with at most one child — usually a UNIQUE FK.\n\nWhy it matters: Profiles, settings, and credentials often share a 1:1 with a user/account. Without UNIQUE on the FK, the database silently allows multiple children (accidental 1:N).\n\nSQL ↔ ORM: UNIQUE FK ↔ Prisma @unique on the FK field ↔ SQL UNIQUE.",
+  "why": "Profiles, settings, and credentials often share a 1:1 with a user/account. Without UNIQUE on the FK, the database silently allows multiple children (accidental 1:N).",
+  "objectives": [
+    "Implement 1:1 with a UNIQUE foreign key on the dependent table.",
+    "Explain how UNIQUE changes cardinality vs plain 1:N."
+  ],
+  "pitfalls": [
+    "Forgetting UNIQUE — tests may pass until duplicate inserts appear.",
+    "Shared primary key 1:1 is valid but harder to migrate; labs prefer UNIQUE FK."
+  ],
+  "mappingNotes": "UNIQUE FK ↔ Prisma @unique on the FK field ↔ SQL UNIQUE.",
+  "teachAlong": [
+    "Cause: each account may have only one profile.",
+    "Effect: profile.account_id UNIQUE REFERENCES accounts(id).",
+    "Diagram: 1:1 line instead of 1:N fan-out."
+  ],
+  "references": [
+    {
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
+    },
+    {
+      "title": "Prisma — Relations",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
+    },
+    {
+      "title": "PostgreSQL — Foreign Keys",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
+    }
+  ],
+  "level": "beginner"
+}

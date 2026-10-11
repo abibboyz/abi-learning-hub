@@ -14,8 +14,17 @@ export type ColumnInfo = {
   references?: { table: string; column: string };
 };
 
+export type TableInfo = {
+  name: string;
+  columns: ColumnInfo[];
+  primaryKey: string[];
+  uniqueConstraints: string[][];
+  indexes: string[][];
+  checks: { name: string; definition: string }[];
+};
+
 export type SchemaSnapshot = {
-  tables: { name: string; columns: ColumnInfo[] }[];
+  tables: TableInfo[];
   relationships: {
     fromTable: string;
     fromColumn: string;
@@ -35,6 +44,39 @@ export async function introspectSchema(pool?: pg.Pool): Promise<SchemaSnapshot> 
      WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
      ORDER BY table_name`
   );
+
+  // Every PK / UNIQUE / plain index with ordered columns (same query as api-python). Only single-column
+  // keys make a column `isUnique`: a composite UNIQUE(a, b) does not make `a` unique on its own.
+  const keyRes = await p.query<{ table_name: string; is_primary: boolean; is_unique: boolean; columns: string[] }>(
+    `SELECT c.relname AS table_name, i.indisprimary AS is_primary, i.indisunique AS is_unique,
+            array_agg(a.attname::text ORDER BY k.ord) AS columns
+     FROM pg_index i
+     JOIN pg_class c ON c.oid = i.indrelid
+     JOIN pg_namespace n ON n.oid = c.relnamespace AND n.nspname = 'public'
+     CROSS JOIN LATERAL unnest(i.indkey) WITH ORDINALITY AS k(attnum, ord)
+     JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum = k.attnum
+     WHERE i.indpred IS NULL AND i.indexprs IS NULL
+     GROUP BY c.relname, i.indexrelid, i.indisprimary, i.indisunique`
+  );
+  const keys = new Map<string, { primaryKey: string[]; unique: string[][]; indexes: string[][] }>();
+  for (const r of keyRes.rows) {
+    const e = keys.get(r.table_name) || { primaryKey: [], unique: [], indexes: [] };
+    if (r.is_primary) e.primaryKey = r.columns;
+    else if (r.is_unique) e.unique.push(r.columns);
+    else e.indexes.push(r.columns);
+    keys.set(r.table_name, e);
+  }
+  const checkRes = await p.query<{ relname: string; conname: string; definition: string }>(
+    `SELECT c.relname, con.conname, pg_get_constraintdef(con.oid) AS definition
+     FROM pg_constraint con
+     JOIN pg_class c ON c.oid = con.conrelid
+     JOIN pg_namespace n ON n.oid = c.relnamespace AND n.nspname = 'public'
+     WHERE con.contype = 'c' ORDER BY con.conname`
+  );
+  const checks = new Map<string, { name: string; definition: string }[]>();
+  for (const r of checkRes.rows) {
+    checks.set(r.relname, [...(checks.get(r.relname) || []), { name: r.conname, definition: r.definition }]);
+  }
 
   const tables: SchemaSnapshot["tables"] = [];
   const relationships: SchemaSnapshot["relationships"] = [];
@@ -64,12 +106,16 @@ export async function introspectSchema(pool?: pg.Pool): Promise<SchemaSnapshot> 
       [table_name]
     );
 
+    const k = keys.get(table_name) || { primaryKey: [], unique: [], indexes: [] };
+    const singleUnique = new Set(k.unique.filter((u) => u.length === 1).map((u) => u[0]));
+    if (k.primaryKey.length === 1) singleUnique.add(k.primaryKey[0]);
     const columns: ColumnInfo[] = cols.rows.map((c) => ({
       name: c.column_name,
       type: c.data_type === "USER-DEFINED" ? c.udt_name : c.data_type,
       nullable: c.is_nullable === "YES",
       default: c.column_default,
       isPrimaryKey: c.is_pk,
+      isUnique: singleUnique.has(c.column_name),
       isForeignKey: false,
     }));
 
@@ -115,7 +161,14 @@ export async function introspectSchema(pool?: pg.Pool): Promise<SchemaSnapshot> 
       });
     }
 
-    tables.push({ name: table_name, columns });
+    tables.push({
+      name: table_name,
+      columns,
+      primaryKey: k.primaryKey,
+      uniqueConstraints: k.unique,
+      indexes: k.indexes,
+      checks: checks.get(table_name) || [],
+    });
   }
 
   return { tables, relationships };

@@ -2,8 +2,8 @@
   "id": "rel-06-many-to-many",
   "order": 6,
   "title": "Many-to-many + association",
-  "summary": "Learners \u2194 classes through lab_class_enrollments.",
-  "description": "Learners \u2194 classes through lab_class_enrollments.\n\nWhy: M:N cannot be a single FK. The junction table with two FKs preserves integrity and leaves room for association attributes.",
+  "summary": "Learners ↔ classes through lab_class_enrollments.",
+  "description": "Learners ↔ classes through lab_class_enrollments.\n\nWhy: M:N cannot be a single FK. The junction table with two FKs preserves integrity and leaves room for association attributes.",
   "objectives": [
     "lab_learners",
     "lab_classes",
@@ -11,7 +11,7 @@
   ],
   "hints": [
     "Association tables hold both FKs.",
-    "Read gate errors as cause\u2192effect: each message names what Postgres still lacks."
+    "Read gate errors as cause→effect: each message names what Postgres still lacks."
   ],
   "sqlEquivalent": "CREATE TABLE lab_learners (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_classes (id SERIAL PRIMARY KEY, title VARCHAR(200) NOT NULL);\nCREATE TABLE lab_class_enrollments (\n  learner_id INTEGER NOT NULL REFERENCES lab_learners(id) ON DELETE CASCADE,\n  class_id INTEGER NOT NULL REFERENCES lab_classes(id) ON DELETE CASCADE,\n  grade VARCHAR(2),\n  PRIMARY KEY (learner_id, class_id)\n);",
   "requirements": {
@@ -57,6 +57,12 @@
               "column": "id"
             }
           }
+        ],
+        "uniqueTogether": [
+          [
+            "learner_id",
+            "class_id"
+          ]
         ]
       }
     ]
@@ -77,8 +83,8 @@
     "lab_classes",
     "lab_class_enrollments"
   ],
-  "starterCode": "model LabLearner {\n  id Int @id @default(autoincrement())\n  name String\n  enrollments LabClassEnrollment[]\n  @@map(\"lab_learners\")\n}\nmodel LabClass {\n  id Int @id @default(autoincrement())\n  title String\n  enrollments LabClassEnrollment[]\n  @@map(\"lab_classes\")\n}\nmodel LabClassEnrollment {\n  learnerId Int @map(\"learner_id\")\n  classId Int @map(\"class_id\")\n  grade String?\n  learner LabLearner @relation(fields: [learnerId], references: [id], onDelete: Cascade)\n  class LabClass @relation(fields: [classId], references: [id], onDelete: Cascade)\n  @@id([learnerId, classId])\n  @@map(\"lab_class_enrollments\")\n}\n",
-  "starterCodePrisma": "model LabLearner {\n  id Int @id @default(autoincrement())\n  name String\n  enrollments LabClassEnrollment[]\n  @@map(\"lab_learners\")\n}\nmodel LabClass {\n  id Int @id @default(autoincrement())\n  title String\n  enrollments LabClassEnrollment[]\n  @@map(\"lab_classes\")\n}\nmodel LabClassEnrollment {\n  learnerId Int @map(\"learner_id\")\n  classId Int @map(\"class_id\")\n  grade String?\n  learner LabLearner @relation(fields: [learnerId], references: [id], onDelete: Cascade)\n  class LabClass @relation(fields: [classId], references: [id], onDelete: Cascade)\n  @@id([learnerId, classId])\n  @@map(\"lab_class_enrollments\")\n}\n",
+  "starterCode": "model LabLearner {\n  id   Int    @id @default(autoincrement())\n  name String\n  @@map(\"lab_learners\")\n}\n\nmodel LabClass {\n  id    Int    @id @default(autoincrement())\n  title String\n  @@map(\"lab_classes\")\n}\n\n// TODO: explicit junction model LabClassEnrollment → lab_class_enrollments\n//       learnerId + classId, both @relation, and @@id([learnerId, classId])\n",
+  "starterCodePrisma": "model LabLearner {\n  id   Int    @id @default(autoincrement())\n  name String\n  @@map(\"lab_learners\")\n}\n\nmodel LabClass {\n  id    Int    @id @default(autoincrement())\n  title String\n  @@map(\"lab_classes\")\n}\n\n// TODO: explicit junction model LabClassEnrollment → lab_class_enrollments\n//       learnerId + classId, both @relation, and @@id([learnerId, classId])\n",
   "language": "typescript",
   "trackId": "node-typescript",
   "why": "M:N cannot be a single FK. The junction table with two FKs preserves integrity and leaves room for association attributes.",
@@ -87,23 +93,33 @@
     "Storing tag ids as a CSV/array column."
   ],
   "teachAlong": [
-    "Cause: many\u2194many.",
+    "Cause: many↔many.",
     "Effect: junction with two FKs.",
     "Diagram shows two arrows into the junction."
   ],
   "references": [
     {
-      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
       "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
     },
     {
-      "title": "Prisma \u2014 Relations",
+      "title": "Prisma — Relations",
       "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
     },
     {
-      "title": "PostgreSQL \u2014 Foreign Keys",
+      "title": "PostgreSQL — Foreign Keys",
       "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
     }
   ],
-  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres \u2014 only real tables/FKs count."
+  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres — only real tables/FKs count.",
+  "solution": "model LabLearner {\n  id          Int                  @id @default(autoincrement())\n  name        String\n  enrollments LabClassEnrollment[]\n  @@map(\"lab_learners\")\n}\n\nmodel LabClass {\n  id          Int                  @id @default(autoincrement())\n  title       String\n  enrollments LabClassEnrollment[]\n  @@map(\"lab_classes\")\n}\n\nmodel LabClassEnrollment {\n  learnerId Int        @map(\"learner_id\")\n  classId   Int        @map(\"class_id\")\n  learner   LabLearner @relation(fields: [learnerId], references: [id])\n  class     LabClass   @relation(fields: [classId], references: [id])\n  @@id([learnerId, classId])\n  @@map(\"lab_class_enrollments\")\n}\n",
+  "wrongSolutions": [
+    {
+      "label": "junction with its own id and no composite key",
+      "expect": [
+        "missing-composite-key"
+      ],
+      "code": "model LabLearner {\n  id          Int                  @id @default(autoincrement())\n  name        String\n  enrollments LabClassEnrollment[]\n  @@map(\"lab_learners\")\n}\n\nmodel LabClass {\n  id          Int                  @id @default(autoincrement())\n  title       String\n  enrollments LabClassEnrollment[]\n  @@map(\"lab_classes\")\n}\n\nmodel LabClassEnrollment {\n  id        Int        @id @default(autoincrement())\n  learnerId Int        @map(\"learner_id\")\n  classId   Int        @map(\"class_id\")\n  learner   LabLearner @relation(fields: [learnerId], references: [id])\n  class     LabClass   @relation(fields: [classId], references: [id])\n  @@map(\"lab_class_enrollments\")\n}\n"
+    }
+  ]
 }

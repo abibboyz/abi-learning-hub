@@ -3,7 +3,7 @@
 ```
 docker compose (single project)
 ├── postgres          (lab data + progress)
-├── api-python        INTERNAL runner (SQLAlchemy track)
+├── api-python        INTERNAL runner (SQLAlchemy + raw SQL tracks)
 ├── api-node          INTERNAL runner (Prisma TS/JS tracks)
 ├── pw-runner         INTERNAL Playwright runner :8002 (mcr.microsoft.com/playwright:v1.64.0-noble)
 ├── pw-app            INTERNAL app under test :4000 (network pw_sut, internal: true)
@@ -27,7 +27,7 @@ Learners never choose which backend to start. **`docker compose up --build`** st
 
 Host ports **8000/8001/8002/4000 are not published**. Runners use Compose DNS (`api-python`, `api-node`, `pw-runner`, `pw-app`).
 
-BFF routing: `playwright-*` track ids (in the path, `?trackId=` or the JSON body) and every `/api/pw/*` path go to `pw-runner`; `node-*` to `api-node`; the rest to `api-python`. Binary responses (screenshots, `trace.zip`, trace-viewer assets) are passed through byte-for-byte.
+BFF routing: `playwright-*` track ids (in the path, `?trackId=` or the JSON body) and every `/api/pw/*` path go to `pw-runner`; `node-*` to `api-node`; the rest (`python-sqlalchemy`, `sql-postgres`, shared meta) to `api-python`. Binary responses (screenshots, `trace.zip`, trace-viewer assets) are passed through byte-for-byte.
 
 ## Pluggable tracks
 
@@ -41,7 +41,17 @@ APIs load tracks from `TRACKS_DIR` (Compose mounts `./tracks`).
 
 ## Task gate flow
 
-Learner code → constrained runner → schema introspect → `check_requirements` (errors include **why**) → history + progress → UI teach-along.
+```
+POST /execute {trackId, taskId | lessonId, code}
+  → load exercise (task, or lesson.exercise; quiz → grade server-side, done)
+  → clean slate (drop requirement tables + resetTables)
+  → run: SQLAlchemy runner | SQL runner (hub_lab, one transaction) | Prisma→DDL (one transaction) | Zod lab | datasource check
+  → introspect (columns, types, PK/unique/indexes, CHECKs)
+  → check_requirements → data → probes (rolled back) → stdout / calls / zod cases
+  → failures [{rule, message, table?, column?, line?, question?}] → run_history (+ progress) → UI GateResult / teach-along
+```
+
+The gate is implemented twice (`api-python/app/task_checker.py`, `api-node/src/lib/taskChecker.ts`) with identical rule ids and messages. `tests/fixtures/schema-gate-cases.json` is run by both test suites to keep them in sync. Public track payloads strip `solution`, `wrongSolutions` and quiz answers; solutions come only from `/tracks/:t/(tasks|lessons)/:id/solution`.
 
 ## Track kinds
 
@@ -72,8 +82,16 @@ POST /execute ─► zod body check ─► gate.analyze (TS AST)
 
 ## Runners (internal)
 
-- Python: AST whitelist + restricted `exec` with SQLAlchemy symbols.
-- Node: Prisma model parser → `CREATE TABLE` / `ALTER … FOREIGN KEY` via `pg` (no arbitrary shell).
+- Python (`app/runner.py`):
+  - AST allow-list and restricted `exec` in a forked child with a timeout
+  - safe `__import__`; forbidden attributes and from-imports blocked
+  - code runs as module `__lab__`; errors carry line numbers
+- SQL (`app/sql_runner.py`):
+  - one transaction as non-superuser `hub_lab` with statement/lock timeouts and a watchdog cancel
+  - transaction-control statements rejected; tables outside `lab_*` roll the run back
+  - error position → line
+- Node (`src/runners/prismaSchemaRunner.ts`): Prisma schema → DDL with real Prisma naming/type rules, applied via `pg` in one transaction (no Prisma CLI, no shell).
+- Zod lab (`src/lib/zodLab.ts`): interprets whitelisted Zod builder calls from the TS AST; learner code is never executed.
 - Playwright: AST allow-list (only `@playwright/test` + provided support files; no `process`/`require`/`eval`/dynamic import/launch options) → Playwright Test in a per-run temp dir, as `pwuser`, resource-limited container.
 
 ## Design principles

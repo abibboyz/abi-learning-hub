@@ -66,7 +66,7 @@ export function loadTask(trackId: string, taskId: string) {
   for (const name of fs.readdirSync(dir).filter((n) => n.endsWith(".json"))) {
     const data = readJson(path.join(dir, name));
     const stem = name.replace(/\.json$/, "");
-    if (data.id === taskId || stem === taskId || stem.endsWith(taskId) || stem.includes(taskId) || taskId.includes(stem)) {
+    if (data.id === taskId || stem === taskId || stem.endsWith(`-${taskId}`)) {
       return data;
     }
   }
@@ -92,4 +92,36 @@ export function listLessons(trackId: string) {
     throw new Error(`Lesson not found: ${id}`);
   });
   return scanDir(path.join(tracksRoot(), trackId, "lessons"));
+}
+
+export function loadLesson(trackId: string, lessonId: string) {
+  const dir = path.join(tracksRoot(), trackId, "lessons");
+  const direct = path.join(dir, `${lessonId}.json`);
+  if (fs.existsSync(direct)) return readJson(direct);
+  for (const name of fs.readdirSync(dir).filter((n) => n.endsWith(".json"))) {
+    const data = readJson(path.join(dir, name));
+    if (data.id === lessonId) return data;
+  }
+  throw new Error(`Lesson not found: ${trackId}/${lessonId}`);
+}
+
+const PRIVATE_KEYS = ["solution", "wrongSolutions"];
+
+/** Strip reference/wrong solutions (served only by the explicit /solution endpoints). */
+export function publicItem<T extends Record<string, unknown>>(item: T): T {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(item)) if (!PRIVATE_KEYS.includes(k)) out[k] = v;
+  const ex = out.exercise;
+  if (ex && typeof ex === "object") {
+    const pub = Object.fromEntries(Object.entries(ex as Record<string, unknown>).filter(([k]) => !PRIVATE_KEYS.includes(k)));
+    if (pub.kind === "quiz" && Array.isArray(pub.questions)) {
+      // never ship the answer key
+      pub.questions = (pub.questions as Array<{ options: Array<{ id: string; text: string }> }>).map((q) => ({
+        ...q,
+        options: q.options.map((o) => ({ id: o.id, text: o.text })),
+      }));
+    }
+    out.exercise = pub;
+  }
+  return out as T;
 }

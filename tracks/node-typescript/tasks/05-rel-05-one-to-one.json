@@ -10,7 +10,7 @@
   ],
   "hints": [
     "UNIQUE on the FK makes it 1:1.",
-    "Read gate errors as cause\u2192effect: each message names what Postgres still lacks."
+    "Read gate errors as cause→effect: each message names what Postgres still lacks."
   ],
   "sqlEquivalent": "CREATE TABLE lab_accounts (id SERIAL PRIMARY KEY, username VARCHAR(80) UNIQUE NOT NULL);\nCREATE TABLE lab_settings (\n  id SERIAL PRIMARY KEY,\n  theme VARCHAR(40) DEFAULT 'system',\n  account_id INTEGER UNIQUE NOT NULL REFERENCES lab_accounts(id)\n);",
   "requirements": {
@@ -62,8 +62,8 @@
     "lab_accounts",
     "lab_settings"
   ],
-  "starterCode": "model LabAccount {\n  id Int @id @default(autoincrement())\n  username String @unique\n  settings LabSettings?\n  @@map(\"lab_accounts\")\n}\nmodel LabSettings {\n  id Int @id @default(autoincrement())\n  theme String @default(\"system\")\n  accountId Int @unique @map(\"account_id\")\n  account LabAccount @relation(fields: [accountId], references: [id])\n  @@map(\"lab_settings\")\n}\n",
-  "starterCodePrisma": "model LabAccount {\n  id Int @id @default(autoincrement())\n  username String @unique\n  settings LabSettings?\n  @@map(\"lab_accounts\")\n}\nmodel LabSettings {\n  id Int @id @default(autoincrement())\n  theme String @default(\"system\")\n  accountId Int @unique @map(\"account_id\")\n  account LabAccount @relation(fields: [accountId], references: [id])\n  @@map(\"lab_settings\")\n}\n",
+  "starterCode": "model LabAccount {\n  id       Int    @id @default(autoincrement())\n  username String @unique\n  // TODO: settings LabSettings?\n  @@map(\"lab_accounts\")\n}\n\nmodel LabSettings {\n  id    Int    @id @default(autoincrement())\n  theme String @default(\"dark\")\n  // TODO: accountId — UNIQUE foreign key to LabAccount (@map(\"account_id\"))\n  @@map(\"lab_settings\")\n}\n",
+  "starterCodePrisma": "model LabAccount {\n  id       Int    @id @default(autoincrement())\n  username String @unique\n  // TODO: settings LabSettings?\n  @@map(\"lab_accounts\")\n}\n\nmodel LabSettings {\n  id    Int    @id @default(autoincrement())\n  theme String @default(\"dark\")\n  // TODO: accountId — UNIQUE foreign key to LabAccount (@map(\"account_id\"))\n  @@map(\"lab_settings\")\n}\n",
   "language": "typescript",
   "trackId": "node-typescript",
   "why": "1:1 needs an extra UNIQUE on the FK. Without it the database allows accidental 1:N, which breaks profile/settings style domains.",
@@ -77,17 +77,27 @@
   ],
   "references": [
     {
-      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
       "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
     },
     {
-      "title": "Prisma \u2014 Relations",
+      "title": "Prisma — Relations",
       "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
     },
     {
-      "title": "PostgreSQL \u2014 Foreign Keys",
+      "title": "PostgreSQL — Foreign Keys",
       "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
     }
   ],
-  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres \u2014 only real tables/FKs count."
+  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres — only real tables/FKs count.",
+  "solution": "model LabAccount {\n  id       Int          @id @default(autoincrement())\n  username String       @unique\n  settings LabSettings?\n  @@map(\"lab_accounts\")\n}\n\nmodel LabSettings {\n  id        Int        @id @default(autoincrement())\n  theme     String     @default(\"dark\")\n  accountId Int        @unique @map(\"account_id\")\n  account   LabAccount @relation(fields: [accountId], references: [id])\n  @@map(\"lab_settings\")\n}\n",
+  "wrongSolutions": [
+    {
+      "label": "accountId without @unique (that is 1:N)",
+      "expect": [
+        "not-unique"
+      ],
+      "code": "model LabAccount {\n  id       Int           @id @default(autoincrement())\n  username String        @unique\n  settings LabSettings[]\n  @@map(\"lab_accounts\")\n}\n\nmodel LabSettings {\n  id        Int        @id @default(autoincrement())\n  theme     String     @default(\"dark\")\n  accountId Int        @map(\"account_id\")\n  account   LabAccount @relation(fields: [accountId], references: [id])\n  @@map(\"lab_settings\")\n}\n"
+    }
+  ]
 }

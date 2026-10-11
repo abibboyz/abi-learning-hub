@@ -1,0 +1,92 @@
+{
+  "id": "13-indexes",
+  "order": 13,
+  "title": "Indexes (advanced)",
+  "summary": "Why foreign keys need an index and how composite index order matters.",
+  "body": "Why foreign keys need an index and how composite index order matters.\n\nWhy it matters: Postgres creates indexes for PRIMARY KEY and UNIQUE automatically — never for foreign keys. Every join, every `WHERE author_id = ?` and every ON DELETE check on the parent then scans the child table.\n\nSQL ↔ ORM: SQLAlchemy mapped_column(..., index=True) / Index(...). Prisma @@index([field]). SQL CREATE INDEX name ON table (col).",
+  "why": "Postgres creates indexes for PRIMARY KEY and UNIQUE automatically — never for foreign keys. Every join, every `WHERE author_id = ?` and every ON DELETE check on the parent then scans the child table.",
+  "objectives": [
+    "Index FK columns explicitly.",
+    "Know that only the LEADING column of a composite index serves single-column lookups.",
+    "Read an index from the schema diagram."
+  ],
+  "pitfalls": [
+    "Assuming REFERENCES creates an index.",
+    "Composite index (title, author_id) for lookups by author_id.",
+    "Indexing every column — each index slows writes."
+  ],
+  "mappingNotes": "SQLAlchemy mapped_column(..., index=True) / Index(...). Prisma @@index([field]). SQL CREATE INDEX name ON table (col).",
+  "teachAlong": [
+    "Cause: Why foreign keys need an index and how composite index order matters.",
+    "Effect: run the exercise and read the gate's rule ids.",
+    "Replay any run from History."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL — Indexes",
+      "url": "https://www.postgresql.org/docs/current/indexes.html"
+    },
+    {
+      "title": "PostgreSQL — Multicolumn Indexes",
+      "url": "https://www.postgresql.org/docs/current/indexes-multicolumn.html"
+    },
+    {
+      "title": "SQLAlchemy — Constraints and Indexes",
+      "url": "https://docs.sqlalchemy.org/en/20/core/constraints.html"
+    },
+    {
+      "title": "Prisma — Indexes",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/indexes"
+    }
+  ],
+  "level": "advanced",
+  "example": {
+    "language": "prisma",
+    "code": "@@index([authorId])",
+    "sql": "CREATE INDEX lab_books_author_id_idx ON lab_books (author_id);"
+  },
+  "exercise": {
+    "kind": "code",
+    "runnable": true,
+    "language": "prisma",
+    "prompt": "Add @@index([authorId]) so lookups and joins on author_id do not scan the whole table.",
+    "hint": "Prisma does not create FK indexes on PostgreSQL either — add @@index explicitly.",
+    "starterCode": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabL13Author {\n  id    Int          @id @default(autoincrement())\n  name  String\n  books LabL13Book[]\n  @@map(\"lab_l13_authors\")\n}\n\nmodel LabL13Book {\n  id       Int          @id @default(autoincrement())\n  title    String\n  authorId Int          @map(\"author_id\")\n  author   LabL13Author @relation(fields: [authorId], references: [id])\n  // TODO: index authorId\n  @@map(\"lab_l13_books\")\n}\n",
+    "solution": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabL13Author {\n  id    Int          @id @default(autoincrement())\n  name  String\n  books LabL13Book[]\n  @@map(\"lab_l13_authors\")\n}\n\nmodel LabL13Book {\n  id       Int          @id @default(autoincrement())\n  title    String\n  authorId Int          @map(\"author_id\")\n  author   LabL13Author @relation(fields: [authorId], references: [id])\n  @@index([authorId])\n  @@map(\"lab_l13_books\")\n}\n",
+    "wrongSolutions": [
+      {
+        "label": "no @@index",
+        "expect": [
+          "missing-index"
+        ],
+        "code": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabL13Author {\n  id    Int          @id @default(autoincrement())\n  name  String\n  books LabL13Book[]\n  @@map(\"lab_l13_authors\")\n}\n\nmodel LabL13Book {\n  id       Int          @id @default(autoincrement())\n  title    String\n  authorId Int          @map(\"author_id\")\n  author   LabL13Author @relation(fields: [authorId], references: [id])\n  @@map(\"lab_l13_books\")\n}\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l13_books",
+          "columns": [
+            {
+              "name": "author_id",
+              "indexed": true,
+              "fk": {
+                "table": "lab_l13_authors",
+                "column": "id"
+              }
+            }
+          ]
+        }
+      ],
+      "resetTables": [
+        "lab_l13_authors"
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l13_books"
+      ],
+      "highlightRels": []
+    }
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "id": "rel-11-association-object",
+  "order": 11,
+  "title": "Association object (M:N with payload)",
+  "summary": "Members ↔ projects where the link itself has data: role and joined_at.",
+  "description": "Members ↔ projects where the link itself has data: role and joined_at.\n\nWhy: A plain junction only says *that* two rows are linked. As soon as the link has attributes (role, date, grade, quantity) it becomes a model of its own — an association object — with a composite key and its own columns.",
+  "objectives": [
+    "lab_members and lab_projects",
+    "lab_memberships: member_id + project_id FKs (ON DELETE CASCADE), composite key",
+    "role (NOT NULL text) and joined_at (NOT NULL timestamp, default now())"
+  ],
+  "hints": [
+    "Model the junction as a class/model, not a bare secondary table.",
+    "The pair (member_id, project_id) is the key; role and joined_at are payload."
+  ],
+  "sqlEquivalent": "CREATE TABLE lab_members (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_projects (id SERIAL PRIMARY KEY, title VARCHAR(200) NOT NULL);\nCREATE TABLE lab_memberships (\n  member_id  INTEGER NOT NULL REFERENCES lab_members(id) ON DELETE CASCADE,\n  project_id INTEGER NOT NULL REFERENCES lab_projects(id) ON DELETE CASCADE,\n  role       VARCHAR(40) NOT NULL,\n  joined_at  TIMESTAMPTZ NOT NULL DEFAULT now(),\n  PRIMARY KEY (member_id, project_id)\n);\n",
+  "requirements": {
+    "tables": [
+      {
+        "name": "lab_members",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          }
+        ]
+      },
+      {
+        "name": "lab_projects",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          }
+        ]
+      },
+      {
+        "name": "lab_memberships",
+        "columns": [
+          {
+            "name": "member_id",
+            "nullable": false,
+            "fk": {
+              "table": "lab_members",
+              "column": "id",
+              "onDelete": "CASCADE"
+            }
+          },
+          {
+            "name": "project_id",
+            "nullable": false,
+            "fk": {
+              "table": "lab_projects",
+              "column": "id",
+              "onDelete": "CASCADE"
+            }
+          },
+          {
+            "name": "role",
+            "type": "text",
+            "nullable": false
+          },
+          {
+            "name": "joined_at",
+            "type": "timestamp",
+            "nullable": false
+          }
+        ],
+        "uniqueTogether": [
+          [
+            "member_id",
+            "project_id"
+          ]
+        ]
+      }
+    ]
+  },
+  "animation": {
+    "highlightTables": [
+      "lab_members",
+      "lab_projects",
+      "lab_memberships"
+    ],
+    "highlightRels": [
+      "lab_memberships.member_id",
+      "lab_memberships.project_id"
+    ]
+  },
+  "highlightHint": [
+    "lab_members",
+    "lab_projects",
+    "lab_memberships"
+  ],
+  "starterCode": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\n# TODO: LabMember (lab_members), LabProject (lab_projects)\n# TODO: LabMembership (lab_memberships) — composite PK, role, joined_at\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+  "language": "python",
+  "trackId": "python-sqlalchemy",
+  "why": "A plain junction only says *that* two rows are linked. As soon as the link has attributes (role, date, grade, quantity) it becomes a model of its own — an association object — with a composite key and its own columns.",
+  "pitfalls": [
+    "Using relationship(secondary=...) — there is nowhere to store the role.",
+    "Giving the junction a surrogate id and forgetting the composite UNIQUE."
+  ],
+  "teachAlong": [
+    "Cause: the link needs data.",
+    "Effect: the junction becomes an entity with a composite key.",
+    "Diagram: two FK arrows into lab_memberships plus its own columns."
+  ],
+  "references": [
+    {
+      "title": "SQLAlchemy 2.0 — Association Object",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html#association-object"
+    },
+    {
+      "title": "Prisma — Many-to-many relations (explicit)",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations/many-to-many-relations"
+    },
+    {
+      "title": "PostgreSQL — Constraints",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html"
+    }
+  ],
+  "mappingNotes": "Compare your code with the Equivalent SQL panel. The gate introspects Postgres and runs rolled-back probe INSERTs.",
+  "level": "advanced",
+  "solution": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nfrom datetime import datetime\nfrom sqlalchemy import DateTime, func\n\n\nclass LabMember(Base):\n    __tablename__ = \"lab_members\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    memberships: Mapped[list[\"LabMembership\"]] = relationship(back_populates=\"member\", cascade=\"all, delete-orphan\")\n\n\nclass LabProject(Base):\n    __tablename__ = \"lab_projects\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n    memberships: Mapped[list[\"LabMembership\"]] = relationship(back_populates=\"project\", cascade=\"all, delete-orphan\")\n\n\nclass LabMembership(Base):\n    \"\"\"Association OBJECT: the link itself carries data (role, joined_at).\"\"\"\n    __tablename__ = \"lab_memberships\"\n    member_id: Mapped[int] = mapped_column(ForeignKey(\"lab_members.id\", ondelete=\"CASCADE\"), primary_key=True)\n    project_id: Mapped[int] = mapped_column(ForeignKey(\"lab_projects.id\", ondelete=\"CASCADE\"), primary_key=True)\n    role: Mapped[str] = mapped_column(String(40))\n    joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())\n    member: Mapped[LabMember] = relationship(back_populates=\"memberships\")\n    project: Mapped[LabProject] = relationship(back_populates=\"memberships\")\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+  "wrongSolutions": [
+    {
+      "label": "plain secondary table — no role / joined_at",
+      "expect": [
+        "missing-column"
+      ],
+      "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nfrom sqlalchemy import Column, Table\n\nlab_memberships = Table(\n    \"lab_memberships\",\n    Base.metadata,\n    Column(\"member_id\", ForeignKey(\"lab_members.id\", ondelete=\"CASCADE\"), primary_key=True),\n    Column(\"project_id\", ForeignKey(\"lab_projects.id\", ondelete=\"CASCADE\"), primary_key=True),\n)\n\n\nclass LabMember(Base):\n    __tablename__ = \"lab_members\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    projects: Mapped[list[\"LabProject\"]] = relationship(secondary=lab_memberships)\n\n\nclass LabProject(Base):\n    __tablename__ = \"lab_projects\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+    },
+    {
+      "label": "role optional",
+      "expect": [
+        "must-be-not-null"
+      ],
+      "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nfrom datetime import datetime\nfrom sqlalchemy import DateTime, func\n\n\nclass LabMember(Base):\n    __tablename__ = \"lab_members\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    memberships: Mapped[list[\"LabMembership\"]] = relationship(back_populates=\"member\", cascade=\"all, delete-orphan\")\n\n\nclass LabProject(Base):\n    __tablename__ = \"lab_projects\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n    memberships: Mapped[list[\"LabMembership\"]] = relationship(back_populates=\"project\", cascade=\"all, delete-orphan\")\n\n\nclass LabMembership(Base):\n    \"\"\"Association OBJECT: the link itself carries data (role, joined_at).\"\"\"\n    __tablename__ = \"lab_memberships\"\n    member_id: Mapped[int] = mapped_column(ForeignKey(\"lab_members.id\", ondelete=\"CASCADE\"), primary_key=True)\n    project_id: Mapped[int] = mapped_column(ForeignKey(\"lab_projects.id\", ondelete=\"CASCADE\"), primary_key=True)\n    role: Mapped[str | None] = mapped_column(String(40))\n    joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())\n    member: Mapped[LabMember] = relationship(back_populates=\"memberships\")\n    project: Mapped[LabProject] = relationship(back_populates=\"memberships\")\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+    }
+  ]
+}

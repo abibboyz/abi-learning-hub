@@ -2,44 +2,124 @@
   "id": "11-validation",
   "order": 11,
   "title": "Validation at boundaries",
-  "summary": "Validate payloads before persistence \u2014 Zod / Pydantic / DB constraints.",
+  "summary": "Validate payloads before persistence — Zod / Pydantic / DB constraints.",
   "example": {
     "language": "python",
     "code": "from pydantic import BaseModel\nclass MagazineIn(BaseModel):\n    title: str\n    publisher_id: int\n",
     "sql": "-- DB still enforces NOT NULL / FK"
   },
   "exercise": {
-    "prompt": "Define a small input schema for a child row (title + parent id).",
-    "hint": "Validate before calling the ORM."
+    "kind": "code",
+    "runnable": true,
+    "language": "python",
+    "prompt": "Validate in the model: @validates rejects a blank title and a publisher_id ≤ 0 with ValueError.",
+    "hint": "from sqlalchemy.orm import validates — the gate constructs LabL11Magazine(...) with good and bad values.",
+    "starterCode": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\nfrom sqlalchemy.orm import validates\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabL11Magazine(Base):\n    __tablename__ = \"lab_l11_magazines\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n    publisher_id: Mapped[int] = mapped_column(Integer)\n    # TODO: @validates(\"title\") and @validates(\"publisher_id\")\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+    "solution": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\nfrom sqlalchemy.orm import validates\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabL11Magazine(Base):\n    __tablename__ = \"lab_l11_magazines\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n    publisher_id: Mapped[int] = mapped_column(Integer)\n\n    @validates(\"title\")\n    def check_title(self, key, value):\n        if not value or not value.strip():\n            raise ValueError(\"title must not be empty\")\n        return value.strip()\n\n    @validates(\"publisher_id\")\n    def check_publisher(self, key, value):\n        if not isinstance(value, int) or value <= 0:\n            raise ValueError(\"publisher_id must be a positive integer\")\n        return value\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+    "wrongSolutions": [
+      {
+        "label": "no validators",
+        "expect": [
+          "accepts-invalid"
+        ],
+        "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\nfrom sqlalchemy.orm import validates\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabL11Magazine(Base):\n    __tablename__ = \"lab_l11_magazines\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n    publisher_id: Mapped[int] = mapped_column(Integer)\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+      },
+      {
+        "label": "checks `if not value` only (spaces pass)",
+        "expect": [
+          "accepts-invalid"
+        ],
+        "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\nfrom sqlalchemy.orm import validates\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabL11Magazine(Base):\n    __tablename__ = \"lab_l11_magazines\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n    publisher_id: Mapped[int] = mapped_column(Integer)\n\n    @validates(\"title\")\n    def check_title(self, key, value):\n        if not value:\n            raise ValueError(\"title must not be empty\")\n        return value.strip()\n\n    @validates(\"publisher_id\")\n    def check_publisher(self, key, value):\n        if not isinstance(value, int) or value <= 0:\n            raise ValueError(\"publisher_id must be a positive integer\")\n        return value\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l11_magazines",
+          "columns": [
+            {
+              "name": "title"
+            },
+            {
+              "name": "publisher_id"
+            }
+          ]
+        }
+      ],
+      "calls": [
+        {
+          "call": "LabL11Magazine",
+          "kwargs": {
+            "title": "Monthly Review",
+            "publisher_id": 1
+          },
+          "expect": "ok",
+          "message": "A normal magazine must be accepted."
+        },
+        {
+          "call": "LabL11Magazine",
+          "kwargs": {
+            "title": "   ",
+            "publisher_id": 1
+          },
+          "expect": "raises",
+          "message": "A blank title must be rejected."
+        },
+        {
+          "call": "LabL11Magazine",
+          "kwargs": {
+            "title": "Data Weekly",
+            "publisher_id": 0
+          },
+          "expect": "raises",
+          "message": "publisher_id 0 must be rejected."
+        }
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l11_magazines"
+      ],
+      "highlightRels": []
+    }
   },
-  "body": "Validate payloads before persistence \u2014 Zod / Pydantic / DB constraints.\n\nWhy it matters: ORMs trust your inputs. Runtime schemas catch bad types and missing fields before they become integrity errors \u2014 or worse, corrupt data.\n\nSQL \u2194 ORM: Zod z.infer \u2194 Pydantic models \u2194 DB NOT NULL / CHECK / FK.",
-  "why": "ORMs trust your inputs. Runtime schemas catch bad types and missing fields before they become integrity errors \u2014 or worse, corrupt data.",
+  "body": "Validate payloads before persistence — Zod / Pydantic / DB constraints.\n\nWhy it matters: ORMs trust your inputs. Runtime schemas catch bad types and missing fields before they become integrity errors — or worse, corrupt data.\n\nSQL ↔ ORM: Zod z.infer ↔ Pydantic models ↔ DB NOT NULL / CHECK / FK.",
+  "why": "ORMs trust your inputs. Runtime schemas catch bad types and missing fields before they become integrity errors — or worse, corrupt data.",
   "objectives": [
     "Validate DTOs with Zod (Node) or Pydantic (Python) before write.",
     "Treat DB constraints as the last line of defense, not the first."
   ],
   "pitfalls": [
     "Trusting req.body / form JSON without parsing.",
-    "Duplicating every DB rule in app code unnecessarily \u2014 prefer complementary checks."
+    "Duplicating every DB rule in app code unnecessarily — prefer complementary checks."
   ],
-  "mappingNotes": "Zod z.infer \u2194 Pydantic models \u2194 DB NOT NULL / CHECK / FK.",
+  "mappingNotes": "Zod z.infer ↔ Pydantic models ↔ DB NOT NULL / CHECK / FK.",
   "teachAlong": [
     "Cause: client sends untrusted JSON.",
-    "Effect: schema parse succeeds \u2192 safe object; else 400 with details.",
+    "Effect: schema parse succeeds → safe object; else 400 with details.",
     "Then: ORM/SQL write runs under constraints."
   ],
   "references": [
     {
-      "title": "Zod \u2014 Schema validation",
+      "title": "Zod — Schema validation",
       "url": "https://zod.dev/"
     },
     {
-      "title": "Drizzle ORM \u2014 Relations",
+      "title": "Drizzle ORM — Relations",
       "url": "https://orm.drizzle.team/docs/relations"
     },
     {
       "title": "Prisma Client API",
       "url": "https://www.prisma.io/docs/orm/prisma-client"
+    },
+    {
+      "title": "SQLAlchemy — Simple Validators (@validates)",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/mapped_attributes.html#simple-validators"
+    },
+    {
+      "title": "PostgreSQL — Constraints",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html"
     }
-  ]
+  ],
+  "level": "intermediate"
 }

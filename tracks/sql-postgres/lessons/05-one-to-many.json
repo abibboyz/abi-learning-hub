@@ -1,0 +1,95 @@
+{
+  "id": "05-one-to-many",
+  "order": 5,
+  "title": "One-to-many (1:N)",
+  "summary": "One parent owns many children — FK on the child.",
+  "example": {
+    "language": "sql",
+    "code": "FK publisher_id ON lab_magazines REFERENCES lab_publishers(id)",
+    "sql": "FK publisher_id ON lab_magazines REFERENCES lab_publishers(id)"
+  },
+  "exercise": {
+    "kind": "code",
+    "runnable": true,
+    "language": "sql",
+    "prompt": "lab_l05_players.team_id INTEGER NOT NULL REFERENCES lab_l05_teams(id) — no UNIQUE.",
+    "hint": "Many rows may share the same team_id.",
+    "starterCode": "CREATE TABLE lab_l05_teams (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL\n);\n\n-- TODO: the child table\n",
+    "solution": "CREATE TABLE lab_l05_teams (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL\n);\n\nCREATE TABLE lab_l05_players (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  team_id INTEGER NOT NULL REFERENCES lab_l05_teams(id)\n);\n",
+    "wrongSolutions": [
+      {
+        "label": "UNIQUE team_id",
+        "expect": [
+          "must-not-be-unique"
+        ],
+        "code": "CREATE TABLE lab_l05_teams (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL\n);\n\nCREATE TABLE lab_l05_players (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  team_id INTEGER NOT NULL UNIQUE REFERENCES lab_l05_teams(id)\n);\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l05_teams",
+          "columns": [
+            {
+              "name": "id",
+              "pk": true
+            }
+          ]
+        },
+        {
+          "name": "lab_l05_players",
+          "columns": [
+            {
+              "name": "team_id",
+              "nullable": false,
+              "unique": false,
+              "fk": {
+                "table": "lab_l05_teams",
+                "column": "id"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l05_teams",
+        "lab_l05_players"
+      ],
+      "highlightRels": []
+    }
+  },
+  "body": "One parent owns many children — FK on the child.\n\nWhy it matters: 1:N is the most common business relationship (publisher→magazines, customer→orders). Modeling it correctly prevents duplicate parent rows and enables simple JOINs.\n\nSQL ↔ ORM: Child FK + parent collection. SQL only needs the FK; ORM adds navigation.",
+  "why": "1:N is the most common business relationship (publisher→magazines, customer→orders). Modeling it correctly prevents duplicate parent rows and enables simple JOINs.",
+  "objectives": [
+    "Create parent + child tables.",
+    "Put publisher_id (or equivalent) on the child with FK.",
+    "Optional: declare ORM collection on the parent (relationship / magazines Mag[])."
+  ],
+  "pitfalls": [
+    "Unique constraint on the FK accidentally turning 1:N into 1:1.",
+    "Nullable FK when the domain requires every child to have a parent."
+  ],
+  "mappingNotes": "Child FK + parent collection. SQL only needs the FK; ORM adds navigation.",
+  "teachAlong": [
+    "Cause: one publisher publishes many magazines.",
+    "Effect: lab_magazines.publisher_id → lab_publishers.id.",
+    "Gate: both tables + FK must exist; extras allowed."
+  ],
+  "references": [
+    {
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
+    },
+    {
+      "title": "Prisma — Relations",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
+    },
+    {
+      "title": "PostgreSQL — Foreign Keys",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
+    }
+  ],
+  "level": "beginner"
+}

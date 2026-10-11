@@ -2,17 +2,76 @@
   "id": "03-primary-keys",
   "order": 3,
   "title": "Primary keys",
-  "summary": "A PK uniquely identifies each row \u2014 the target of every foreign key.",
+  "summary": "A PK uniquely identifies each row — the target of every foreign key.",
   "example": {
     "language": "prisma",
     "code": "id Int @id @default(autoincrement())",
     "sql": "id SERIAL PRIMARY KEY"
   },
   "exercise": {
-    "prompt": "Ensure your lab table has an integer primary key named id.",
-    "hint": "Task gate checks isPrimaryKey on id."
+    "kind": "code",
+    "runnable": true,
+    "language": "prisma",
+    "prompt": "LabL03Country keyed by `code String @id @db.Char(2)`; LabL03City keyed by an autoincrement Int id.",
+    "hint": "@id can sit on a String field.",
+    "starterCode": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\n// TODO: model LabL03Country (lab_l03_countries) and LabL03City (lab_l03_cities)\n",
+    "solution": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabL03Country {\n  code String @id @db.Char(2)\n  name String\n  @@map(\"lab_l03_countries\")\n}\n\nmodel LabL03City {\n  id   Int    @id @default(autoincrement())\n  name String\n  @@map(\"lab_l03_cities\")\n}\n",
+    "wrongSolutions": [
+      {
+        "label": "code is @unique, not the @id",
+        "expect": [
+          "not-primary-key"
+        ],
+        "code": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabL03Country {\n  id   Int    @id @default(autoincrement())\n  code String @unique @db.Char(2)\n  name String\n  @@map(\"lab_l03_countries\")\n}\n\nmodel LabL03City {\n  id   Int    @id @default(autoincrement())\n  name String\n  @@map(\"lab_l03_cities\")\n}\n"
+      },
+      {
+        "label": "model without any @id",
+        "expect": [
+          "rejected"
+        ],
+        "code": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabL03Country {\n  code String @db.Char(2)\n  name String\n  @@map(\"lab_l03_countries\")\n}\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l03_countries",
+          "columns": [
+            {
+              "name": "code",
+              "pk": true,
+              "type": "text"
+            },
+            {
+              "name": "name",
+              "nullable": false
+            }
+          ]
+        },
+        {
+          "name": "lab_l03_cities",
+          "columns": [
+            {
+              "name": "id",
+              "pk": true,
+              "type": "integer"
+            },
+            {
+              "name": "name"
+            }
+          ]
+        }
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l03_countries",
+        "lab_l03_cities"
+      ],
+      "highlightRels": []
+    }
   },
-  "body": "A PK uniquely identifies each row \u2014 the target of every foreign key.\n\nWhy it matters: Foreign keys point at primary (or unique) keys. Without a stable PK, you cannot express 1:N, 1:1, or M:N safely, and ON DELETE behavior becomes undefined.\n\nSQL \u2194 ORM: SQLAlchemy primary_key=True \u2194 Prisma @id \u2194 SQL PRIMARY KEY.",
+  "body": "A PK uniquely identifies each row — the target of every foreign key.\n\nWhy it matters: Foreign keys point at primary (or unique) keys. Without a stable PK, you cannot express 1:N, 1:1, or M:N safely, and ON DELETE behavior becomes undefined.\n\nSQL ↔ ORM: SQLAlchemy primary_key=True ↔ Prisma @id ↔ SQL PRIMARY KEY.",
   "why": "Foreign keys point at primary (or unique) keys. Without a stable PK, you cannot express 1:N, 1:1, or M:N safely, and ON DELETE behavior becomes undefined.",
   "objectives": [
     "Mark a surrogate integer id as PRIMARY KEY.",
@@ -20,10 +79,10 @@
     "Prefer stable surrogate keys in labs; add UNIQUE for natural keys separately."
   ],
   "pitfalls": [
-    "Forgetting @id / primary_key=True \u2014 table exists but relationships cannot attach.",
-    "Composite PKs too early \u2014 fine in production, noisy while learning basics."
+    "Forgetting @id / primary_key=True — table exists but relationships cannot attach.",
+    "Composite PKs too early — fine in production, noisy while learning basics."
   ],
-  "mappingNotes": "SQLAlchemy primary_key=True \u2194 Prisma @id \u2194 SQL PRIMARY KEY.",
+  "mappingNotes": "SQLAlchemy primary_key=True ↔ Prisma @id ↔ SQL PRIMARY KEY.",
   "teachAlong": [
     "Cause: row needs a durable identity.",
     "Effect: PK constraint + index created.",
@@ -31,16 +90,17 @@
   ],
   "references": [
     {
-      "title": "PostgreSQL \u2014 CREATE TABLE",
+      "title": "PostgreSQL — CREATE TABLE",
       "url": "https://www.postgresql.org/docs/current/sql-createtable.html"
     },
     {
-      "title": "SQLAlchemy \u2014 Mapped Column Declarative",
+      "title": "SQLAlchemy — Mapped Column Declarative",
       "url": "https://docs.sqlalchemy.org/en/20/orm/declarative_tables.html"
     },
     {
-      "title": "Prisma \u2014 Schema Reference",
+      "title": "Prisma — Schema Reference",
       "url": "https://www.prisma.io/docs/orm/reference/prisma-schema-reference"
     }
-  ]
+  ],
+  "level": "beginner"
 }

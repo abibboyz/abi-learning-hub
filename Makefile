@@ -1,4 +1,4 @@
-.PHONY: up down logs reset-db export-db restore-db test-python test-node test-pw test-pw-e2e typecheck-web install config test
+.PHONY: walk up down logs reset-db export-db restore-db test-python test-node test-pw test-pw-e2e typecheck-web install config test
 
 # One platform — brings up postgres + internal runners + web
 up:
@@ -38,6 +38,10 @@ test-pw:
 # the real gate + Chromium (needs: cd pw-runner && npx playwright install chromium). ~3-5 min.
 test-pw-e2e:
 	cd pw-runner && npm run test:e2e
+
+# Walk every DB-track reference/wrong/starter over HTTP (APIs running; ARGS=--via-bff for the web proxy)
+walk:
+	python3 scripts/walk_solutions.py $(ARGS)
 
 test: test-python test-node test-pw typecheck-web
 

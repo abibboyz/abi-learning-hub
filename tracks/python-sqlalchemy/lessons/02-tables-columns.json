@@ -9,10 +9,64 @@
     "sql": "CREATE TABLE lab_authors (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL\n);"
   },
   "exercise": {
-    "prompt": "Declare a lab_ table with at least id + one typed column.",
-    "hint": "Match the physical table name the task gate expects."
+    "kind": "code",
+    "runnable": true,
+    "language": "python",
+    "prompt": "Declare lab_l02_authors: integer id (PK), required name (String(120)), optional bio (Text).",
+    "hint": "Mapped[str] is NOT NULL; Mapped[str | None] is nullable.",
+    "starterCode": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\n# TODO: class LabL02Author(Base) with __tablename__ = \"lab_l02_authors\"\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+    "solution": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nfrom sqlalchemy import Text\n\n\nclass LabL02Author(Base):\n    __tablename__ = \"lab_l02_authors\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    bio: Mapped[str | None] = mapped_column(Text)\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+    "wrongSolutions": [
+      {
+        "label": "name declared Optional (nullable)",
+        "expect": [
+          "must-be-not-null"
+        ],
+        "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabL02Author(Base):\n    __tablename__ = \"lab_l02_authors\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str | None] = mapped_column(String(120))\n    bio: Mapped[str | None] = mapped_column(String(500))\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+      },
+      {
+        "label": "table name without the l02 prefix",
+        "expect": [
+          "missing-table"
+        ],
+        "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabL02Author(Base):\n    __tablename__ = \"lab_authors_l02\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l02_authors",
+          "columns": [
+            {
+              "name": "id",
+              "pk": true,
+              "type": "integer"
+            },
+            {
+              "name": "name",
+              "type": "text",
+              "nullable": false
+            },
+            {
+              "name": "bio",
+              "type": "text",
+              "nullable": true
+            }
+          ]
+        }
+      ],
+      "resetTables": [
+        "lab_authors_l02"
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l02_authors"
+      ],
+      "highlightRels": []
+    }
   },
-  "body": "Tables are named row collections; columns carry typed attributes.\n\nWhy it matters: Relationships only make sense once tables and columns exist. Choosing VARCHAR vs TEXT, INTEGER vs UUID, and NOT NULL vs nullable shapes every FK and join you write later.\n\nSQL \u2194 ORM: SQLAlchemy mapped_column(String(120)) \u2194 VARCHAR(120). Prisma String @db.VarChar(120) \u2194 VARCHAR(120). @@map(\"lab_x\") / __tablename__ keep physical names stable.",
+  "body": "Tables are named row collections; columns carry typed attributes.\n\nWhy it matters: Relationships only make sense once tables and columns exist. Choosing VARCHAR vs TEXT, INTEGER vs UUID, and NOT NULL vs nullable shapes every FK and join you write later.\n\nSQL ↔ ORM: SQLAlchemy mapped_column(String(120)) ↔ VARCHAR(120). Prisma String @db.VarChar(120) ↔ VARCHAR(120). @@map(\"lab_x\") / __tablename__ keep physical names stable.",
   "why": "Relationships only make sense once tables and columns exist. Choosing VARCHAR vs TEXT, INTEGER vs UUID, and NOT NULL vs nullable shapes every FK and join you write later.",
   "objectives": [
     "Map ORM field types to Postgres column types.",
@@ -21,9 +75,9 @@
   ],
   "pitfalls": [
     "Mixing camelCase columns in DB with snake_case FKs without @map / key naming.",
-    "Using overly wide TEXT everywhere \u2014 loses intent and check constraints."
+    "Using overly wide TEXT everywhere — loses intent and check constraints."
   ],
-  "mappingNotes": "SQLAlchemy mapped_column(String(120)) \u2194 VARCHAR(120). Prisma String @db.VarChar(120) \u2194 VARCHAR(120). @@map(\"lab_x\") / __tablename__ keep physical names stable.",
+  "mappingNotes": "SQLAlchemy mapped_column(String(120)) ↔ VARCHAR(120). Prisma String @db.VarChar(120) ↔ VARCHAR(120). @@map(\"lab_x\") / __tablename__ keep physical names stable.",
   "teachAlong": [
     "Cause: you declare a model/table with typed fields.",
     "Effect: CREATE TABLE materializes columns in Postgres.",
@@ -31,16 +85,17 @@
   ],
   "references": [
     {
-      "title": "SQLAlchemy \u2014 Mapped Column Declarative",
+      "title": "SQLAlchemy — Mapped Column Declarative",
       "url": "https://docs.sqlalchemy.org/en/20/orm/declarative_tables.html"
     },
     {
-      "title": "Prisma \u2014 Schema Reference",
+      "title": "Prisma — Schema Reference",
       "url": "https://www.prisma.io/docs/orm/reference/prisma-schema-reference"
     },
     {
-      "title": "PostgreSQL \u2014 CREATE TABLE",
+      "title": "PostgreSQL — CREATE TABLE",
       "url": "https://www.postgresql.org/docs/current/sql-createtable.html"
     }
-  ]
+  ],
+  "level": "beginner"
 }

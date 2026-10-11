@@ -53,6 +53,8 @@ export type Task = {
   references?: RefLink[];
   sqlEquivalent?: string;
   starterCode: string;
+  language?: string;
+  level?: string;
   requirements: unknown;
   animation?: { highlightTables?: string[]; highlightRels?: string[] };
   trackId?: string;
@@ -74,17 +76,35 @@ export type Lesson = {
   example?: string | { language?: string; code?: string; sql?: string };
   exampleSql?: string;
   exampleLanguage?: string;
-  exercise?: string | { prompt?: string; hint?: string };
+  exercise?: string | LessonExercise;
+  level?: "beginner" | "intermediate" | "advanced";
 };
+
+export type QuizQuestion = { id: string; prompt: string; options: Array<{ id: string; text: string }> };
+
+/** Runnable lesson exercise: code checked by the same gate as tasks, or a quiz graded server-side. */
+export type LessonExercise = {
+  kind?: "code" | "quiz";
+  runnable?: boolean;
+  language?: string;
+  prompt?: string;
+  hint?: string;
+  starterCode?: string;
+  questions?: QuizQuestion[];
+};
+
+/** One gate failure. `rule` is a stable id shared by api-python and api-node (see CONCEPTS.md). */
+export type GateFailure = { rule: string; message: string; table?: string; column?: string; line?: number | null; question?: string };
 
 export type ExecuteResult = {
   success: boolean;
   gate?: string;
   message?: string;
   schema?: Schema;
-  validation?: { ok: boolean; errors: string[]; matched: string[]; message?: string };
+  validation?: { ok: boolean; errors: string[]; matched: string[]; message?: string; failures?: GateFailure[] } | null;
   animation?: { highlightTables?: string[]; highlightRels?: string[] } | null;
   note?: string;
+  stdout?: string;
   sql?: string[];
   traceback?: string;
   teachAlong?: string[];

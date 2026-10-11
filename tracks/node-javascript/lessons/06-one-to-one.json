@@ -2,27 +2,75 @@
   "id": "06-one-to-one",
   "order": 6,
   "title": "One-to-one (1:1)",
-  "summary": "Each parent pairs with at most one child \u2014 usually a UNIQUE FK.",
+  "summary": "Each parent pairs with at most one child — usually a UNIQUE FK.",
   "example": {
     "language": "prisma",
     "code": "accountId Int @unique @map(\"account_id\")",
     "sql": "account_id INTEGER UNIQUE NOT NULL REFERENCES lab_accounts(id)"
   },
   "exercise": {
-    "prompt": "Model a 1:1 with a UNIQUE foreign key.",
-    "hint": "UNIQUE on the FK is what enforces one child per parent."
+    "kind": "code",
+    "runnable": true,
+    "language": "prisma",
+    "prompt": "LabL06User has `child LabL06Profile?`; LabL06Profile.userId is @unique @map(\"user_id\") with @relation.",
+    "hint": "Prisma requires @unique on the FK of a 1:1 relation.",
+    "starterCode": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabL06User {\n  id   Int    @id @default(autoincrement())\n  name String\n  @@map(\"lab_l06_users\")\n}\n\n// TODO: the child model\n",
+    "solution": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabL06User {\n  id       Int    @id @default(autoincrement())\n  name     String\n  child    LabL06Profile?\n  @@map(\"lab_l06_users\")\n}\n\nmodel LabL06Profile {\n  id    Int    @id @default(autoincrement())\n  title String\n  userId Int @unique @map(\"user_id\")\n  user LabL06User @relation(fields: [userId], references: [id])\n  @@map(\"lab_l06_profiles\")\n}\n",
+    "wrongSolutions": [
+      {
+        "label": "userId not @unique",
+        "expect": [
+          "not-unique"
+        ],
+        "code": "// JavaScript track — same Prisma schema DSL; Zod validates inputs at the JS boundary.\nmodel LabL06User {\n  id       Int    @id @default(autoincrement())\n  name     String\n  children LabL06Profile[]\n  @@map(\"lab_l06_users\")\n}\n\nmodel LabL06Profile {\n  id    Int    @id @default(autoincrement())\n  title String\n  userId Int @map(\"user_id\")\n  user LabL06User @relation(fields: [userId], references: [id])\n  @@map(\"lab_l06_profiles\")\n}\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l06_users",
+          "columns": [
+            {
+              "name": "id",
+              "pk": true
+            }
+          ]
+        },
+        {
+          "name": "lab_l06_profiles",
+          "columns": [
+            {
+              "name": "user_id",
+              "nullable": false,
+              "unique": true,
+              "fk": {
+                "table": "lab_l06_users",
+                "column": "id"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l06_users",
+        "lab_l06_profiles"
+      ],
+      "highlightRels": []
+    }
   },
-  "body": "Each parent pairs with at most one child \u2014 usually a UNIQUE FK.\n\nWhy it matters: Profiles, settings, and credentials often share a 1:1 with a user/account. Without UNIQUE on the FK, the database silently allows multiple children (accidental 1:N).\n\nSQL \u2194 ORM: UNIQUE FK \u2194 Prisma @unique on the FK field \u2194 SQL UNIQUE.",
+  "body": "Each parent pairs with at most one child — usually a UNIQUE FK.\n\nWhy it matters: Profiles, settings, and credentials often share a 1:1 with a user/account. Without UNIQUE on the FK, the database silently allows multiple children (accidental 1:N).\n\nSQL ↔ ORM: UNIQUE FK ↔ Prisma @unique on the FK field ↔ SQL UNIQUE.",
   "why": "Profiles, settings, and credentials often share a 1:1 with a user/account. Without UNIQUE on the FK, the database silently allows multiple children (accidental 1:N).",
   "objectives": [
     "Implement 1:1 with a UNIQUE foreign key on the dependent table.",
     "Explain how UNIQUE changes cardinality vs plain 1:N."
   ],
   "pitfalls": [
-    "Forgetting UNIQUE \u2014 tests may pass until duplicate inserts appear.",
+    "Forgetting UNIQUE — tests may pass until duplicate inserts appear.",
     "Shared primary key 1:1 is valid but harder to migrate; labs prefer UNIQUE FK."
   ],
-  "mappingNotes": "UNIQUE FK \u2194 Prisma @unique on the FK field \u2194 SQL UNIQUE.",
+  "mappingNotes": "UNIQUE FK ↔ Prisma @unique on the FK field ↔ SQL UNIQUE.",
   "teachAlong": [
     "Cause: each account may have only one profile.",
     "Effect: profile.account_id UNIQUE REFERENCES accounts(id).",
@@ -30,16 +78,17 @@
   ],
   "references": [
     {
-      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
       "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
     },
     {
-      "title": "Prisma \u2014 Relations",
+      "title": "Prisma — Relations",
       "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
     },
     {
-      "title": "PostgreSQL \u2014 Foreign Keys",
+      "title": "PostgreSQL — Foreign Keys",
       "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
     }
-  ]
+  ],
+  "level": "beginner"
 }

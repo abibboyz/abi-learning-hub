@@ -69,6 +69,7 @@ export async function fetchSchema(trackId: string): Promise<Schema> {
 export async function executeCode(body: {
   trackId: string;
   taskId?: string | null;
+  lessonId?: string | null;
   code: string;
   mode?: string;
 }): Promise<ExecuteResult> {
@@ -78,6 +79,18 @@ export async function executeCode(body: {
     body: JSON.stringify(body),
   });
   return res.json();
+}
+
+/** Reference solution, fetched only when the learner asks for it. */
+export async function fetchSolution(trackId: string, kind: "tasks" | "lessons", id: string): Promise<string> {
+  const d = await getJson<{ solution: string }>(`${API}/tracks/${trackId}/${kind}/${encodeURIComponent(id)}/solution`);
+  return d.solution;
+}
+
+export type HistoryDetail = { id: number; task_id: string | null; mode: string; code: string; success: boolean; message: string };
+
+export async function fetchHistoryDetail(trackId: string, id: number): Promise<HistoryDetail> {
+  return getJson(`${API}/history/${id}?trackId=${encodeURIComponent(trackId)}`);
 }
 
 export async function resetLab(_trackId?: string): Promise<{

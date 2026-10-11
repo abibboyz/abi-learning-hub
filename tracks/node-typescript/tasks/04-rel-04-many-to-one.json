@@ -3,14 +3,14 @@
   "order": 4,
   "title": "Many-to-one (N:1)",
   "summary": "Many orders belong to one customer.",
-  "description": "Many orders belong to one customer.\n\nWhy: Many-to-one is the same FK pattern viewed from the child \u2014 reinforcing that cardinality is about perspective, not a different physical mechanism.",
+  "description": "Many orders belong to one customer.\n\nWhy: Many-to-one is the same FK pattern viewed from the child — reinforcing that cardinality is about perspective, not a different physical mechanism.",
   "objectives": [
     "lab_customers (id PK, email)",
     "lab_orders (id PK, total, customer_id FK)"
   ],
   "hints": [
     "N:1 is the same FK pattern as 1:N from the child.",
-    "Read gate errors as cause\u2192effect: each message names what Postgres still lacks."
+    "Read gate errors as cause→effect: each message names what Postgres still lacks."
   ],
   "sqlEquivalent": "CREATE TABLE lab_customers (id SERIAL PRIMARY KEY, email VARCHAR(200) UNIQUE NOT NULL);\nCREATE TABLE lab_orders (\n  id SERIAL PRIMARY KEY,\n  total NUMERIC(10,2) NOT NULL,\n  customer_id INTEGER NOT NULL REFERENCES lab_customers(id)\n);",
   "requirements": {
@@ -35,14 +35,16 @@
             "pk": true
           },
           {
-            "name": "total"
+            "name": "total",
+            "type": "numeric"
           },
           {
             "name": "customer_id",
             "fk": {
               "table": "lab_customers",
               "column": "id"
-            }
+            },
+            "nullable": false
           }
         ]
       }
@@ -61,13 +63,13 @@
     "lab_customers",
     "lab_orders"
   ],
-  "starterCode": "model LabCustomer {\n  id Int @id @default(autoincrement())\n  email String @unique\n  orders LabOrder[]\n  @@map(\"lab_customers\")\n}\nmodel LabOrder {\n  id Int @id @default(autoincrement())\n  total Decimal @db.Decimal(10, 2)\n  customerId Int @map(\"customer_id\")\n  customer LabCustomer @relation(fields: [customerId], references: [id])\n  @@map(\"lab_orders\")\n}\n",
-  "starterCodePrisma": "model LabCustomer {\n  id Int @id @default(autoincrement())\n  email String @unique\n  orders LabOrder[]\n  @@map(\"lab_customers\")\n}\nmodel LabOrder {\n  id Int @id @default(autoincrement())\n  total Decimal @db.Decimal(10, 2)\n  customerId Int @map(\"customer_id\")\n  customer LabCustomer @relation(fields: [customerId], references: [id])\n  @@map(\"lab_orders\")\n}\n",
+  "starterCode": "model LabCustomer {\n  id    Int    @id @default(autoincrement())\n  email String @unique\n  @@map(\"lab_customers\")\n}\n\nmodel LabOrder {\n  id    Int     @id @default(autoincrement())\n  total Decimal\n  // TODO: customerId (@map(\"customer_id\")) + customer @relation(...) — every order has a customer\n  @@map(\"lab_orders\")\n}\n",
+  "starterCodePrisma": "model LabCustomer {\n  id    Int    @id @default(autoincrement())\n  email String @unique\n  @@map(\"lab_customers\")\n}\n\nmodel LabOrder {\n  id    Int     @id @default(autoincrement())\n  total Decimal\n  // TODO: customerId (@map(\"customer_id\")) + customer @relation(...) — every order has a customer\n  @@map(\"lab_orders\")\n}\n",
   "language": "typescript",
   "trackId": "node-typescript",
-  "why": "Many-to-one is the same FK pattern viewed from the child \u2014 reinforcing that cardinality is about perspective, not a different physical mechanism.",
+  "why": "Many-to-one is the same FK pattern viewed from the child — reinforcing that cardinality is about perspective, not a different physical mechanism.",
   "pitfalls": [
-    "Thinking N:1 needs a different FK placement than 1:N \u2014 it does not."
+    "Thinking N:1 needs a different FK placement than 1:N — it does not."
   ],
   "teachAlong": [
     "Cause: many children point at one parent.",
@@ -75,17 +77,27 @@
   ],
   "references": [
     {
-      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
       "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
     },
     {
-      "title": "Prisma \u2014 Relations",
+      "title": "Prisma — Relations",
       "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
     },
     {
-      "title": "PostgreSQL \u2014 Foreign Keys",
+      "title": "PostgreSQL — Foreign Keys",
       "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
     }
   ],
-  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres \u2014 only real tables/FKs count."
+  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres — only real tables/FKs count.",
+  "solution": "model LabCustomer {\n  id     Int        @id @default(autoincrement())\n  email  String     @unique\n  orders LabOrder[]\n  @@map(\"lab_customers\")\n}\n\nmodel LabOrder {\n  id         Int         @id @default(autoincrement())\n  total      Decimal\n  customerId Int         @map(\"customer_id\")\n  customer   LabCustomer @relation(fields: [customerId], references: [id])\n  @@map(\"lab_orders\")\n}\n",
+  "wrongSolutions": [
+    {
+      "label": "optional customer (Int?) lets orders exist without one",
+      "expect": [
+        "must-be-not-null"
+      ],
+      "code": "model LabCustomer {\n  id     Int        @id @default(autoincrement())\n  email  String     @unique\n  orders LabOrder[]\n  @@map(\"lab_customers\")\n}\n\nmodel LabOrder {\n  id         Int          @id @default(autoincrement())\n  total      Decimal\n  customerId Int?         @map(\"customer_id\")\n  customer   LabCustomer? @relation(fields: [customerId], references: [id])\n  @@map(\"lab_orders\")\n}\n"
+    }
+  ]
 }

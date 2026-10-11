@@ -1,0 +1,148 @@
+{
+  "id": "rel-10-mini-domain",
+  "order": 10,
+  "title": "Mini multi-relationship domain",
+  "summary": "Blog domain: bloggers, posts (1:N), tags, post_tags (M:N).",
+  "description": "Blog domain: bloggers, posts (1:N), tags, post_tags (M:N).\n\nWhy: A mini domain combines 1:N and M:N so you practice designing before coding — the skill used on real features.",
+  "objectives": [
+    "lab_bloggers",
+    "lab_posts with blogger_id FK",
+    "lab_tags",
+    "lab_post_tags"
+  ],
+  "hints": [
+    "Combine 1:N and M:N.",
+    "Read gate errors as cause→effect: each message names what Postgres still lacks."
+  ],
+  "sqlEquivalent": "CREATE TABLE lab_bloggers (id SERIAL PRIMARY KEY, handle VARCHAR(80) UNIQUE NOT NULL);\nCREATE TABLE lab_posts (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  blogger_id INTEGER NOT NULL REFERENCES lab_bloggers(id)\n);\nCREATE TABLE lab_tags (id SERIAL PRIMARY KEY, label VARCHAR(80) UNIQUE NOT NULL);\nCREATE TABLE lab_post_tags (\n  post_id INTEGER NOT NULL REFERENCES lab_posts(id) ON DELETE CASCADE,\n  tag_id INTEGER NOT NULL REFERENCES lab_tags(id) ON DELETE CASCADE,\n  PRIMARY KEY (post_id, tag_id)\n);",
+  "requirements": {
+    "tables": [
+      {
+        "name": "lab_bloggers",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "handle",
+            "unique": true
+          }
+        ]
+      },
+      {
+        "name": "lab_posts",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "title"
+          },
+          {
+            "name": "blogger_id",
+            "fk": {
+              "table": "lab_bloggers",
+              "column": "id"
+            }
+          }
+        ]
+      },
+      {
+        "name": "lab_tags",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          },
+          {
+            "name": "label"
+          }
+        ]
+      },
+      {
+        "name": "lab_post_tags",
+        "columns": [
+          {
+            "name": "post_id",
+            "fk": {
+              "table": "lab_posts",
+              "column": "id"
+            }
+          },
+          {
+            "name": "tag_id",
+            "fk": {
+              "table": "lab_tags",
+              "column": "id"
+            }
+          }
+        ],
+        "uniqueTogether": [
+          [
+            "post_id",
+            "tag_id"
+          ]
+        ]
+      }
+    ]
+  },
+  "animation": {
+    "highlightTables": [
+      "lab_bloggers",
+      "lab_posts",
+      "lab_tags",
+      "lab_post_tags"
+    ],
+    "highlightRels": [
+      "lab_posts.blogger_id",
+      "lab_post_tags.post_id",
+      "lab_post_tags.tag_id"
+    ]
+  },
+  "highlightHint": [
+    "lab_bloggers",
+    "lab_posts",
+    "lab_tags",
+    "lab_post_tags"
+  ],
+  "starterCode": "-- Write the CREATE TABLE statements (and INSERTs where asked) for this task.\n-- Tables must be named exactly as in the objectives.\n",
+  "language": "sql",
+  "trackId": "sql-postgres",
+  "why": "A mini domain combines 1:N and M:N so you practice designing before coding — the skill used on real features.",
+  "pitfalls": [
+    "Modeling M:N as a single FK.",
+    "Skipping the association table."
+  ],
+  "teachAlong": [
+    "Cause: realistic feature domain.",
+    "Effect: combine patterns; sketch ER first."
+  ],
+  "references": [
+    {
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
+    },
+    {
+      "title": "Prisma — Relations",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
+    },
+    {
+      "title": "PostgreSQL — Foreign Keys",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
+    }
+  ],
+  "mappingNotes": "Raw SQL is what every ORM generates. The gate introspects the same Postgres catalog for all tracks.",
+  "solution": "CREATE TABLE lab_bloggers (id SERIAL PRIMARY KEY, handle VARCHAR(80) UNIQUE NOT NULL);\nCREATE TABLE lab_posts (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  blogger_id INTEGER NOT NULL REFERENCES lab_bloggers(id)\n);\nCREATE TABLE lab_tags (id SERIAL PRIMARY KEY, label VARCHAR(80) UNIQUE NOT NULL);\nCREATE TABLE lab_post_tags (\n  post_id INTEGER NOT NULL REFERENCES lab_posts(id) ON DELETE CASCADE,\n  tag_id INTEGER NOT NULL REFERENCES lab_tags(id) ON DELETE CASCADE,\n  PRIMARY KEY (post_id, tag_id)\n);\n",
+  "wrongSolutions": [
+    {
+      "label": "post_tags without PK, handle not unique",
+      "expect": [
+        "missing-composite-key",
+        "not-unique"
+      ],
+      "code": "CREATE TABLE lab_bloggers (id SERIAL PRIMARY KEY, handle VARCHAR(80) NOT NULL);\nCREATE TABLE lab_posts (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  blogger_id INTEGER NOT NULL REFERENCES lab_bloggers(id)\n);\nCREATE TABLE lab_tags (id SERIAL PRIMARY KEY, label VARCHAR(80) UNIQUE NOT NULL);\nCREATE TABLE lab_post_tags (\n  post_id INTEGER NOT NULL REFERENCES lab_posts(id) ON DELETE CASCADE,\n  tag_id INTEGER NOT NULL REFERENCES lab_tags(id) ON DELETE CASCADE\n);\n"
+    }
+  ]
+}

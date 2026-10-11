@@ -131,11 +131,66 @@ Combine 1:N and M:N (blog: authors → posts; posts ↔ tags). Sketch the ER dia
 
 ---
 
+## 12. Indexes (advanced)
+
+**What:** a separate structure (B-tree by default) that lets Postgres find rows without scanning the whole table. A UNIQUE constraint or PRIMARY KEY creates one automatically; a foreign-key column does **not**.
+**Why:** an FK column you join or filter on (`books.author_id`) should usually get an index, otherwise each join on it is a sequential scan. Indexes cost writes and space, so add them for real query patterns.
+- SQLAlchemy `mapped_column(index=True)` / `Index(...)` · Prisma `@@index([authorId])` · SQL `CREATE INDEX ... ON lab_books (author_id)`.
+- Gate rule: `missing-index`.
+- References: [PostgreSQL indexes](https://www.postgresql.org/docs/current/indexes.html), [multicolumn](https://www.postgresql.org/docs/current/indexes-multicolumn.html), [SQLAlchemy constraints & indexes](https://docs.sqlalchemy.org/en/20/core/constraints.html), [Prisma indexes](https://www.prisma.io/docs/orm/prisma-schema/data-model/indexes).
+
+## 13. CHECK, UNIQUE & defaults (advanced)
+
+**What:** rules the database enforces for every writer: `CHECK (price >= 0)`, `UNIQUE (email)`, composite `UNIQUE (order_id, product_id)`, `DEFAULT now()`.
+**Why:** application validation can be bypassed (scripts, other services, races); constraints can't.
+- The gate inserts a bad row inside a rolled-back transaction (`constraint-not-enforced` if it gets in).
+- Prisma has no CHECK constraints, so the Node tracks cover UNIQUE/defaults only.
+- Reference: [PostgreSQL constraints](https://www.postgresql.org/docs/current/ddl-constraints.html).
+
+## 14. Transactions (advanced)
+
+**What:** a group of statements that all commit or all roll back (atomicity), e.g. moving stock between two rows.
+**Why:** a crash or error halfway must not leave half a transfer.
+- SQLAlchemy `with Session(engine) as s, s.begin():` · Prisma `$transaction([...])` / interactive transactions · SQL `BEGIN ... COMMIT`. In the hub's SQL track your script already runs inside one transaction, so `BEGIN`/`COMMIT` are rejected.
+- References: [PostgreSQL transactions](https://www.postgresql.org/docs/current/tutorial-transactions.html), [SQLAlchemy session transactions](https://docs.sqlalchemy.org/en/20/orm/session_transaction.html), [Prisma transactions](https://www.prisma.io/docs/orm/prisma-client/queries/transactions).
+
+## 15. N+1 queries & eager loading (advanced)
+
+**What:** loading N parents and then lazily loading each one's children costs 1 + N queries.
+**Fix:** a JOIN or a batched `IN (...)` query.
+- SQLAlchemy `selectinload()` / `joinedload()` · Prisma `include` · SQL `JOIN`.
+- References: [SQLAlchemy relationship loading](https://docs.sqlalchemy.org/en/20/orm/queryguide/relationships.html), [Prisma relation queries](https://www.prisma.io/docs/orm/prisma-client/queries/relation-queries).
+
+## 16. Migrations (advanced)
+
+**What:** versioned, reviewed schema changes applied in order: Alembic for SQLAlchemy, Prisma Migrate for Prisma, plain `ALTER TABLE` scripts for SQL.
+**Why:** `create_all()` / `db push` can't evolve a live database safely. Adding a NOT NULL column to a table with rows needs a default or a backfill first.
+- References: [Alembic tutorial](https://alembic.sqlalchemy.org/en/latest/tutorial.html), [Prisma Migrate](https://www.prisma.io/docs/orm/prisma-migrate/getting-started), [ALTER TABLE](https://www.postgresql.org/docs/current/sql-altertable.html).
+
+---
+
+## Raw SQL track (`sql-postgres`)
+
+The same 17 topics and 12 tasks written directly in PostgreSQL. This is the layer every ORM above generates, and the "Equivalent SQL" panels in the ORM tracks map to it 1:1.
+- Your script runs in one transaction as the restricted `hub_lab` role, with a statement timeout.
+- Errors report the line of your script.
+- Only `lab_*` tables may be created.
+
+## How lessons and tasks are checked
+
+Every lesson exercise and task goes through one gate (rule ids in the [README](./README.md#task-gate-database-tracks)):
+- **Code** exercises are introspected after running.
+- **Quizzes** are graded on the server, and each wrong option says why.
+- Each item ships with a reference solution and at least one wrong solution. The test suites prove the reference passes, each wrong one fails with its stated rule, and the starter fails.
+- Use **Show solution** after an honest attempt, and **Replay** in history to compare attempts.
+
+---
+
 ## Validation (Node ecosystem)
 
 | Library | Role |
 |---------|------|
-| **Zod** | Runtime schemas for inserts/DTOs (`z.infer`) — [zod.dev](https://zod.dev/) |
+| **Zod** | Runtime schemas for inserts/DTOs (`z.infer`) — [zod.dev](https://zod.dev/). Lesson 11 of the Node tracks is a runnable Zod lab: your schema must accept the valid samples and reject the invalid ones (`accepts-invalid` / `rejects-valid`) |
 | **Valibot** | Modular alternative validators |
 | **ArkType** | Type-syntax validators (see catalog examples) |
 | **pg** | Raw driver under Prisma/Drizzle — [node-postgres](https://node-postgres.com/) |
@@ -215,5 +270,7 @@ The `playwright-typescript` track teaches UI + API automation against the hub's 
 - [Zod](https://zod.dev/)
 - [PostgreSQL foreign keys](https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK)
 - [PostgreSQL joins](https://www.postgresql.org/docs/current/tutorial-join.html)
+- [PostgreSQL indexes](https://www.postgresql.org/docs/current/indexes.html) · [constraints](https://www.postgresql.org/docs/current/ddl-constraints.html) · [transactions](https://www.postgresql.org/docs/current/tutorial-transactions.html)
+- [Alembic](https://alembic.sqlalchemy.org/en/latest/tutorial.html) · [Prisma Migrate](https://www.prisma.io/docs/orm/prisma-migrate/getting-started)
 - [Next.js Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/route-handlers)
 - Playwright: [Docs](https://playwright.dev/docs/intro) · [Best practices](https://playwright.dev/docs/best-practices) · [Release notes](https://playwright.dev/docs/release-notes) · [v1.64.0 release](https://github.com/microsoft/playwright/releases/tag/v1.64.0) · [Docker image](https://playwright.dev/docs/docker)

@@ -47,27 +47,48 @@ Sample SQL reference: `snapshots/sample-seed.sql`.
 
 ## Modes (in-app)
 
-- **Topic-by-topic** — `/lab?mode=topics` — concepts with why, pitfalls, SQL↔ORM mapping, and official references.
-- **Execute-only** — `/lab?mode=execute` — progressive relationship tasks with a validation gate and teach-along highlights.
+- **Topic-by-topic** — `/lab?mode=topics`: concepts with why, pitfalls, SQL↔ORM mapping and official references. **Every lesson has a runnable exercise** (code or a graded quiz) checked by the same gate as tasks, with Show solution and Reset.
+- **Execute-only** — `/lab?mode=execute`: progressive relationship tasks (beginner → advanced) with a validation gate, Show solution and teach-along highlights.
+- **History** — every run (pass or fail, task or lesson) is recorded. **Replay this code** loads it back into its task or lesson.
 
 ## Tracks (pluggable, in-app only)
 
 Tracks live under `tracks/<id>/` (`manifest.json`, `lessons/`, `tasks/`). Index: `tracks/index.json`.
 
-1. `python-sqlalchemy` — SQLAlchemy 2 style (internal Python runner).
-2. `node-typescript` — Prisma model DSL → DDL (internal Node runner).
-3. `node-javascript` — same runner; JS + Zod at boundaries.
-4. `playwright-typescript` — Playwright Test **1.64.0** (pinned), manifest `kind: "playwright"`, internal `pw-runner` + `pw-app`. See below.
+1. `python-sqlalchemy` — SQLAlchemy 2 style (internal Python runner). 17 lessons, 12 tasks.
+2. `node-typescript` — Prisma schema → DDL following real Prisma mapping rules, plus a Zod lab (internal Node runner). 17 lessons, 12 tasks.
+3. `node-javascript` — same runner; JS + Zod at boundaries. 17 lessons, 12 tasks.
+4. `sql-postgres` — raw PostgreSQL DDL/DML, run as the restricted `hub_lab` role (internal Python runner). 17 lessons, 12 tasks.
+5. `playwright-typescript` — Playwright Test **1.64.0** (pinned), manifest `kind: "playwright"`, internal `pw-runner` + `pw-app`. See below.
 
 Adding a track = new folder + index entry — not a new Docker Compose file.
 
-## Task gate
+## Task gate (database tracks)
 
-1. Run learner code / schema.
-2. Introspect Postgres.
-3. Check requirements (extra columns **allowed**).
-4. On fail → clear errors that explain **why**, no success animation.
-5. On pass → teach-along diagram highlights (during + after).
+1. Clean slate: the exercise's tables are dropped, then your code / schema / SQL runs.
+2. Postgres is introspected (columns, types, keys, unique/indexes, CHECKs).
+3. Requirements are checked; extra columns are **allowed**. Then required rows, probes (trusted SQL in a rolled-back transaction), printed output, validator calls or Zod cases.
+4. On fail: each reason has a **rule id**, the table/column and a line number where one applies, and **why**. No success animation.
+5. On pass: teach-along diagram highlights.
+
+Python and Node use the same rule ids and messages; a shared fixture test enforces this.
+
+| Rule id | Meaning |
+|---|---|
+| `missing-table`, `missing-column` | required table / column not created |
+| `not-primary-key`, `missing-composite-key` | wrong or missing (composite) primary/unique key |
+| `wrong-type`, `must-be-nullable`, `must-be-not-null` | column type / NULL-ability |
+| `not-unique`, `must-not-be-unique`, `missing-index` | uniqueness (1:1 vs 1:N) and indexes |
+| `not-foreign-key`, `wrong-fk-target`, `wrong-on-delete` | foreign keys and referential actions |
+| `missing-data`, `too-much-data` | required rows not inserted / duplicates |
+| `probe-failed`, `constraint-not-enforced` | a behaviour check failed, e.g. a CHECK that lets bad data in |
+| `missing-output` | expected printed / selected output not produced |
+| `accepts-invalid`, `rejects-valid`, `missing-name` | validators (`@validates`, Zod) |
+| `missing-datasource`, `wrong-provider`, `hardcoded-url`, `wrong-env-var` | Prisma `datasource` block |
+| `unanswered`, `wrong-answer` | quizzes (graded server-side; answers never sent to the browser) |
+| `rejected`, `runtime-error` | code refused before running (forbidden import/statement) or crashed, with its line |
+
+Audit of every database track (gaps found, what was added and fixed): [docs/TRACK_AUDIT.md](./docs/TRACK_AUDIT.md).
 
 ## Playwright track (`playwright-typescript`)
 
@@ -128,8 +149,10 @@ cd pw-runner && npm ci && npx playwright install chromium && npm start   # runne
 ## Tests
 
 ```bash
-make test-python   # pytest — task checker, runner safety, tracks (incl. Playwright manifest)
-cd api-node && npm install && npm test
+make test-python   # pytest: gate parity, runners, SQL runner, and a walk of every DB reference/wrong/starter (needs Postgres)
+make test-node     # node:test: gate parity, Prisma translator, Zod lab, and the same walk for the Node tracks
+                   # run these two one after the other, not in parallel (they share the lab_* tables)
+make walk          # HTTP walk of all DB tracks against running APIs (add ARGS=--via-bff to go through the web proxy)
 cd web && npm install && npx tsc --noEmit
 make test-pw       # pw-runner gate/evaluate/runner/API tests + typecheck, pw-app tests
 make test-pw-e2e   # every Playwright task solution, wrong solution and lesson example in real Chromium
@@ -139,7 +162,7 @@ make test-pw-e2e   # every Playwright task solution, wrong solution and lesson e
 
 - **One Compose project** — postgres + internal runners (Python, Node, Playwright) + practice app + Next.js web
 - **One public URL** — http://localhost:3000 (`/api/*` BFF)
-- **In-app tracks** — Python / Node TS / Node JS / Playwright TS
+- **In-app tracks** — Python / Node TS / Node JS / raw SQL / Playwright TS
 - **Postgres 16** — demo seed + `run_history` / `learner_progress`
 - **Pedagogy** — why, pitfalls, references, teach-along, SQL↔ORM panels
 
@@ -147,6 +170,7 @@ make test-pw-e2e   # every Playwright task solution, wrong solution and lesson e
 
 - [CONCEPTS.md](./CONCEPTS.md) — relationships, ORM↔SQL, validation, runtimes, references
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — one platform, BFF, internal services
+- [docs/TRACK_AUDIT.md](./docs/TRACK_AUDIT.md) — database-track audit: gaps, fixes, limitations
 
 ## License
 

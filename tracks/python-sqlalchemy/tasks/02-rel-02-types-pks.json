@@ -8,8 +8,8 @@
     "Create lab_products with id PK, sku, price, in_stock"
   ],
   "hints": [
-    "Map bool \u2192 BOOLEAN, Decimal \u2192 NUMERIC.",
-    "Read gate errors as cause\u2192effect: each message names what Postgres still lacks."
+    "Map bool → BOOLEAN, Decimal → NUMERIC.",
+    "Read gate errors as cause→effect: each message names what Postgres still lacks."
   ],
   "sqlEquivalent": "CREATE TABLE lab_products (\n  id SERIAL PRIMARY KEY,\n  sku VARCHAR(64) UNIQUE NOT NULL,\n  price NUMERIC(10,2) NOT NULL,\n  in_stock BOOLEAN DEFAULT TRUE\n);",
   "requirements": {
@@ -19,16 +19,21 @@
         "columns": [
           {
             "name": "id",
-            "pk": true
+            "pk": true,
+            "type": "integer"
           },
           {
-            "name": "sku"
+            "name": "sku",
+            "type": "text",
+            "unique": true
           },
           {
-            "name": "price"
+            "name": "price",
+            "type": "numeric"
           },
           {
-            "name": "in_stock"
+            "name": "in_stock",
+            "type": "boolean"
           }
         ]
       }
@@ -43,7 +48,7 @@
   "highlightHint": [
     "lab_products"
   ],
-  "starterCode": "from sqlalchemy import String, Numeric, Boolean, Integer, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column\n\nclass Base(DeclarativeBase):\n    pass\n\n# TODO: lab_products \u2014 id, sku, price, in_stock\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+  "starterCode": "from sqlalchemy import String, Numeric, Boolean, Integer, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column\n\nclass Base(DeclarativeBase):\n    pass\n\n# TODO: lab_products — id, sku, price, in_stock\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
   "language": "python",
   "trackId": "python-sqlalchemy",
   "why": "Types and primary keys are the anchors every FK will reference. Get PKs wrong and later relationship tasks cannot attach constraints.",
@@ -58,17 +63,34 @@
   ],
   "references": [
     {
-      "title": "PostgreSQL \u2014 CREATE TABLE",
+      "title": "PostgreSQL — CREATE TABLE",
       "url": "https://www.postgresql.org/docs/current/sql-createtable.html"
     },
     {
-      "title": "SQLAlchemy \u2014 Mapped Column Declarative",
+      "title": "SQLAlchemy — Mapped Column Declarative",
       "url": "https://docs.sqlalchemy.org/en/20/orm/declarative_tables.html"
     },
     {
-      "title": "Prisma \u2014 Schema Reference",
+      "title": "Prisma — Schema Reference",
       "url": "https://www.prisma.io/docs/orm/reference/prisma-schema-reference"
     }
   ],
-  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres \u2014 only real tables/FKs count."
+  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres — only real tables/FKs count.",
+  "solution": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nfrom decimal import Decimal\n\n\nclass LabProduct(Base):\n    __tablename__ = \"lab_products\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    sku: Mapped[str] = mapped_column(String(40), unique=True)\n    price: Mapped[Decimal] = mapped_column(Numeric(10, 2))\n    in_stock: Mapped[bool] = mapped_column(Boolean, default=True)\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+  "wrongSolutions": [
+    {
+      "label": "price stored as text, in_stock as integer",
+      "expect": [
+        "wrong-type"
+      ],
+      "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabProduct(Base):\n    __tablename__ = \"lab_products\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    sku: Mapped[str] = mapped_column(String(40), unique=True)\n    price: Mapped[str] = mapped_column(String(20))\n    in_stock: Mapped[int] = mapped_column(Integer)\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+    },
+    {
+      "label": "sku is not unique",
+      "expect": [
+        "not-unique"
+      ],
+      "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nfrom decimal import Decimal\n\n\nclass LabProduct(Base):\n    __tablename__ = \"lab_products\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    sku: Mapped[str] = mapped_column(String(40))\n    price: Mapped[Decimal] = mapped_column(Numeric(10, 2))\n    in_stock: Mapped[bool] = mapped_column(Boolean, default=True)\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+    }
+  ]
 }

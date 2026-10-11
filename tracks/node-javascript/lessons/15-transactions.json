@@ -1,0 +1,131 @@
+{
+  "id": "15-transactions",
+  "order": 15,
+  "title": "Transactions (advanced)",
+  "summary": "All-or-nothing changes: commit, rollback and why two writes must share one transaction.",
+  "body": "All-or-nothing changes: commit, rollback and why two writes must share one transaction.\n\nWhy it matters: A transfer is two writes. If only one lands, money is created or destroyed. A transaction makes the pair atomic: both commit, or a failure rolls both back.\n\nSQL ↔ ORM: SQLAlchemy Session.begin() context. Prisma $transaction([...]) or $transaction(async (tx) => …). SQL BEGIN … COMMIT (the lab wraps your script for you).",
+  "why": "A transfer is two writes. If only one lands, money is created or destroyed. A transaction makes the pair atomic: both commit, or a failure rolls both back.",
+  "objectives": [
+    "Group related writes in one transaction.",
+    "Understand rollback on error.",
+    "Python: `with Session(engine) as s, s.begin():` — Prisma: `$transaction` — SQL: BEGIN/COMMIT."
+  ],
+  "pitfalls": [
+    "Two separate sessions/calls for one logical change.",
+    "Forgetting to commit.",
+    "Using the global client inside a Prisma interactive transaction."
+  ],
+  "mappingNotes": "SQLAlchemy Session.begin() context. Prisma $transaction([...]) or $transaction(async (tx) => …). SQL BEGIN … COMMIT (the lab wraps your script for you).",
+  "teachAlong": [
+    "Cause: All-or-nothing changes: commit, rollback and why two writes must share one transaction.",
+    "Effect: run the exercise and read the gate's rule ids.",
+    "Replay any run from History."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL — Transactions",
+      "url": "https://www.postgresql.org/docs/current/tutorial-transactions.html"
+    },
+    {
+      "title": "SQLAlchemy — Transactions and Connection Management",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/session_transaction.html"
+    },
+    {
+      "title": "Prisma — Transactions",
+      "url": "https://www.prisma.io/docs/orm/prisma-client/queries/transactions"
+    }
+  ],
+  "level": "advanced",
+  "example": {
+    "language": "prisma",
+    "code": "await prisma.$transaction([debit, credit])",
+    "sql": "BEGIN;\nUPDATE accounts SET balance = balance - 30 WHERE owner = 'alice';\nUPDATE accounts SET balance = balance + 30 WHERE owner = 'bob';\nCOMMIT;"
+  },
+  "exercise": {
+    "kind": "quiz",
+    "runnable": true,
+    "prompt": "Answer every question — each wrong option explains why it is wrong.",
+    "questions": [
+      {
+        "id": "q1",
+        "prompt": "You move money between two accounts with Prisma. Which call keeps both updates atomic?",
+        "options": [
+          {
+            "id": "a",
+            "text": "Two awaited prisma.account.update() calls in a row",
+            "why": "Each call is its own transaction — if the second fails, the first is already committed."
+          },
+          {
+            "id": "b",
+            "text": "prisma.$transaction([debit, credit]) or an interactive prisma.$transaction(async (tx) => …)",
+            "correct": true
+          },
+          {
+            "id": "c",
+            "text": "Promise.all([debit, credit])",
+            "why": "Promise.all only runs them concurrently; they are still separate transactions."
+          }
+        ]
+      },
+      {
+        "id": "q2",
+        "prompt": "Inside prisma.$transaction(async (tx) => …) the credit throws. What happens to the debit?",
+        "options": [
+          {
+            "id": "a",
+            "text": "It is rolled back together with everything else in the callback",
+            "correct": true
+          },
+          {
+            "id": "b",
+            "text": "It stays committed",
+            "why": "The interactive transaction only commits when the callback resolves; a throw rolls it all back."
+          },
+          {
+            "id": "c",
+            "text": "Prisma retries the credit automatically",
+            "why": "Prisma does not retry; you decide (e.g. on serialization failures)."
+          }
+        ]
+      },
+      {
+        "id": "q3",
+        "prompt": "Inside an interactive transaction you call prisma.user.update (not tx.user.update). Why is that a bug?",
+        "options": [
+          {
+            "id": "a",
+            "text": "It runs on a different connection, outside the transaction",
+            "correct": true
+          },
+          {
+            "id": "b",
+            "text": "It is fine — Prisma detects the surrounding transaction",
+            "why": "Only the `tx` client is bound to the transaction; the global client is not."
+          },
+          {
+            "id": "c",
+            "text": "It throws a TypeScript error",
+            "why": "It compiles fine — which is exactly why this bug is easy to ship."
+          }
+        ]
+      }
+    ],
+    "solution": "{\"answers\": {\"q1\": \"b\", \"q2\": \"a\", \"q3\": \"a\"}}",
+    "wrongSolutions": [
+      {
+        "label": "first option everywhere",
+        "expect": [
+          "wrong-answer"
+        ],
+        "code": "{\"answers\": {\"q1\": \"a\", \"q2\": \"a\", \"q3\": \"a\"}}"
+      },
+      {
+        "label": "nothing answered",
+        "expect": [
+          "unanswered"
+        ],
+        "code": "{\"answers\": {}}"
+      }
+    ]
+  }
+}

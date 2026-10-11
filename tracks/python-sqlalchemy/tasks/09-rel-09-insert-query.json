@@ -3,14 +3,14 @@
   "order": 9,
   "title": "Insert + query across relationships",
   "summary": "Create lab_teams / lab_players with FK relationship.",
-  "description": "Create lab_teams / lab_players with FK relationship.\n\nWhy: Inserts must respect FKs; queries must JOIN/include to reassemble the graph \u2014 schema alone is not enough for production thinking.",
+  "description": "Create lab_teams / lab_players with FK relationship.\n\nWhy: Inserts must respect FKs; queries must JOIN/include to reassemble the graph — schema alone is not enough for production thinking.",
   "objectives": [
     "lab_teams (id PK, name)",
     "lab_players (id PK, name, team_id FK)"
   ],
   "hints": [
     "JOIN queries prove the relationship.",
-    "Read gate errors as cause\u2192effect: each message names what Postgres still lacks."
+    "Read gate errors as cause→effect: each message names what Postgres still lacks."
   ],
   "sqlEquivalent": "CREATE TABLE lab_teams (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_players (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL,\n  team_id INTEGER NOT NULL REFERENCES lab_teams(id)\n);",
   "requirements": {
@@ -42,9 +42,22 @@
             "fk": {
               "table": "lab_teams",
               "column": "id"
-            }
+            },
+            "nullable": false
           }
         ]
+      }
+    ],
+    "data": [
+      {
+        "sql": "SELECT count(*) FROM lab_teams",
+        "min": 2,
+        "message": "Insert at least two teams (and commit the session)."
+      },
+      {
+        "sql": "SELECT count(*) FROM lab_players p JOIN lab_teams t ON t.id = p.team_id",
+        "min": 3,
+        "message": "Insert at least three players that belong to a team — the JOIN must return them."
       }
     ]
   },
@@ -64,7 +77,7 @@
   "starterCode": "from sqlalchemy import String, Integer, ForeignKey, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column\n\nclass Base(DeclarativeBase):\n    pass\n\n# TODO: lab_teams + lab_players\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
   "language": "python",
   "trackId": "python-sqlalchemy",
-  "why": "Inserts must respect FKs; queries must JOIN/include to reassemble the graph \u2014 schema alone is not enough for production thinking.",
+  "why": "Inserts must respect FKs; queries must JOIN/include to reassemble the graph — schema alone is not enough for production thinking.",
   "pitfalls": [
     "Inserting child before parent.",
     "Forgetting to expose the FK column the JOIN needs."
@@ -75,7 +88,7 @@
   ],
   "references": [
     {
-      "title": "PostgreSQL \u2014 Joins",
+      "title": "PostgreSQL — Joins",
       "url": "https://www.postgresql.org/docs/current/tutorial-join.html"
     },
     {
@@ -83,9 +96,26 @@
       "url": "https://www.prisma.io/docs/orm/prisma-client"
     },
     {
-      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
       "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
     }
   ],
-  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres \u2014 only real tables/FKs count."
+  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres — only real tables/FKs count.",
+  "solution": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nfrom sqlalchemy import select\nfrom sqlalchemy.orm import Session\n\n\nclass LabTeam(Base):\n    __tablename__ = \"lab_teams\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    players: Mapped[list[\"LabPlayer\"]] = relationship(back_populates=\"team\")\n\n\nclass LabPlayer(Base):\n    __tablename__ = \"lab_players\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    team_id: Mapped[int] = mapped_column(ForeignKey(\"lab_teams.id\"))\n    team: Mapped[\"LabTeam\"] = relationship(back_populates=\"players\")\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n\nwith Session(engine) as session:\n    reds = LabTeam(name=\"Reds\", players=[LabPlayer(name=\"Ana\"), LabPlayer(name=\"Ben\")])\n    blues = LabTeam(name=\"Blues\", players=[LabPlayer(name=\"Chen\")])\n    session.add_all([reds, blues])\n    session.commit()\n\n    rows = session.execute(\n        select(LabPlayer.name, LabTeam.name).join(LabPlayer.team).order_by(LabPlayer.name)\n    ).all()\n    print(rows)\n",
+  "wrongSolutions": [
+    {
+      "label": "creates the tables but never inserts rows",
+      "expect": [
+        "missing-data"
+      ],
+      "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabTeam(Base):\n    __tablename__ = \"lab_teams\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n\n\nclass LabPlayer(Base):\n    __tablename__ = \"lab_players\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    team_id: Mapped[int] = mapped_column(ForeignKey(\"lab_teams.id\"))\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+    },
+    {
+      "label": "adds rows but forgets to commit",
+      "expect": [
+        "missing-data"
+      ],
+      "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nfrom sqlalchemy.orm import Session\n\n\nclass LabTeam(Base):\n    __tablename__ = \"lab_teams\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    players: Mapped[list[\"LabPlayer\"]] = relationship()\n\n\nclass LabPlayer(Base):\n    __tablename__ = \"lab_players\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    name: Mapped[str] = mapped_column(String(120))\n    team_id: Mapped[int] = mapped_column(ForeignKey(\"lab_teams.id\"))\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n\nwith Session(engine) as session:\n    session.add(LabTeam(name=\"Reds\", players=[LabPlayer(name=\"Ana\"), LabPlayer(name=\"Ben\")]))\n    session.flush()\n"
+    }
+  ]
 }

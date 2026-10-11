@@ -1,0 +1,101 @@
+{
+  "id": "04-foreign-keys",
+  "order": 4,
+  "title": "Foreign keys",
+  "summary": "An FK column stores the parent PK — the physical basis of relationships.",
+  "example": {
+    "language": "sql",
+    "code": "author_id INTEGER NOT NULL REFERENCES lab_authors(id)",
+    "sql": "author_id INTEGER NOT NULL REFERENCES lab_authors(id)"
+  },
+  "exercise": {
+    "kind": "code",
+    "runnable": true,
+    "language": "sql",
+    "prompt": "Create lab_l04_publishers and lab_l04_magazines with publisher_id INTEGER NOT NULL REFERENCES lab_l04_publishers(id).",
+    "hint": "REFERENCES parent(id) creates the FK constraint.",
+    "starterCode": "CREATE TABLE lab_l04_publishers (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL\n);\n\n-- TODO: lab_l04_magazines\n",
+    "solution": "CREATE TABLE lab_l04_publishers (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL\n);\n\nCREATE TABLE lab_l04_magazines (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  publisher_id INTEGER NOT NULL REFERENCES lab_l04_publishers(id)\n);\n",
+    "wrongSolutions": [
+      {
+        "label": "no REFERENCES",
+        "expect": [
+          "not-foreign-key"
+        ],
+        "code": "CREATE TABLE lab_l04_publishers (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_l04_magazines (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  publisher_id INTEGER NOT NULL\n);\n"
+      },
+      {
+        "label": "child created before the parent",
+        "expect": [
+          "runtime-error"
+        ],
+        "code": "CREATE TABLE lab_l04_magazines (\n  id SERIAL PRIMARY KEY,\n  publisher_id INTEGER NOT NULL REFERENCES lab_l04_publishers(id)\n);\nCREATE TABLE lab_l04_publishers (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l04_publishers",
+          "columns": [
+            {
+              "name": "id",
+              "pk": true
+            }
+          ]
+        },
+        {
+          "name": "lab_l04_magazines",
+          "columns": [
+            {
+              "name": "publisher_id",
+              "nullable": false,
+              "fk": {
+                "table": "lab_l04_publishers",
+                "column": "id"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l04_publishers",
+        "lab_l04_magazines"
+      ],
+      "highlightRels": []
+    }
+  },
+  "body": "An FK column stores the parent PK — the physical basis of relationships.\n\nWhy it matters: Diagram lines and ORM relationship() / @relation are sugar over foreign keys. If the FK column (and constraint) is missing, joins and cascades have nothing to enforce.\n\nSQL ↔ ORM: SQLAlchemy ForeignKey('lab_authors.id') ↔ Prisma fields/references ↔ SQL REFERENCES lab_authors(id).",
+  "why": "Diagram lines and ORM relationship() / @relation are sugar over foreign keys. If the FK column (and constraint) is missing, joins and cascades have nothing to enforce.",
+  "objectives": [
+    "Place the FK on the correct side (usually the 'many' / child).",
+    "Reference parent_table(parent_pk).",
+    "Read FK errors as 'relationship not yet real in the database'."
+  ],
+  "pitfalls": [
+    "Putting the FK on the parent for 1:N (backwards).",
+    "ORM relationship without an actual FK column — looks fine in code, fails the gate."
+  ],
+  "mappingNotes": "SQLAlchemy ForeignKey('lab_authors.id') ↔ Prisma fields/references ↔ SQL REFERENCES lab_authors(id).",
+  "teachAlong": [
+    "Cause: child row must belong to a parent.",
+    "Effect: child gets parent_id + FK constraint.",
+    "Diagram: arrow from child column to parent PK."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL — Foreign Keys",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
+    },
+    {
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
+      "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
+    },
+    {
+      "title": "Prisma — Relations",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
+    }
+  ],
+  "level": "beginner"
+}

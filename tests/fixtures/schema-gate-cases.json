@@ -1,0 +1,1624 @@
+{
+  "description": "Shared schema-gate cases: api-python/tests/test_gate_parity.py and api-node/tests/gateParity.test.ts must both produce exactly expectRules.",
+  "cases": [
+    {
+      "name": "all good, extras allowed",
+      "schema": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              },
+              {
+                "name": "p_id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": true,
+                "references": {
+                  "table": "lab_p",
+                  "column": "id"
+                }
+              },
+              {
+                "name": "extra",
+                "type": "text",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          }
+        ],
+        "relationships": [
+          {
+            "fromTable": "lab_c",
+            "fromColumn": "p_id",
+            "toTable": "lab_p",
+            "toColumn": "id",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION"
+          }
+        ]
+      },
+      "requirements": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "pk": true
+              }
+            ]
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "p_id",
+                "fk": {
+                  "table": "lab_p",
+                  "column": "id"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "expectRules": []
+    },
+    {
+      "name": "missing table",
+      "schema": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          }
+        ],
+        "relationships": []
+      },
+      "requirements": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "pk": true
+              }
+            ]
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "p_id",
+                "fk": {
+                  "table": "lab_p",
+                  "column": "id"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "expectRules": [
+        "missing-table"
+      ]
+    },
+    {
+      "name": "missing column",
+      "schema": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              },
+              {
+                "name": "other",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          }
+        ],
+        "relationships": []
+      },
+      "requirements": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "pk": true
+              }
+            ]
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "p_id",
+                "fk": {
+                  "table": "lab_p",
+                  "column": "id"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "expectRules": [
+        "missing-column"
+      ]
+    },
+    {
+      "name": "not a primary key",
+      "schema": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [],
+            "uniqueConstraints": [],
+            "indexes": []
+          }
+        ],
+        "relationships": []
+      },
+      "requirements": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "pk": true
+              }
+            ]
+          }
+        ]
+      },
+      "expectRules": [
+        "not-primary-key"
+      ]
+    },
+    {
+      "name": "plain integer, no FK",
+      "schema": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              },
+              {
+                "name": "p_id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          }
+        ],
+        "relationships": []
+      },
+      "requirements": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "pk": true
+              }
+            ]
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "p_id",
+                "fk": {
+                  "table": "lab_p",
+                  "column": "id"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "expectRules": [
+        "not-foreign-key"
+      ]
+    },
+    {
+      "name": "FK to the wrong table",
+      "schema": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              },
+              {
+                "name": "p_id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": true,
+                "references": {
+                  "table": "lab_x",
+                  "column": "id"
+                }
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          }
+        ],
+        "relationships": []
+      },
+      "requirements": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "pk": true
+              }
+            ]
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "p_id",
+                "fk": {
+                  "table": "lab_p",
+                  "column": "id"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "expectRules": [
+        "wrong-fk-target"
+      ]
+    },
+    {
+      "name": "wrong ON DELETE",
+      "schema": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              },
+              {
+                "name": "p_id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": true,
+                "references": {
+                  "table": "lab_p",
+                  "column": "id"
+                }
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          }
+        ],
+        "relationships": [
+          {
+            "fromTable": "lab_c",
+            "fromColumn": "p_id",
+            "toTable": "lab_p",
+            "toColumn": "id",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION"
+          }
+        ]
+      },
+      "requirements": {
+        "tables": [
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "p_id",
+                "fk": {
+                  "table": "lab_p",
+                  "column": "id",
+                  "onDelete": "CASCADE"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "expectRules": [
+        "wrong-on-delete"
+      ]
+    },
+    {
+      "name": "missing ON DELETE",
+      "schema": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              },
+              {
+                "name": "p_id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": true,
+                "references": {
+                  "table": "lab_p",
+                  "column": "id"
+                }
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          }
+        ],
+        "relationships": [
+          {
+            "fromTable": "lab_c",
+            "fromColumn": "p_id",
+            "toTable": "lab_p",
+            "toColumn": "id",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION"
+          }
+        ]
+      },
+      "requirements": {
+        "tables": [
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "p_id",
+                "fk": {
+                  "table": "lab_p",
+                  "column": "id",
+                  "onDelete": "CASCADE"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "expectRules": [
+        "wrong-on-delete"
+      ]
+    },
+    {
+      "name": "type family mismatch (float vs numeric)",
+      "schema": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": false,
+                "isForeignKey": false
+              },
+              {
+                "name": "price",
+                "type": "double precision",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          }
+        ],
+        "relationships": []
+      },
+      "requirements": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "price",
+                "type": "numeric"
+              }
+            ]
+          }
+        ]
+      },
+      "expectRules": [
+        "wrong-type"
+      ]
+    },
+    {
+      "name": "varchar counts as text",
+      "schema": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": false,
+                "isForeignKey": false
+              },
+              {
+                "name": "sku",
+                "type": "character varying",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          }
+        ],
+        "relationships": []
+      },
+      "requirements": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "sku",
+                "type": "text"
+              }
+            ]
+          }
+        ]
+      },
+      "expectRules": []
+    },
+    {
+      "name": "must be nullable",
+      "schema": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              },
+              {
+                "name": "p_id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": true,
+                "references": {
+                  "table": "lab_p",
+                  "column": "id"
+                }
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          }
+        ],
+        "relationships": [
+          {
+            "fromTable": "lab_c",
+            "fromColumn": "p_id",
+            "toTable": "lab_p",
+            "toColumn": "id",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION"
+          }
+        ]
+      },
+      "requirements": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "pk": true
+              }
+            ]
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "p_id",
+                "fk": {
+                  "table": "lab_p",
+                  "column": "id"
+                },
+                "nullable": true
+              }
+            ]
+          }
+        ]
+      },
+      "expectRules": [
+        "must-be-nullable"
+      ]
+    },
+    {
+      "name": "must be NOT NULL",
+      "schema": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              },
+              {
+                "name": "p_id",
+                "type": "integer",
+                "nullable": true,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": true,
+                "references": {
+                  "table": "lab_p",
+                  "column": "id"
+                }
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          }
+        ],
+        "relationships": [
+          {
+            "fromTable": "lab_c",
+            "fromColumn": "p_id",
+            "toTable": "lab_p",
+            "toColumn": "id",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION"
+          }
+        ]
+      },
+      "requirements": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "pk": true
+              }
+            ]
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "p_id",
+                "fk": {
+                  "table": "lab_p",
+                  "column": "id"
+                },
+                "nullable": false
+              }
+            ]
+          }
+        ]
+      },
+      "expectRules": [
+        "must-be-not-null"
+      ]
+    },
+    {
+      "name": "1:1 needs unique",
+      "schema": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              },
+              {
+                "name": "p_id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": true,
+                "references": {
+                  "table": "lab_p",
+                  "column": "id"
+                }
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          }
+        ],
+        "relationships": [
+          {
+            "fromTable": "lab_c",
+            "fromColumn": "p_id",
+            "toTable": "lab_p",
+            "toColumn": "id",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION"
+          }
+        ]
+      },
+      "requirements": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "pk": true
+              }
+            ]
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "p_id",
+                "fk": {
+                  "table": "lab_p",
+                  "column": "id"
+                },
+                "unique": true
+              }
+            ]
+          }
+        ]
+      },
+      "expectRules": [
+        "not-unique"
+      ]
+    },
+    {
+      "name": "1:N must not be unique",
+      "schema": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              },
+              {
+                "name": "p_id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": true,
+                "isForeignKey": true,
+                "references": {
+                  "table": "lab_p",
+                  "column": "id"
+                }
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [
+              [
+                "p_id"
+              ]
+            ],
+            "indexes": []
+          }
+        ],
+        "relationships": [
+          {
+            "fromTable": "lab_c",
+            "fromColumn": "p_id",
+            "toTable": "lab_p",
+            "toColumn": "id",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION"
+          }
+        ]
+      },
+      "requirements": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "pk": true
+              }
+            ]
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "p_id",
+                "fk": {
+                  "table": "lab_p",
+                  "column": "id"
+                },
+                "unique": false
+              }
+            ]
+          }
+        ]
+      },
+      "expectRules": [
+        "must-not-be-unique"
+      ]
+    },
+    {
+      "name": "composite key present (PK)",
+      "schema": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "p_id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": false,
+                "isForeignKey": true,
+                "references": {
+                  "table": "lab_p",
+                  "column": "id"
+                }
+              },
+              {
+                "name": "q_id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": false,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "p_id",
+              "q_id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          }
+        ],
+        "relationships": [
+          {
+            "fromTable": "lab_c",
+            "fromColumn": "p_id",
+            "toTable": "lab_p",
+            "toColumn": "id",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION"
+          }
+        ]
+      },
+      "requirements": {
+        "tables": [
+          {
+            "name": "lab_c",
+            "columns": [],
+            "uniqueTogether": [
+              [
+                "q_id",
+                "p_id"
+              ]
+            ]
+          }
+        ]
+      },
+      "expectRules": []
+    },
+    {
+      "name": "composite key present (UNIQUE)",
+      "schema": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              },
+              {
+                "name": "p_id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": true,
+                "references": {
+                  "table": "lab_p",
+                  "column": "id"
+                }
+              },
+              {
+                "name": "q_id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [
+              [
+                "p_id",
+                "q_id"
+              ]
+            ],
+            "indexes": []
+          }
+        ],
+        "relationships": [
+          {
+            "fromTable": "lab_c",
+            "fromColumn": "p_id",
+            "toTable": "lab_p",
+            "toColumn": "id",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION"
+          }
+        ]
+      },
+      "requirements": {
+        "tables": [
+          {
+            "name": "lab_c",
+            "columns": [],
+            "uniqueTogether": [
+              [
+                "p_id",
+                "q_id"
+              ]
+            ]
+          }
+        ]
+      },
+      "expectRules": []
+    },
+    {
+      "name": "composite key missing",
+      "schema": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              },
+              {
+                "name": "p_id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": true,
+                "references": {
+                  "table": "lab_p",
+                  "column": "id"
+                }
+              },
+              {
+                "name": "q_id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          }
+        ],
+        "relationships": [
+          {
+            "fromTable": "lab_c",
+            "fromColumn": "p_id",
+            "toTable": "lab_p",
+            "toColumn": "id",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION"
+          }
+        ]
+      },
+      "requirements": {
+        "tables": [
+          {
+            "name": "lab_c",
+            "columns": [],
+            "uniqueTogether": [
+              [
+                "p_id",
+                "q_id"
+              ]
+            ]
+          }
+        ]
+      },
+      "expectRules": [
+        "missing-composite-key"
+      ]
+    },
+    {
+      "name": "index present as leading column",
+      "schema": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              },
+              {
+                "name": "p_id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": true,
+                "references": {
+                  "table": "lab_p",
+                  "column": "id"
+                }
+              },
+              {
+                "name": "q_id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": [
+              [
+                "p_id",
+                "q_id"
+              ]
+            ]
+          }
+        ],
+        "relationships": [
+          {
+            "fromTable": "lab_c",
+            "fromColumn": "p_id",
+            "toTable": "lab_p",
+            "toColumn": "id",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION"
+          }
+        ]
+      },
+      "requirements": {
+        "tables": [
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "p_id",
+                "indexed": true
+              }
+            ]
+          }
+        ]
+      },
+      "expectRules": []
+    },
+    {
+      "name": "index missing (only as second column)",
+      "schema": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              },
+              {
+                "name": "p_id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": true,
+                "references": {
+                  "table": "lab_p",
+                  "column": "id"
+                }
+              },
+              {
+                "name": "q_id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": [
+              [
+                "q_id",
+                "p_id"
+              ]
+            ]
+          }
+        ],
+        "relationships": [
+          {
+            "fromTable": "lab_c",
+            "fromColumn": "p_id",
+            "toTable": "lab_p",
+            "toColumn": "id",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION"
+          }
+        ]
+      },
+      "requirements": {
+        "tables": [
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "p_id",
+                "indexed": true
+              }
+            ]
+          }
+        ]
+      },
+      "expectRules": [
+        "missing-index"
+      ]
+    },
+    {
+      "name": "several failures at once",
+      "schema": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "id",
+                "type": "integer",
+                "nullable": false,
+                "isPrimaryKey": true,
+                "isUnique": true,
+                "isForeignKey": false
+              },
+              {
+                "name": "p_id",
+                "type": "integer",
+                "nullable": true,
+                "isPrimaryKey": false,
+                "isUnique": false,
+                "isForeignKey": false
+              }
+            ],
+            "primaryKey": [
+              "id"
+            ],
+            "uniqueConstraints": [],
+            "indexes": []
+          }
+        ],
+        "relationships": []
+      },
+      "requirements": {
+        "tables": [
+          {
+            "name": "lab_p",
+            "columns": [
+              {
+                "name": "id",
+                "pk": true
+              }
+            ]
+          },
+          {
+            "name": "lab_c",
+            "columns": [
+              {
+                "name": "p_id",
+                "fk": {
+                  "table": "lab_p",
+                  "column": "id"
+                },
+                "nullable": false,
+                "unique": true
+              }
+            ]
+          }
+        ]
+      },
+      "expectRules": [
+        "must-be-not-null",
+        "not-unique",
+        "not-foreign-key"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,145 @@
+{
+  "id": "rel-12-constraints-indexes",
+  "order": 12,
+  "title": "Constraints & indexes",
+  "summary": "Inventory per store: one row per (store, sku), never negative, fast lookups by store.",
+  "description": "Inventory per store: one row per (store, sku), never negative, fast lookups by store.\n\nWhy: Business rules that every writer must respect belong in the database, not only in app code: a composite UNIQUE prevents duplicate stock rows, a CHECK stops negative quantities, and the composite UNIQUE's index (store_id first) also serves 'all items in a store' queries.",
+  "objectives": [
+    "lab_stores, lab_inventory (store_id FK, sku, quantity)",
+    "UNIQUE (store_id, sku) — sku alone is NOT unique",
+    "store_id indexed (leading column of an index)",
+    "CHECK quantity >= 0 (Python/SQL; Prisma has no CHECK — see the lesson)"
+  ],
+  "hints": [
+    "A composite UNIQUE (store_id, sku) creates an index whose first column is store_id.",
+    "The gate tries real INSERTs (rolled back) to prove the rules are enforced."
+  ],
+  "sqlEquivalent": "CREATE TABLE lab_stores (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL);\nCREATE TABLE lab_inventory (\n  id       SERIAL PRIMARY KEY,\n  store_id INTEGER NOT NULL REFERENCES lab_stores(id),\n  sku      VARCHAR(32) NOT NULL,\n  quantity INTEGER NOT NULL CHECK (quantity >= 0),\n  UNIQUE (store_id, sku)\n);\n",
+  "requirements": {
+    "tables": [
+      {
+        "name": "lab_stores",
+        "columns": [
+          {
+            "name": "id",
+            "pk": true
+          }
+        ]
+      },
+      {
+        "name": "lab_inventory",
+        "columns": [
+          {
+            "name": "store_id",
+            "nullable": false,
+            "indexed": true,
+            "fk": {
+              "table": "lab_stores",
+              "column": "id"
+            }
+          },
+          {
+            "name": "sku",
+            "type": "text",
+            "nullable": false,
+            "unique": false
+          },
+          {
+            "name": "quantity",
+            "type": "integer",
+            "nullable": false
+          }
+        ],
+        "uniqueTogether": [
+          [
+            "store_id",
+            "sku"
+          ]
+        ]
+      }
+    ],
+    "probes": [
+      {
+        "sql": [
+          "INSERT INTO lab_stores (id, name) VALUES (1, 'North'), (2, 'South')",
+          "INSERT INTO lab_inventory (store_id, sku, quantity) VALUES (1, 'A-1', 5), (2, 'A-1', 0)"
+        ],
+        "message": "The same SKU in two stores (and a quantity of 0) must be accepted."
+      },
+      {
+        "sql": [
+          "INSERT INTO lab_stores (id, name) VALUES (1, 'North')",
+          "INSERT INTO lab_inventory (store_id, sku, quantity) VALUES (1, 'A-1', 5), (1, 'A-1', 3)"
+        ],
+        "expect": "error",
+        "message": "The same SKU twice in one store must be rejected."
+      }
+    ]
+  },
+  "animation": {
+    "highlightTables": [
+      "lab_stores",
+      "lab_inventory"
+    ],
+    "highlightRels": [
+      "lab_inventory.store_id"
+    ]
+  },
+  "highlightHint": [
+    "lab_stores",
+    "lab_inventory"
+  ],
+  "starterCode": "model LabStore {\n  id        Int            @id @default(autoincrement())\n  name      String\n  inventory LabInventory[]\n  @@map(\"lab_stores\")\n}\n\nmodel LabInventory {\n  id       Int      @id @default(autoincrement())\n  storeId  Int      @map(\"store_id\")\n  sku      String   @db.VarChar(32)\n  quantity Int\n  store    LabStore @relation(fields: [storeId], references: [id])\n  // TODO: one row per (store, sku)\n  @@map(\"lab_inventory\")\n}\n",
+  "language": "prisma",
+  "trackId": "node-typescript",
+  "why": "Business rules that every writer must respect belong in the database, not only in app code: a composite UNIQUE prevents duplicate stock rows, a CHECK stops negative quantities, and the composite UNIQUE's index (store_id first) also serves 'all items in a store' queries.",
+  "pitfalls": [
+    "UNIQUE on sku alone — the same SKU can no longer exist in two stores.",
+    "Validating quantity only in app code — other writers bypass it."
+  ],
+  "teachAlong": [
+    "Cause: rules must hold for every writer.",
+    "Effect: constraints + an index in Postgres.",
+    "The gate inserts good and bad rows to prove it."
+  ],
+  "references": [
+    {
+      "title": "PostgreSQL — Constraints (CHECK, UNIQUE)",
+      "url": "https://www.postgresql.org/docs/current/ddl-constraints.html"
+    },
+    {
+      "title": "PostgreSQL — Multicolumn Indexes",
+      "url": "https://www.postgresql.org/docs/current/indexes-multicolumn.html"
+    },
+    {
+      "title": "SQLAlchemy — Constraints and Indexes",
+      "url": "https://docs.sqlalchemy.org/en/20/core/constraints.html"
+    },
+    {
+      "title": "Prisma — Indexes and @@unique",
+      "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/indexes"
+    }
+  ],
+  "mappingNotes": "Compare your code with the Equivalent SQL panel. The gate introspects Postgres and runs rolled-back probe INSERTs.",
+  "level": "advanced",
+  "solution": "model LabStore {\n  id        Int            @id @default(autoincrement())\n  name      String\n  inventory LabInventory[]\n  @@map(\"lab_stores\")\n}\n\nmodel LabInventory {\n  id       Int      @id @default(autoincrement())\n  storeId  Int      @map(\"store_id\")\n  sku      String   @db.VarChar(32)\n  quantity Int\n  store    LabStore @relation(fields: [storeId], references: [id])\n  @@unique([storeId, sku])\n  @@map(\"lab_inventory\")\n}\n",
+  "wrongSolutions": [
+    {
+      "label": "@@unique([sku, storeId]) — store_id is not the leading index column",
+      "expect": [
+        "missing-index"
+      ],
+      "code": "model LabStore {\n  id        Int            @id @default(autoincrement())\n  name      String\n  inventory LabInventory[]\n  @@map(\"lab_stores\")\n}\n\nmodel LabInventory {\n  id       Int      @id @default(autoincrement())\n  storeId  Int      @map(\"store_id\")\n  sku      String   @db.VarChar(32)\n  quantity Int\n  store    LabStore @relation(fields: [storeId], references: [id])\n  @@unique([sku, storeId])\n  @@map(\"lab_inventory\")\n}\n"
+    },
+    {
+      "label": "no uniqueness",
+      "expect": [
+        "missing-composite-key",
+        "constraint-not-enforced",
+        "missing-index"
+      ],
+      "code": "model LabStore {\n  id        Int            @id @default(autoincrement())\n  name      String\n  inventory LabInventory[]\n  @@map(\"lab_stores\")\n}\n\nmodel LabInventory {\n  id       Int      @id @default(autoincrement())\n  storeId  Int      @map(\"store_id\")\n  sku      String   @db.VarChar(32)\n  quantity Int\n  store    LabStore @relation(fields: [storeId], references: [id])\n  @@map(\"lab_inventory\")\n}\n"
+    }
+  ],
+  "starterCodePrisma": "model LabStore {\n  id        Int            @id @default(autoincrement())\n  name      String\n  inventory LabInventory[]\n  @@map(\"lab_stores\")\n}\n\nmodel LabInventory {\n  id       Int      @id @default(autoincrement())\n  storeId  Int      @map(\"store_id\")\n  sku      String   @db.VarChar(32)\n  quantity Int\n  store    LabStore @relation(fields: [storeId], references: [id])\n  // TODO: one row per (store, sku)\n  @@map(\"lab_inventory\")\n}\n"
+}

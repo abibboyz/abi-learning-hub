@@ -9,10 +9,61 @@
     "sql": "CREATE TABLE lab_authors (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(120) NOT NULL\n);"
   },
   "exercise": {
-    "prompt": "Declare a lab_ table with at least id + one typed column.",
-    "hint": "Match the physical table name the task gate expects."
+    "kind": "code",
+    "runnable": true,
+    "language": "prisma",
+    "prompt": "Model LabL02Author → lab_l02_authors: Int id (autoincrement PK), required name (VarChar 120), optional bio.",
+    "hint": "A `?` after the type makes the column nullable.",
+    "starterCode": "model LabL02Author {\n  id Int @id @default(autoincrement())\n  // TODO: name, bio\n  @@map(\"lab_l02_authors\")\n}\n",
+    "solution": "model LabL02Author {\n  id   Int     @id @default(autoincrement())\n  name String  @db.VarChar(120)\n  bio  String?\n  @@map(\"lab_l02_authors\")\n}\n",
+    "wrongSolutions": [
+      {
+        "label": "name optional",
+        "expect": [
+          "must-be-not-null"
+        ],
+        "code": "model LabL02Author {\n  id   Int     @id @default(autoincrement())\n  name String? @db.VarChar(120)\n  bio  String?\n  @@map(\"lab_l02_authors\")\n}\n"
+      },
+      {
+        "label": "bio required",
+        "expect": [
+          "must-be-nullable"
+        ],
+        "code": "model LabL02Author {\n  id   Int    @id @default(autoincrement())\n  name String @db.VarChar(120)\n  bio  String\n  @@map(\"lab_l02_authors\")\n}\n"
+      }
+    ],
+    "requirements": {
+      "tables": [
+        {
+          "name": "lab_l02_authors",
+          "columns": [
+            {
+              "name": "id",
+              "pk": true,
+              "type": "integer"
+            },
+            {
+              "name": "name",
+              "type": "text",
+              "nullable": false
+            },
+            {
+              "name": "bio",
+              "type": "text",
+              "nullable": true
+            }
+          ]
+        }
+      ]
+    },
+    "animation": {
+      "highlightTables": [
+        "lab_l02_authors"
+      ],
+      "highlightRels": []
+    }
   },
-  "body": "Tables are named row collections; columns carry typed attributes.\n\nWhy it matters: Relationships only make sense once tables and columns exist. Choosing VARCHAR vs TEXT, INTEGER vs UUID, and NOT NULL vs nullable shapes every FK and join you write later.\n\nSQL \u2194 ORM: SQLAlchemy mapped_column(String(120)) \u2194 VARCHAR(120). Prisma String @db.VarChar(120) \u2194 VARCHAR(120). @@map(\"lab_x\") / __tablename__ keep physical names stable.",
+  "body": "Tables are named row collections; columns carry typed attributes.\n\nWhy it matters: Relationships only make sense once tables and columns exist. Choosing VARCHAR vs TEXT, INTEGER vs UUID, and NOT NULL vs nullable shapes every FK and join you write later.\n\nSQL ↔ ORM: SQLAlchemy mapped_column(String(120)) ↔ VARCHAR(120). Prisma String @db.VarChar(120) ↔ VARCHAR(120). @@map(\"lab_x\") / __tablename__ keep physical names stable.",
   "why": "Relationships only make sense once tables and columns exist. Choosing VARCHAR vs TEXT, INTEGER vs UUID, and NOT NULL vs nullable shapes every FK and join you write later.",
   "objectives": [
     "Map ORM field types to Postgres column types.",
@@ -21,9 +72,9 @@
   ],
   "pitfalls": [
     "Mixing camelCase columns in DB with snake_case FKs without @map / key naming.",
-    "Using overly wide TEXT everywhere \u2014 loses intent and check constraints."
+    "Using overly wide TEXT everywhere — loses intent and check constraints."
   ],
-  "mappingNotes": "SQLAlchemy mapped_column(String(120)) \u2194 VARCHAR(120). Prisma String @db.VarChar(120) \u2194 VARCHAR(120). @@map(\"lab_x\") / __tablename__ keep physical names stable.",
+  "mappingNotes": "SQLAlchemy mapped_column(String(120)) ↔ VARCHAR(120). Prisma String @db.VarChar(120) ↔ VARCHAR(120). @@map(\"lab_x\") / __tablename__ keep physical names stable.",
   "teachAlong": [
     "Cause: you declare a model/table with typed fields.",
     "Effect: CREATE TABLE materializes columns in Postgres.",
@@ -31,16 +82,17 @@
   ],
   "references": [
     {
-      "title": "SQLAlchemy \u2014 Mapped Column Declarative",
+      "title": "SQLAlchemy — Mapped Column Declarative",
       "url": "https://docs.sqlalchemy.org/en/20/orm/declarative_tables.html"
     },
     {
-      "title": "Prisma \u2014 Schema Reference",
+      "title": "Prisma — Schema Reference",
       "url": "https://www.prisma.io/docs/orm/reference/prisma-schema-reference"
     },
     {
-      "title": "PostgreSQL \u2014 CREATE TABLE",
+      "title": "PostgreSQL — CREATE TABLE",
       "url": "https://www.postgresql.org/docs/current/sql-createtable.html"
     }
-  ]
+  ],
+  "level": "beginner"
 }

@@ -3,7 +3,7 @@
   "order": 10,
   "title": "Mini multi-relationship domain",
   "summary": "Blog domain: bloggers, posts (1:N), tags, post_tags (M:N).",
-  "description": "Blog domain: bloggers, posts (1:N), tags, post_tags (M:N).\n\nWhy: A mini domain combines 1:N and M:N so you practice designing before coding \u2014 the skill used on real features.",
+  "description": "Blog domain: bloggers, posts (1:N), tags, post_tags (M:N).\n\nWhy: A mini domain combines 1:N and M:N so you practice designing before coding — the skill used on real features.",
   "objectives": [
     "lab_bloggers",
     "lab_posts with blogger_id FK",
@@ -12,7 +12,7 @@
   ],
   "hints": [
     "Combine 1:N and M:N.",
-    "Read gate errors as cause\u2192effect: each message names what Postgres still lacks."
+    "Read gate errors as cause→effect: each message names what Postgres still lacks."
   ],
   "sqlEquivalent": "CREATE TABLE lab_bloggers (id SERIAL PRIMARY KEY, handle VARCHAR(80) UNIQUE NOT NULL);\nCREATE TABLE lab_posts (\n  id SERIAL PRIMARY KEY,\n  title VARCHAR(200) NOT NULL,\n  blogger_id INTEGER NOT NULL REFERENCES lab_bloggers(id)\n);\nCREATE TABLE lab_tags (id SERIAL PRIMARY KEY, label VARCHAR(80) UNIQUE NOT NULL);\nCREATE TABLE lab_post_tags (\n  post_id INTEGER NOT NULL REFERENCES lab_posts(id) ON DELETE CASCADE,\n  tag_id INTEGER NOT NULL REFERENCES lab_tags(id) ON DELETE CASCADE,\n  PRIMARY KEY (post_id, tag_id)\n);",
   "requirements": {
@@ -25,7 +25,8 @@
             "pk": true
           },
           {
-            "name": "handle"
+            "name": "handle",
+            "unique": true
           }
         ]
       },
@@ -77,6 +78,12 @@
               "column": "id"
             }
           }
+        ],
+        "uniqueTogether": [
+          [
+            "post_id",
+            "tag_id"
+          ]
         ]
       }
     ]
@@ -103,7 +110,7 @@
   "starterCode": "from sqlalchemy import String, Integer, ForeignKey, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column\n\nclass Base(DeclarativeBase):\n    pass\n\n# TODO: lab_bloggers, lab_posts, lab_tags, lab_post_tags\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
   "language": "python",
   "trackId": "python-sqlalchemy",
-  "why": "A mini domain combines 1:N and M:N so you practice designing before coding \u2014 the skill used on real features.",
+  "why": "A mini domain combines 1:N and M:N so you practice designing before coding — the skill used on real features.",
   "pitfalls": [
     "Modeling M:N as a single FK.",
     "Skipping the association table."
@@ -114,17 +121,28 @@
   ],
   "references": [
     {
-      "title": "SQLAlchemy 2.0 \u2014 ORM Relationship Patterns",
+      "title": "SQLAlchemy 2.0 — ORM Relationship Patterns",
       "url": "https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html"
     },
     {
-      "title": "Prisma \u2014 Relations",
+      "title": "Prisma — Relations",
       "url": "https://www.prisma.io/docs/orm/prisma-schema/data-model/relations"
     },
     {
-      "title": "PostgreSQL \u2014 Foreign Keys",
+      "title": "PostgreSQL — Foreign Keys",
       "url": "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK"
     }
   ],
-  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres \u2014 only real tables/FKs count."
+  "mappingNotes": "Compare your ORM/schema code with the Equivalent SQL panel. The task gate introspects Postgres — only real tables/FKs count.",
+  "solution": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabBlogger(Base):\n    __tablename__ = \"lab_bloggers\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    handle: Mapped[str] = mapped_column(String(60), unique=True)\n    posts: Mapped[list[\"LabPost\"]] = relationship(back_populates=\"blogger\")\n\n\nclass LabPost(Base):\n    __tablename__ = \"lab_posts\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n    blogger_id: Mapped[int] = mapped_column(ForeignKey(\"lab_bloggers.id\"))\n    blogger: Mapped[\"LabBlogger\"] = relationship(back_populates=\"posts\")\n\n\nclass LabTag(Base):\n    __tablename__ = \"lab_tags\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    label: Mapped[str] = mapped_column(String(60), unique=True)\n\n\nclass LabPostTag(Base):\n    __tablename__ = \"lab_post_tags\"\n    post_id: Mapped[int] = mapped_column(ForeignKey(\"lab_posts.id\", ondelete=\"CASCADE\"), primary_key=True)\n    tag_id: Mapped[int] = mapped_column(ForeignKey(\"lab_tags.id\", ondelete=\"CASCADE\"), primary_key=True)\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n",
+  "wrongSolutions": [
+    {
+      "label": "post_tags without a composite key and handle not unique",
+      "expect": [
+        "missing-composite-key",
+        "not-unique"
+      ],
+      "code": "from sqlalchemy import String, Integer, Numeric, Boolean, ForeignKey, UniqueConstraint, create_engine\nfrom sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship\n\n\nclass Base(DeclarativeBase):\n    pass\n\nclass LabBlogger(Base):\n    __tablename__ = \"lab_bloggers\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    handle: Mapped[str] = mapped_column(String(60))\n\n\nclass LabPost(Base):\n    __tablename__ = \"lab_posts\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    title: Mapped[str] = mapped_column(String(200))\n    blogger_id: Mapped[int] = mapped_column(ForeignKey(\"lab_bloggers.id\"))\n\n\nclass LabTag(Base):\n    __tablename__ = \"lab_tags\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    label: Mapped[str] = mapped_column(String(60), unique=True)\n\n\nclass LabPostTag(Base):\n    __tablename__ = \"lab_post_tags\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n    post_id: Mapped[int] = mapped_column(ForeignKey(\"lab_posts.id\"))\n    tag_id: Mapped[int] = mapped_column(ForeignKey(\"lab_tags.id\"))\n\nengine = create_engine(DATABASE_URL)\nBase.metadata.create_all(engine)\n"
+    }
+  ]
 }
