@@ -102,6 +102,8 @@ def main() -> None:
         for f in sorted(tdir.glob("*.json")):
             task = json.loads(f.read_text())
             tid = task["id"]
+            if tid not in PY_TASKS:  # rel-11/rel-12 are written by gen_db_lessons.py (db_tasks_extra.py)
+                continue
             task.pop("requirementsBase", None)
             task["requirements"] = tighten(tid, task["requirements"], track)  # idempotent: only sets keys
             if track == "python-sqlalchemy":
