@@ -1,0 +1,91 @@
+{
+  "id": "pw-08-frames-tabs",
+  "title": "iframes & new tabs",
+  "summary": "Pay inside the 'Payment form' iframe, then follow a link that opens the help center in a new tab.",
+  "why": "Payment widgets and help links are everyday features that need special handling: elements inside an iframe are invisible to page-level locators, and a new tab is a new Page object you must capture.",
+  "objectives": [
+    "Reach the iframe with page.getByTitle('Payment form').contentFrame()",
+    "Pay with 4242 4242 4242 4242 and assert the confirmation inside the frame",
+    "Capture the new tab with page.waitForEvent('popup') started before the click"
+  ],
+  "hints": [
+    "const popupPromise = page.waitForEvent('popup'); await link.click(); const help = await popupPromise;",
+    "Assertions on the new tab use the new page: expect(help.getByRole('heading', …))"
+  ],
+  "pitfalls": [
+    "Locating the card field on page instead of the frame → 'element not found'.",
+    "Awaiting the click before starting waitForEvent — the popup can be missed."
+  ],
+  "references": [
+    {
+      "title": "Frames",
+      "url": "https://playwright.dev/docs/frames"
+    },
+    {
+      "title": "Pages & new tabs (popups)",
+      "url": "https://playwright.dev/docs/pages#handling-popups"
+    },
+    {
+      "title": "locator.contentFrame()",
+      "url": "https://playwright.dev/docs/api/class-locator#locator-content-frame"
+    }
+  ],
+  "teachAlong": [
+    "Cause: the iframe is a separate document.",
+    "Effect: you locate inside it via contentFrame().",
+    "Gate: planted bugs decline the card and break the help page heading."
+  ],
+  "starterCode": "import { test, expect } from '@playwright/test';\n\ntest('pays inside the payment iframe', async ({ page }) => {\n  await page.goto('/frames');\n  // locate the iframe by its title, fill 'Card number', click 'Pay now', assert the status\n});\n\ntest('opens the help center in a new tab', async ({ page }) => {\n  await page.goto('/newtab');\n  // wait for the popup while clicking 'Open help center', then assert on the new page\n});\n",
+  "solution": "import { test, expect } from '@playwright/test';\n\ntest('pays inside the payment iframe', async ({ page }) => {\n  await page.goto('/frames');\n  const payment = page.getByTitle('Payment form').contentFrame();\n  await payment.getByLabel('Card number').fill('4242 4242 4242 4242');\n  await payment.getByRole('button', { name: 'Pay now' }).click();\n  await expect(payment.getByRole('status')).toHaveText('Payment accepted for card ending 4242');\n});\n\ntest('opens the help center in a new tab', async ({ page }) => {\n  await page.goto('/newtab');\n  const popupPromise = page.waitForEvent('popup');\n  await page.getByRole('link', { name: 'Open help center' }).click();\n  const help = await popupPromise;\n  await expect(help).toHaveURL(/\\/help$/);\n  await expect(help.getByRole('heading', { name: 'Help Center' })).toBeVisible();\n});\n",
+  "gate": {
+    "forbidCss": true,
+    "minTests": 2,
+    "requires": [
+      {
+        "rule": "call",
+        "anyOf": [
+          "contentFrame",
+          "frameLocator"
+        ],
+        "reason": "Elements inside an iframe need a frame locator: page.getByTitle('Payment form').contentFrame()."
+      },
+      {
+        "rule": "call",
+        "anyOf": [
+          "waitForEvent"
+        ],
+        "reason": "Capture the new tab with const popup = page.waitForEvent('popup') before clicking the link."
+      }
+    ],
+    "mutants": [
+      {
+        "bug": "frame-declined",
+        "reason": "the payment iframe declines every card"
+      },
+      {
+        "bug": "newtab-wrong",
+        "reason": "the help link opens a page with the wrong heading"
+      }
+    ]
+  },
+  "wrongSolutions": [
+    {
+      "label": "ignores the iframe",
+      "expect": [
+        "requires-contentFrame",
+        "test-failed"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('pays inside the payment iframe', async ({ page }) => {\n  await page.goto('/frames');\n  await page.getByLabel('Card number').fill('4242 4242 4242 4242');\n  await page.getByRole('button', { name: 'Pay now' }).click();\n});\n\ntest('opens the help center in a new tab', async ({ page }) => {\n  await page.goto('/newtab');\n  const popupPromise = page.waitForEvent('popup');\n  await page.getByRole('link', { name: 'Open help center' }).click();\n  const help = await popupPromise;\n  await expect(help).toHaveURL(/\\/help$/);\n  await expect(help.getByRole('heading', { name: 'Help Center' })).toBeVisible();\n});\n"
+    },
+    {
+      "label": "CSS frame selector",
+      "expect": [
+        "prefer-user-facing-locators"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('pays inside the payment iframe', async ({ page }) => {\n  await page.goto('/frames');\n  const payment = page.frameLocator('iframe[title=\"Payment form\"]');\n  await payment.getByLabel('Card number').fill('4242 4242 4242 4242');\n  await payment.getByRole('button', { name: 'Pay now' }).click();\n  await expect(payment.getByRole('status')).toHaveText('Payment accepted for card ending 4242');\n});\n\ntest('opens the help center in a new tab', async ({ page }) => {\n  await page.goto('/newtab');\n  const popupPromise = page.waitForEvent('popup');\n  await page.getByRole('link', { name: 'Open help center' }).click();\n  const help = await popupPromise;\n  await expect(help).toHaveURL(/\\/help$/);\n  await expect(help.getByRole('heading', { name: 'Help Center' })).toBeVisible();\n});\n"
+    }
+  ],
+  "testFile": "learner.spec.ts",
+  "order": 8,
+  "trackId": "playwright-typescript"
+}

@@ -5,7 +5,7 @@ import { Shell } from "@/components/layout/Shell";
 export const metadata: Metadata = {
   title: "abi-learning-hub — Database Relationships Lab",
   description:
-    "One learning platform for SQLAlchemy, Prisma (TS/JS), and relational modeling. One Docker Compose command; pick a track in the UI.",
+    "One learning platform for SQLAlchemy, Prisma (TS/JS), relational modeling and Playwright test automation. One Docker Compose command; pick a track in the UI.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

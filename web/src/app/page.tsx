@@ -7,12 +7,12 @@ export default function HomePage() {
       <header className="space-y-4">
         <p className="text-xs uppercase tracking-[0.2em] text-accent">One platform · one command</p>
         <h1 className="text-4xl font-semibold tracking-tight text-white md:text-5xl">
-          Learn database relationships
+          Learn database relationships &amp; test automation
           <span className="block text-accent">pick a track in the UI</span>
         </h1>
         <p className="max-w-2xl text-ink-300">
           <strong className="text-ink-100">docker compose up --build</strong> starts the whole hub.
-          Open this app, choose Python · SQLAlchemy, Node · TypeScript, or Node · JavaScript —
+          Open this app, choose Python · SQLAlchemy, Node · TypeScript, Node · JavaScript, or Playwright · TypeScript —
           no separate stacks, no dual ports to remember.
         </p>
         <ol className="max-w-2xl list-decimal space-y-1 pl-5 text-sm text-ink-300">

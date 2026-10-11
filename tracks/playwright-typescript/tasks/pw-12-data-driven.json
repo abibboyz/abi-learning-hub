@@ -1,0 +1,62 @@
+{
+  "id": "pw-12-data-driven",
+  "title": "Data-driven tests",
+  "summary": "Generate one test per invalid email from a data array, so each case is reported (and can fail) on its own.",
+  "why": "Equivalence classes and boundary values from manual test design map directly onto data arrays. One test per row gives one report line per case instead of a single test that stops at the first bad value.",
+  "objectives": [
+    "const invalidEmails = [...] with at least 4 values",
+    "for (const email of invalidEmails) { test(`rejects ${email}`, …) }",
+    "Each test asserts 'Enter a valid email address'"
+  ],
+  "hints": [
+    "Titles must be unique — include the value in the title.",
+    "Try: 'plainaddress', 'missing-at.example.com', 'user@nodot', 'two@@example.com'"
+  ],
+  "pitfalls": [
+    "A loop inside one test: the first failure hides the rest.",
+    "Duplicate titles — Playwright refuses to run them."
+  ],
+  "references": [
+    {
+      "title": "Parameterize tests",
+      "url": "https://playwright.dev/docs/test-parameterize"
+    }
+  ],
+  "teachAlong": [
+    "Cause: the loop creates N tests at collection time.",
+    "Effect: N independent report lines.",
+    "Gate: at least 4 tests must run, and switching validation off must fail them."
+  ],
+  "starterCode": "import { test, expect } from '@playwright/test';\n\nconst invalidEmails = ['plainaddress'];\n\n// TODO: generate one test per value\ntest('rejects an invalid email', async ({ page }) => {\n  await page.goto('/register');\n});\n",
+  "solution": "import { test, expect } from '@playwright/test';\n\nconst invalidEmails = ['plainaddress', 'missing-at.example.com', 'user@nodot', 'two@@example.com'];\n\nfor (const email of invalidEmails) {\n  test(`rejects invalid email \"${email}\"`, async ({ page }) => {\n    await page.goto('/register');\n    await page.getByLabel('Email').fill(email);\n    await page.getByRole('button', { name: 'Create account' }).click();\n    await expect(page.getByText('Enter a valid email address')).toBeVisible();\n    await expect(page.getByLabel('Email')).toHaveAttribute('aria-invalid', 'true');\n  });\n}\n",
+  "gate": {
+    "forbidCss": true,
+    "minRunTests": 4,
+    "requires": [
+      {
+        "rule": "require-text",
+        "pattern": "for\\s*\\(|\\.forEach\\(",
+        "reason": "Generate the tests from the data array (for … of / forEach) instead of copy-pasting test bodies."
+      }
+    ],
+    "mutants": [
+      {
+        "bug": "form-no-validation",
+        "reason": "the form accepts invalid email addresses"
+      }
+    ]
+  },
+  "wrongSolutions": [
+    {
+      "label": "one hard-coded case",
+      "expect": [
+        "min-run-tests",
+        "required-pattern"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('rejects an invalid email', async ({ page }) => {\n  await page.goto('/register');\n  await page.getByLabel('Email').fill('plainaddress');\n  await page.getByRole('button', { name: 'Create account' }).click();\n  await expect(page.getByText('Enter a valid email address')).toBeVisible();\n});\n"
+    }
+  ],
+  "testFile": "learner.spec.ts",
+  "order": 12,
+  "trackId": "playwright-typescript"
+}

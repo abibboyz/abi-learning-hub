@@ -1,0 +1,38 @@
+{
+  "id": "pw-l07-fixtures-hooks",
+  "title": "Built-in fixtures & hooks",
+  "topic": "Structure",
+  "summary": "Fixtures (page, context, browser, request, browserName, baseURL…) are injected by name. Hooks (beforeEach, afterEach, beforeAll, afterAll) and describe group shared setup.",
+  "why": "Fixtures give every test exactly what it needs, isolated and cleaned up automatically. Hooks are the automated version of preconditions and cleanup steps in your manual test cases.",
+  "body": "Ask for fixtures by destructuring: async ({ page, request }) => …. `page` lives in its own `context`; `request` is an API client honouring baseURL. beforeEach runs before every test in its scope (file or describe). Prefer beforeEach + the page fixture over beforeAll with a shared page — shared state makes tests depend on each other. test.describe groups tests and can configure them (test.describe.configure({ mode: 'serial' }) when steps truly depend on each other).",
+  "objectives": [
+    "Destructure built-in fixtures",
+    "Use beforeEach in a describe block",
+    "Know why beforeAll + shared page is risky"
+  ],
+  "pitfalls": [
+    "Opening a page in beforeAll and reusing it across tests.",
+    "Putting assertions in afterEach — failures there are confusing."
+  ],
+  "references": [
+    {
+      "title": "Fixtures",
+      "url": "https://playwright.dev/docs/test-fixtures"
+    },
+    {
+      "title": "Test hooks",
+      "url": "https://playwright.dev/docs/api/class-test#test-before-each"
+    },
+    {
+      "title": "Annotations & describe",
+      "url": "https://playwright.dev/docs/test-annotations"
+    }
+  ],
+  "example": {
+    "language": "typescript",
+    "code": "import { test, expect } from '@playwright/test';\n\ntest.describe('todos page', () => {\n  test.beforeEach(async ({ page }) => {\n    await page.goto('/todos');\n  });\n\n  test('shows the seed todos', async ({ page }) => {\n    await expect(page.getByRole('list', { name: 'Todo list' }).getByRole('listitem')).toHaveCount(3);\n  });\n\n  test('adds a todo', async ({ page }) => {\n    await page.getByLabel('New todo').fill('Learn fixtures');\n    await page.getByRole('button', { name: 'Add' }).click();\n    await expect(page.getByText('Learn fixtures')).toBeVisible();\n  });\n});\n\ntest('uses the request fixture and baseURL', async ({ request, baseURL }) => {\n  expect(baseURL).toBeTruthy();\n  const res = await request.get('/api/health');\n  await expect(res).toBeOK();\n});\n"
+  },
+  "runnable": true,
+  "teachAlong": [],
+  "order": 7
+}

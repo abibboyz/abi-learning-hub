@@ -1,0 +1,29 @@
+{
+  "id": "pw-l09-pom",
+  "title": "Page Object Model",
+  "topic": "Test design",
+  "summary": "A page object wraps one page's locators and actions in a class, so tests read like steps and UI changes are fixed in one place.",
+  "why": "Without page objects, a renamed button means editing every test. With them it is a one-line change, and tests become documentation of user journeys.",
+  "body": "Create locators once in the constructor; expose intent-level methods (login, addTodo); keep most assertions in tests. Combine page objects with fixtures (next lesson) so tests receive them ready-made. Don't over-abstract: small helpers are fine; a page object per component is often better than one giant class.",
+  "objectives": [
+    "Write a page object with locators + methods",
+    "Keep assertions in tests"
+  ],
+  "pitfalls": [
+    "Page objects that assert everything internally.",
+    "Returning raw selectors (strings) instead of Locators."
+  ],
+  "references": [
+    {
+      "title": "Page object models",
+      "url": "https://playwright.dev/docs/pom"
+    }
+  ],
+  "example": {
+    "language": "typescript",
+    "code": "import { test, expect, type Page, type Locator } from '@playwright/test';\n\nclass TodoPage {\n  readonly list: Locator;\n  readonly input: Locator;\n  constructor(readonly page: Page) {\n    this.list = page.getByRole('list', { name: 'Todo list' }).getByRole('listitem');\n    this.input = page.getByLabel('New todo');\n  }\n  async goto() {\n    await this.page.goto('/todos');\n  }\n  async add(title: string) {\n    await this.input.fill(title);\n    await this.page.getByRole('button', { name: 'Add' }).click();\n  }\n}\n\ntest('adds a todo via the page object', async ({ page }) => {\n  const todos = new TodoPage(page);\n  await todos.goto();\n  await todos.add('Write page objects');\n  await expect(todos.list).toHaveCount(4);\n  await expect(todos.list.last()).toHaveText('Write page objects');\n});\n"
+  },
+  "runnable": true,
+  "teachAlong": [],
+  "order": 9
+}

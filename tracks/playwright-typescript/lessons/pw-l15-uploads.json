@@ -1,0 +1,34 @@
+{
+  "id": "pw-l15-uploads",
+  "title": "Uploads and downloads",
+  "topic": "UI patterns",
+  "summary": "setInputFiles sets files on an <input type=file> (from disk or in-memory buffers); page.waitForEvent('download') captures downloads.",
+  "why": "File flows are hard to test manually at scale (many files, odd names, sizes). In automation they are a few lines.",
+  "body": "locator.setInputFiles(path | paths | { name, mimeType, buffer }); pass [] to clear. For a custom drop zone use locator.drop() (1.60+). For downloads: const downloadPromise = page.waitForEvent('download'); click; const download = await downloadPromise; await download.saveAs(...).",
+  "objectives": [
+    "Upload one and many in-memory files",
+    "Know the download pattern"
+  ],
+  "references": [
+    {
+      "title": "Upload files",
+      "url": "https://playwright.dev/docs/input#upload-files"
+    },
+    {
+      "title": "Downloads",
+      "url": "https://playwright.dev/docs/downloads"
+    },
+    {
+      "title": "locator.drop()",
+      "url": "https://playwright.dev/docs/api/class-locator#locator-drop"
+    }
+  ],
+  "example": {
+    "language": "typescript",
+    "code": "import { test, expect } from '@playwright/test';\n\ntest('uploads two files', async ({ page }) => {\n  await page.goto('/upload');\n  await page.getByLabel('Attachment').setInputFiles([\n    { name: 'a.txt', mimeType: 'text/plain', buffer: Buffer.from('hello') },\n    { name: 'b.txt', mimeType: 'text/plain', buffer: Buffer.from('world!') },\n  ]);\n  await expect(page.getByRole('list', { name: 'Selected files' }).getByRole('listitem'))\n    .toHaveText(['a.txt (5 bytes)', 'b.txt (6 bytes)']);\n  await page.getByLabel('Attachment').setInputFiles([]);\n  await expect(page.getByRole('status')).toHaveText('No file selected');\n});\n"
+  },
+  "runnable": true,
+  "teachAlong": [],
+  "pitfalls": [],
+  "order": 15
+}

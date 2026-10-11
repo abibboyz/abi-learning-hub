@@ -1,0 +1,45 @@
+{
+  "id": "pw-l27-agents-mcp",
+  "title": "Test agents, MCP and the CLI (AI-assisted testing)",
+  "topic": "Ecosystem",
+  "summary": "Playwright ships agent definitions (planner, generator, healer) via `npx playwright init-agents`, a bundled MCP server (`npx playwright mcp`), and `playwright-cli`. 1.64 adds WebMCP testing.",
+  "why": "AI assistants can draft test plans and tests and propose fixes — useful for speed, but a QA engineer still decides what is worth testing and reviews every assertion.",
+  "body": "Verified in the official release notes:\n• Playwright Agents (v1.56): planner explores the app and writes a Markdown test plan; generator turns it into tests; healer runs tests and proposes repairs. Set up with npx playwright init-agents --loop=vscode|claude|codex|copilot|opencode.\n• Playwright MCP (bundled since v1.62): npx playwright mcp starts the Model Context Protocol server so an AI client can drive a browser through accessibility snapshots; playwright-cli (v1.58+) offers a token-efficient command mode.\n• v1.64: page.webmcp / frame.webmcp test the tools a page registers through the experimental WebMCP browser API; Playwright MCP exposes them as webmcp_<tool>.\nTreat generated tests like codegen output: review locators, add meaningful assertions, check they fail when the app is broken (the gate in this lab does exactly that with planted bugs).",
+  "objectives": [
+    "Know what init-agents, mcp and cli provide",
+    "Review AI-generated tests critically"
+  ],
+  "pitfalls": [
+    "Accepting generated tests that assert nothing meaningful.",
+    "Letting a 'healer' change assertions to match a real bug."
+  ],
+  "references": [
+    {
+      "title": "Playwright Agents",
+      "url": "https://playwright.dev/docs/test-agents"
+    },
+    {
+      "title": "Playwright MCP",
+      "url": "https://playwright.dev/docs/getting-started-mcp"
+    },
+    {
+      "title": "Playwright CLI",
+      "url": "https://playwright.dev/docs/getting-started-cli"
+    },
+    {
+      "title": "WebMCP API (1.64)",
+      "url": "https://playwright.dev/docs/api/class-webmcp"
+    },
+    {
+      "title": "Release notes",
+      "url": "https://playwright.dev/docs/release-notes"
+    }
+  ],
+  "example": {
+    "language": "bash",
+    "code": "npx playwright init-agents --loop=vscode   # planner / generator / healer definitions\nnpx playwright mcp                          # bundled MCP server\nnpx playwright cli --help                   # agent-friendly CLI\n"
+  },
+  "runnable": false,
+  "teachAlong": [],
+  "order": 27
+}

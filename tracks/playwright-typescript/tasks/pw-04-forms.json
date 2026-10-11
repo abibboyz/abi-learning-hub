@@ -1,0 +1,84 @@
+{
+  "id": "pw-04-forms",
+  "title": "Forms & validation",
+  "summary": "Cover the registration form like a tester: one negative test (empty submit shows every error) and one positive test (valid data creates the account).",
+  "why": "Validation rules are where manual testers find most bugs. Automating both the negative and the positive path stops regressions on either side.",
+  "objectives": [
+    "Negative: submit empty → 'Full name is required', 'Enter a valid email address', 'Age must be between 18 and 120', 'You must accept the terms'",
+    "Positive: fill, selectOption, check radio + checkbox → success message",
+    "At least 2 tests"
+  ],
+  "hints": [
+    "Radio and checkbox: page.getByLabel('Pro').check()",
+    "Select: page.getByLabel('Country').selectOption('Nepal')",
+    "Errors are plain text: page.getByText('Full name is required')"
+  ],
+  "pitfalls": [
+    "Testing only the happy path — a form that stops validating still passes.",
+    "Using fill() on a checkbox (use check())."
+  ],
+  "references": [
+    {
+      "title": "Actions: text input, checkboxes, select",
+      "url": "https://playwright.dev/docs/input"
+    },
+    {
+      "title": "Assertions: toHaveText / toBeChecked",
+      "url": "https://playwright.dev/docs/test-assertions"
+    }
+  ],
+  "teachAlong": [
+    "Cause: one negative + one positive test.",
+    "Effect: a form that stops validating is caught.",
+    "Gate: the app is re-run with validation switched off — your negative test must fail there."
+  ],
+  "starterCode": "import { test, expect } from '@playwright/test';\n\ntest('shows every validation error on an empty submit', async ({ page }) => {\n  await page.goto('/register');\n  // submit without filling anything, then assert each error message\n});\n\ntest('creates an account with valid data', async ({ page }) => {\n  await page.goto('/register');\n  // fill name, email, age, country, choose the Pro plan, accept terms, submit\n  // assert the status message 'Account created for Ana Silva (Pro plan)'\n});\n",
+  "solution": "import { test, expect } from '@playwright/test';\n\ntest('shows every validation error on an empty submit', async ({ page }) => {\n  await page.goto('/register');\n  await page.getByRole('button', { name: 'Create account' }).click();\n  await expect(page.getByText('Full name is required')).toBeVisible();\n  await expect(page.getByText('Enter a valid email address')).toBeVisible();\n  await expect(page.getByText('Age must be between 18 and 120')).toBeVisible();\n  await expect(page.getByText('You must accept the terms')).toBeVisible();\n  await expect(page.getByLabel('Full name')).toHaveAttribute('aria-invalid', 'true');\n  await expect(page.getByRole('status')).toHaveText('');\n});\n\ntest('creates an account with valid data', async ({ page }) => {\n  await page.goto('/register');\n  await page.getByLabel('Full name').fill('Ana Silva');\n  await page.getByLabel('Email').fill('ana@example.com');\n  await page.getByLabel('Age').fill('30');\n  await page.getByLabel('Country').selectOption('Nepal');\n  await page.getByLabel('Pro').check();\n  await page.getByLabel('I accept the terms').check();\n  await expect(page.getByLabel('I accept the terms')).toBeChecked();\n  await page.getByRole('button', { name: 'Create account' }).click();\n  await expect(page.getByRole('status')).toHaveText('Account created for Ana Silva (Pro plan)');\n});\n",
+  "gate": {
+    "forbidCss": true,
+    "minTests": 2,
+    "requires": [
+      {
+        "rule": "call",
+        "anyOf": [
+          "selectOption"
+        ],
+        "reason": "Choose the country with page.getByLabel('Country').selectOption('Nepal')."
+      },
+      {
+        "rule": "call",
+        "anyOf": [
+          "check",
+          "setChecked"
+        ],
+        "reason": "Tick the radio/checkbox with .check() (not click or fill) so Playwright verifies the new state."
+      }
+    ],
+    "mutants": [
+      {
+        "bug": "form-no-validation",
+        "reason": "the form accepts empty and invalid input"
+      }
+    ]
+  },
+  "wrongSolutions": [
+    {
+      "label": "happy path only",
+      "expect": [
+        "min-tests",
+        "weak-test"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('creates an account', async ({ page }) => {\n  await page.goto('/register');\n  await page.getByLabel('Full name').fill('Ana Silva');\n  await page.getByLabel('Email').fill('ana@example.com');\n  await page.getByLabel('Age').fill('30');\n  await page.getByLabel('Country').selectOption('Nepal');\n  await page.getByLabel('Pro').check();\n  await page.getByLabel('I accept the terms').check();\n  await page.getByRole('button', { name: 'Create account' }).click();\n  await expect(page.getByRole('status')).toHaveText('Account created for Ana Silva (Pro plan)');\n});\n"
+    },
+    {
+      "label": "legacy selector API",
+      "expect": [
+        "prefer-user-facing-locators"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('creates an account', async ({ page }) => {\n  await page.goto('/register');\n  await page.fill('#name', 'Ana Silva');\n  await page.getByLabel('Email').fill('ana@example.com');\n  await page.getByLabel('Age').fill('30');\n  await page.getByLabel('Country').selectOption('Nepal');\n  await page.getByLabel('Pro').check();\n  await page.getByLabel('I accept the terms').check();\n  await page.getByRole('button', { name: 'Create account' }).click();\n  await expect(page.getByRole('status')).toHaveText('Account created for Ana Silva (Pro plan)');\n});\n"
+    }
+  ],
+  "testFile": "learner.spec.ts",
+  "order": 4,
+  "trackId": "playwright-typescript"
+}

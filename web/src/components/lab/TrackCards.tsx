@@ -39,6 +39,18 @@ const FALLBACK: TrackSummary[] = [
     order: 3,
     icon: "📒",
   },
+  {
+    id: "playwright-typescript",
+    title: "Playwright · TypeScript",
+    language: "typescript",
+    variant: "e2e",
+    runtime: "playwright",
+    api: "playwright",
+    kind: "playwright",
+    description: "UI + API test automation with Playwright Test against a local practice app",
+    order: 4,
+    icon: "🎭",
+  },
 ];
 
 export function TrackCards() {
@@ -80,7 +92,7 @@ export function TrackCards() {
           </p>
         )}
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {tracks.map((t) => (
           <Link
             key={t.id}

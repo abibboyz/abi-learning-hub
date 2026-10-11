@@ -1,0 +1,147 @@
+{
+  "id": "playwright-typescript",
+  "title": "Playwright · TypeScript",
+  "kind": "playwright",
+  "language": "typescript",
+  "variant": "e2e",
+  "runtime": "playwright",
+  "api": "playwright",
+  "order": 4,
+  "icon": "🎭",
+  "description": "UI + API test automation with Playwright Test — locators, web-first assertions, fixtures, POM, auth, mocking, visual, CI. Runs against a local practice app.",
+  "playwrightVersion": "1.64.0",
+  "languages": [
+    "typescript",
+    "javascript"
+  ],
+  "appUnderTest": {
+    "name": "QA Practice Shop",
+    "pages": [
+      "/",
+      "/login",
+      "/register",
+      "/products",
+      "/todos",
+      "/async",
+      "/dialogs",
+      "/frames",
+      "/newtab",
+      "/upload",
+      "/dashboard"
+    ],
+    "api": [
+      "GET /api/products",
+      "GET|POST /api/todos",
+      "DELETE /api/todos/:id",
+      "POST /api/login",
+      "GET /api/me",
+      "GET /api/orders (slow)"
+    ],
+    "accounts": [
+      {
+        "email": "qa@example.com",
+        "password": "Passw0rd!"
+      },
+      {
+        "email": "admin@example.com",
+        "password": "Adm1n!pass"
+      }
+    ]
+  },
+  "prerequisites": {
+    "title": "Playwright Test setup (as the hub runs it)",
+    "lockedByDefault": true,
+    "install": "npm init playwright@latest   # or: npm i -D @playwright/test@1.64.0 && npx playwright install --with-deps",
+    "code": "// The config the hub runner generates for every run (read-only here).\nimport { defineConfig, devices } from '@playwright/test';\n\nexport default defineConfig({\n  testDir: './tests',\n  timeout: 15_000,                 // per test\n  expect: { timeout: 5_000 },      // per web-first assertion\n  retries: 0,                      // the gate wants to SEE flakiness, not hide it\n  workers: 1,\n  updateSnapshots: 'missing',      // first visual run writes the baseline\n  reporter: [['json', { outputFile: 'report.json' }]],\n  use: {\n    ...devices['Desktop Chrome'],\n    baseURL: 'http://pw-app:4000',  // the QA Practice Shop (app under test)\n    trace: 'on',\n    screenshot: 'on',\n    actionTimeout: 5_000,\n  },\n  projects: [\n    // auth tasks only: { name: 'setup', testMatch: /.*\\.setup\\.ts/ },\n    { name: 'chromium', repeatEach: 3 /* tasks; lessons run once */ },\n    // tasks only: 'mutant:<bug>' projects re-run your tests with a planted bug — they must FAIL there\n  ],\n});\n"
+  },
+  "runtimePanels": {
+    "runner": {
+      "title": "Test runner",
+      "points": [
+        "Each test gets a fresh BrowserContext (isolated cookies/storage).",
+        "Actions auto-wait for actionability; web-first assertions retry.",
+        "Workers are processes — tests must not share state."
+      ]
+    },
+    "gate": {
+      "title": "How the gate checks you",
+      "points": [
+        "Static rules on your code (TypeScript AST): locators, awaits, sleeps, weak assertions, required APIs.",
+        "Your tests run 3× — any mixed result is reported as flaky.",
+        "The app is re-run with a planted bug; a good test must fail there."
+      ]
+    },
+    "ci": {
+      "title": "CI & scale",
+      "points": [
+        "retries + trace: 'on-first-retry' in CI.",
+        "--shard=i/n across machines, merge-reports after.",
+        "Run in mcr.microsoft.com/playwright for identical browsers."
+      ]
+    }
+  },
+  "references": [
+    {
+      "title": "Playwright docs",
+      "url": "https://playwright.dev/docs/intro"
+    },
+    {
+      "title": "Best practices",
+      "url": "https://playwright.dev/docs/best-practices"
+    },
+    {
+      "title": "Release notes",
+      "url": "https://playwright.dev/docs/release-notes"
+    }
+  ],
+  "lessonIds": [
+    "pw-l01-setup",
+    "pw-l02-config",
+    "pw-l03-first-test",
+    "pw-l04-locators",
+    "pw-l05-actions",
+    "pw-l06-assertions",
+    "pw-l07-fixtures-hooks",
+    "pw-l08-test-design",
+    "pw-l09-pom",
+    "pw-l10-custom-fixtures",
+    "pw-l11-test-data",
+    "pw-l12-forms-tables",
+    "pw-l13-dialogs",
+    "pw-l14-frames-tabs",
+    "pw-l15-uploads",
+    "pw-l16-auth",
+    "pw-l17-api-testing",
+    "pw-l18-mocking",
+    "pw-l19-visual",
+    "pw-l20-debugging",
+    "pw-l21-flakiness",
+    "pw-l22-parallel",
+    "pw-l23-projects",
+    "pw-l24-reporters",
+    "pw-l25-ci",
+    "pw-l26-component-testing",
+    "pw-l27-agents-mcp"
+  ],
+  "taskIds": [
+    "pw-01-first-test",
+    "pw-02-locators",
+    "pw-03-auto-waiting",
+    "pw-04-forms",
+    "pw-05-test-case-to-test",
+    "pw-06-hooks-tables",
+    "pw-07-dialogs",
+    "pw-08-frames-tabs",
+    "pw-09-upload",
+    "pw-10-page-object",
+    "pw-11-custom-fixture",
+    "pw-12-data-driven",
+    "pw-13-auth-setup",
+    "pw-14-storage-state",
+    "pw-15-api-testing",
+    "pw-16-network-mocking",
+    "pw-17-wait-for-response",
+    "pw-18-visual",
+    "pw-19-steps-tags"
+  ]
+}

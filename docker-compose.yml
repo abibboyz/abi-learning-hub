@@ -1,6 +1,6 @@
 # abi-learning-hub — ONE platform, ONE compose project.
 # Learners only open http://localhost:3000 and pick a track in the UI.
-# api-python / api-node stay on the internal compose network (not advertised).
+# api-python / api-node / pw-runner / pw-app stay on internal compose networks (no host ports).
 
 services:
   postgres:
@@ -78,6 +78,65 @@ services:
       start_period: 25s
     restart: unless-stopped
 
+  # App under test for the Playwright track ("QA Practice Shop"). Seedable, internal only:
+  # it lives on an internal-only network that only pw-runner can reach (no host port, no egress).
+  pw-app:
+    build:
+      context: ./pw-app
+      dockerfile: Dockerfile
+    container_name: hub-pw-app
+    environment:
+      PORT: "4000"
+    expose:
+      - "4000"
+    networks:
+      - pw_sut
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 64
+    read_only: true
+    restart: unless-stopped
+
+  # Playwright runner (official mcr.microsoft.com/playwright image, pinned to v1.64.0).
+  # Internal only: reached through the web BFF (/api/*). Each run gets a temp dir, a hard timeout,
+  # one worker, and a concurrency cap; the container itself is resource-limited.
+  pw-runner:
+    build:
+      context: ./pw-runner
+      dockerfile: Dockerfile
+    container_name: hub-pw-runner
+    init: true
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hub}:${POSTGRES_PASSWORD:-hub_secret}@postgres:5432/${POSTGRES_DB:-learning_hub}
+      TRACKS_DIR: /app/tracks
+      SUT_URL: http://pw-app:4000
+      PORT: "8002"
+      PW_MAX_CONCURRENCY: ${PW_MAX_CONCURRENCY:-2}
+      PW_MAX_QUEUE: ${PW_MAX_QUEUE:-6}
+      PW_RUN_TIMEOUT_MS: ${PW_RUN_TIMEOUT_MS:-150000}
+    expose:
+      - "8002"
+    networks:
+      - default
+      - pw_sut
+    volumes:
+      - ./tracks:/app/tracks:ro
+      - hub_pw_runs:/app/.runs
+    tmpfs:
+      - /tmp:size=256m
+    shm_size: 1gb
+    mem_limit: ${PW_MEM_LIMIT:-2g}
+    cpus: ${PW_CPUS:-2}
+    pids_limit: 512
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pw-app:
+        condition: service_healthy
+    restart: unless-stopped
+
   web:
     build:
       context: ./web
@@ -87,12 +146,15 @@ services:
       # Server-side BFF → internal compose DNS (not browser-facing)
       PYTHON_API_INTERNAL: http://api-python:8000
       NODE_API_INTERNAL: http://api-node:8001
+      PW_RUNNER_INTERNAL: http://pw-runner:8002
     ports:
       - "${WEB_PORT:-3000}:3000"
     depends_on:
       api-python:
         condition: service_healthy
       api-node:
+        condition: service_healthy
+      pw-runner:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/"]
@@ -109,3 +171,11 @@ volumes:
     name: abi-learning-hub-python-data
   hub_node_data:
     name: abi-learning-hub-node-data
+  hub_pw_runs:
+    name: abi-learning-hub-pw-runs
+
+networks:
+  # No gateway: pw-app cannot reach the internet and the host cannot reach pw-app.
+  pw_sut:
+    name: abi-learning-hub-pw-sut
+    internal: true

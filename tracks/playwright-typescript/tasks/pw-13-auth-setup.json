@@ -1,0 +1,81 @@
+{
+  "id": "pw-13-auth-setup",
+  "title": "Auth setup project",
+  "summary": "Write auth.setup.ts: sign in once and save the browser state to playwright/.auth/user.json. A provided dashboard test reuses it.",
+  "why": "Logging in through the UI before every test is slow, and every test fails when login breaks. A setup project logs in once; every other test starts already signed in.",
+  "objectives": [
+    "setup('…', async ({ page }) => { … }) using test as setup",
+    "Wait for the dashboard URL before saving",
+    "await page.context().storageState({ path: 'playwright/.auth/user.json' })"
+  ],
+  "hints": [
+    "import { test as setup, expect } from '@playwright/test';",
+    "The hub config runs *.setup.ts in a 'setup' project that the main project depends on."
+  ],
+  "pitfalls": [
+    "Saving state before the login redirect finished → the file has no session cookie.",
+    "Committing playwright/.auth to git — it contains real session cookies."
+  ],
+  "references": [
+    {
+      "title": "Authentication",
+      "url": "https://playwright.dev/docs/auth"
+    },
+    {
+      "title": "Project dependencies",
+      "url": "https://playwright.dev/docs/test-projects#dependencies"
+    },
+    {
+      "title": "browserContext.storageState()",
+      "url": "https://playwright.dev/docs/api/class-browsercontext#browser-context-storage-state"
+    }
+  ],
+  "teachAlong": [
+    "Cause: setup saves cookies + localStorage once.",
+    "Effect: dependent tests start signed in.",
+    "Gate: the provided dashboard test must pass using your saved file."
+  ],
+  "testFile": "auth.setup.ts",
+  "supportFiles": [
+    {
+      "path": "dashboard.spec.ts",
+      "content": "import { test, expect } from '@playwright/test';\n\n// Provided by the task: proves your setup saved a usable session.\ntest.use({ storageState: 'playwright/.auth/user.json' });\n\ntest('dashboard opens without logging in again', async ({ page }) => {\n  await page.goto('/dashboard');\n  await expect(page).toHaveURL(/\\/dashboard$/);\n  await expect(page.getByText('Welcome, QA Tester')).toBeVisible();\n});\n",
+      "readOnly": true
+    }
+  ],
+  "starterCode": "import { test as setup, expect } from '@playwright/test';\n\nconst authFile = 'playwright/.auth/user.json';\n\nsetup('sign in once and save the session', async ({ page }) => {\n  // log in through the UI, wait for the dashboard, then save the storage state to authFile\n});\n",
+  "solution": "import { test as setup, expect } from '@playwright/test';\n\nconst authFile = 'playwright/.auth/user.json';\n\nsetup('sign in once and save the session', async ({ page }) => {\n  await page.goto('/login');\n  await page.getByLabel('Email').fill('qa@example.com');\n  await page.getByLabel('Password').fill('Passw0rd!');\n  await page.getByRole('button', { name: 'Sign in' }).click();\n  // Wait until the login has really finished, otherwise the saved state may lack the cookie.\n  await expect(page).toHaveURL(/\\/dashboard$/);\n  await page.context().storageState({ path: authFile });\n});\n",
+  "gate": {
+    "forbidCss": true,
+    "preset": "auth",
+    "requires": [
+      {
+        "rule": "call",
+        "anyOf": [
+          "storageState"
+        ],
+        "reason": "Save the session: await page.context().storageState({ path: authFile })."
+      },
+      {
+        "rule": "call",
+        "anyOf": [
+          "toHaveURL",
+          "waitForURL"
+        ],
+        "reason": "Wait for the login to finish (await expect(page).toHaveURL(/\\/dashboard$/)) before saving, or the state may miss the session cookie."
+      }
+    ]
+  },
+  "wrongSolutions": [
+    {
+      "label": "logs in but never saves",
+      "expect": [
+        "requires-storageState",
+        "test-failed"
+      ],
+      "code": "import { test as setup, expect } from '@playwright/test';\n\nsetup('sign in once and save the session', async ({ page }) => {\n  await page.goto('/login');\n  await page.getByLabel('Email').fill('qa@example.com');\n  await page.getByLabel('Password').fill('Passw0rd!');\n  await page.getByRole('button', { name: 'Sign in' }).click();\n  await expect(page).toHaveURL(/\\/dashboard$/);\n});\n"
+    }
+  ],
+  "order": 13,
+  "trackId": "playwright-typescript"
+}

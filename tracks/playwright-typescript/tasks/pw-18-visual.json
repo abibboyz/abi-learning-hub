@@ -1,0 +1,71 @@
+{
+  "id": "pw-18-visual",
+  "title": "Visual comparisons",
+  "summary": "Take a visual snapshot of the dashboard with toHaveScreenshot, masking the parts that change on every load (session id and live clock).",
+  "why": "Visual tests catch CSS and layout regressions that text assertions miss — but only if dynamic content is masked; otherwise they are flaky by design.",
+  "objectives": [
+    "await expect(page).toHaveScreenshot('dashboard.png', { mask: [...] })",
+    "Mask getByTestId('session-id') and getByTestId('live-clock')",
+    "Pass on all 3 runs and catch the planted style regression"
+  ],
+  "hints": [
+    "The first run writes the baseline (the hub uses updateSnapshots: 'missing'); runs 2–3 compare against it.",
+    "toHaveScreenshot waits for two identical screenshots in a row — a ticking clock never settles."
+  ],
+  "pitfalls": [
+    "Not masking dynamic data → never stable.",
+    "Comparing screenshots across OSes/browsers — keep baselines per platform (or generate them in CI's Docker image)."
+  ],
+  "references": [
+    {
+      "title": "Visual comparisons",
+      "url": "https://playwright.dev/docs/test-snapshots"
+    },
+    {
+      "title": "toHaveScreenshot options (mask)",
+      "url": "https://playwright.dev/docs/api/class-pageassertions#page-assertions-to-have-screenshot-1"
+    }
+  ],
+  "teachAlong": [
+    "Cause: masked regions are painted over.",
+    "Effect: only real UI changes fail the comparison.",
+    "Gate: a planted CSS change must make your snapshot fail."
+  ],
+  "starterCode": "import { test, expect } from '@playwright/test';\n\ntest.beforeEach(async ({ page }) => {\n  const res = await page.request.post('/api/login', { data: { email: 'qa@example.com', password: 'Passw0rd!' } });\n  await expect(res).toBeOK();\n});\n\ntest('dashboard looks right', async ({ page }) => {\n  await page.goto('/dashboard');\n  // TODO: toHaveScreenshot with masks for the dynamic parts\n});\n",
+  "solution": "import { test, expect } from '@playwright/test';\n\ntest.beforeEach(async ({ page }) => {\n  // Sign in through the API (fast) — page.request shares cookies with the page.\n  const res = await page.request.post('/api/login', { data: { email: 'qa@example.com', password: 'Passw0rd!' } });\n  await expect(res).toBeOK();\n});\n\ntest('dashboard looks right', async ({ page }) => {\n  await page.goto('/dashboard');\n  await expect(page).toHaveScreenshot('dashboard.png', {\n    mask: [page.getByTestId('session-id'), page.getByTestId('live-clock')],\n  });\n});\n",
+  "gate": {
+    "requires": [
+      {
+        "rule": "call",
+        "anyOf": [
+          "toHaveScreenshot"
+        ],
+        "reason": "Use the visual assertion: await expect(page).toHaveScreenshot('dashboard.png', { … })."
+      },
+      {
+        "rule": "property",
+        "name": "mask",
+        "reason": "Mask the dynamic parts (session id, live clock) with the mask option, or the screenshot can never be stable."
+      }
+    ],
+    "mutants": [
+      {
+        "bug": "visual-shift",
+        "reason": "the dashboard cards are restyled"
+      }
+    ]
+  },
+  "wrongSolutions": [
+    {
+      "label": "no mask",
+      "expect": [
+        "requires-mask",
+        "test-failed"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest.beforeEach(async ({ page }) => {\n  // Sign in through the API (fast) — page.request shares cookies with the page.\n  const res = await page.request.post('/api/login', { data: { email: 'qa@example.com', password: 'Passw0rd!' } });\n  await expect(res).toBeOK();\n});\n\ntest('dashboard looks right', async ({ page }) => {\n  await page.goto('/dashboard');\n  await expect(page).toHaveScreenshot('dashboard.png');\n});\n"
+    }
+  ],
+  "testFile": "learner.spec.ts",
+  "order": 18,
+  "trackId": "playwright-typescript"
+}

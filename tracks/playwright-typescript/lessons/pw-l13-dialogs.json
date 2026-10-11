@@ -1,0 +1,29 @@
+{
+  "id": "pw-l13-dialogs",
+  "title": "Native dialogs and modal dialogs",
+  "topic": "UI patterns",
+  "summary": "Native alert/confirm/prompt are auto-dismissed unless you handle the 'dialog' event. HTML modals are ordinary DOM — scope with getByRole('dialog').",
+  "why": "'The delete button does nothing in automation' is almost always an unhandled confirm(). Knowing the difference saves hours.",
+  "body": "Register page.once('dialog', d => d.accept()) (or d.dismiss(), d.accept('text') for prompt) before the action that opens it. Read d.message() to assert the text. For <dialog>/modals, locate with page.getByRole('dialog', { name }) and assert toBeVisible / toBeHidden.",
+  "objectives": [
+    "Accept and dismiss native dialogs",
+    "Scope actions inside a modal"
+  ],
+  "pitfalls": [
+    "Handler registered after the click.",
+    "page.on('dialog') left active for the whole test when only one dialog is expected."
+  ],
+  "references": [
+    {
+      "title": "Dialogs",
+      "url": "https://playwright.dev/docs/dialogs"
+    }
+  ],
+  "example": {
+    "language": "typescript",
+    "code": "import { test, expect } from '@playwright/test';\n\ntest('dismissing confirm keeps the member', async ({ page }) => {\n  await page.goto('/dialogs');\n  page.once('dialog', async (dialog) => {\n    expect(dialog.message()).toBe('Delete Ben?');\n    await dialog.dismiss();\n  });\n  await page.getByRole('button', { name: 'Delete Ben' }).click();\n  await expect(page.getByRole('status')).toHaveText('Kept Ben');\n});\n\ntest('modal can be cancelled', async ({ page }) => {\n  await page.goto('/dialogs');\n  await page.getByRole('button', { name: 'Open settings' }).click();\n  const dialog = page.getByRole('dialog', { name: 'Settings' });\n  await expect(dialog).toBeVisible();\n  await dialog.getByRole('button', { name: 'Cancel' }).click();\n  await expect(dialog).toBeHidden();\n});\n"
+  },
+  "runnable": true,
+  "teachAlong": [],
+  "order": 13
+}

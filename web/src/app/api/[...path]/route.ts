@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { backendForTrack, pickBackend, trackIdFromPath } from "@/lib/backend";
+import { backendForTrack, pickBackend, pwBackend, trackIdFromPath } from "@/lib/backend";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -9,20 +9,25 @@ async function proxy(req: NextRequest, pathParts: string[]) {
 
   // Aggregated hub health — single public surface
   if (parts.length === 1 && parts[0] === "health") {
-    const [python, node] = await Promise.all([
+    const [python, node, playwright] = await Promise.all([
       fetch(`${process.env.PYTHON_API_INTERNAL || "http://localhost:8000"}/health`)
         .then((r) => r.json())
         .catch(() => ({ ok: false, database: false })),
       fetch(`${process.env.NODE_API_INTERNAL || "http://localhost:8001"}/health`)
         .then((r) => r.json())
         .catch(() => ({ ok: false, database: false })),
+      fetch(`${pwBackend()}/health`, { signal: AbortSignal.timeout(4000) })
+        .then((r) => r.json())
+        .catch(() => ({ ok: false, database: false })),
     ]);
+    // The Playwright runner is optional for the SQL/Node tracks: report it, but don't mark the hub down.
     const ok = Boolean(python?.ok) && Boolean(node?.ok);
     return NextResponse.json({
       ok,
       hub: "abi-learning-hub",
       python,
       node,
+      playwright,
       message: ok
         ? "Hub online — pick a track in the UI"
         : "Hub degraded — ensure docker compose is running",
@@ -76,12 +81,20 @@ async function proxy(req: NextRequest, pathParts: string[]) {
     const upstreamCt = upstream.headers.get("content-type");
     if (upstreamCt) outHeaders.set("content-type", upstreamCt);
 
-    // Stream binary downloads (snapshot files) as-is
-    if (upstreamCt && (upstreamCt.includes("octet-stream") || upstreamCt.includes("application/sql"))) {
+    // Pass binary bodies through untouched: snapshot files, Playwright screenshots, trace.zip,
+    // and the trace viewer's own assets (js, wasm, fonts, service worker).
+    const isText = !upstreamCt || /^(text\/|application\/(json|problem\+json))/.test(upstreamCt);
+    if (!isText || (upstreamCt ?? "").includes("application/sql")) {
       const buf = await upstream.arrayBuffer();
-      const cd = upstream.headers.get("content-disposition");
-      if (cd) outHeaders.set("content-disposition", cd);
+      for (const h of ["content-disposition", "cache-control", "service-worker-allowed"]) {
+        const v = upstream.headers.get(h);
+        if (v) outHeaders.set(h, v);
+      }
       return new NextResponse(buf, { status: upstream.status, headers: outHeaders });
+    }
+    if (parts[0] === "pw") {
+      const cc = upstream.headers.get("cache-control");
+      if (cc) outHeaders.set("cache-control", cc);
     }
 
     const text = await upstream.text();

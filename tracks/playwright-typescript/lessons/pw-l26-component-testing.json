@@ -1,0 +1,27 @@
+{
+  "id": "pw-l26-component-testing",
+  "title": "Component testing vs end-to-end",
+  "topic": "Strategy",
+  "summary": "E2E tests drive the real app in a browser. Component tests (experimental) mount a single React/Vue/Svelte component in a real browser for fast, focused checks.",
+  "why": "Choosing the right level keeps suites fast: business rules in API/unit tests, component behaviour in component tests, critical user journeys in E2E.",
+  "body": "Playwright component testing lives in @playwright/experimental-ct-react (and -vue, -svelte). It bundles your component with Vite and mounts it: const component = await mount(<Button title='Submit' />). It is still experimental — APIs can change between versions. For most QA-led suites, E2E + API tests cover the need; component tests are usually owned by front-end developers.",
+  "objectives": [
+    "Explain the difference between component and E2E tests",
+    "Know CT is experimental",
+    "Choose a test level for a scenario"
+  ],
+  "references": [
+    {
+      "title": "Components (experimental)",
+      "url": "https://playwright.dev/docs/test-components"
+    }
+  ],
+  "example": {
+    "language": "tsx",
+    "code": "// tests/Button.spec.tsx  (npm init playwright@latest -- --ct)\nimport { test, expect } from '@playwright/experimental-ct-react';\nimport { Button } from '../src/Button';\n\ntest('calls onClick', async ({ mount }) => {\n  let clicked = false;\n  const component = await mount(<Button title=\"Submit\" onClick={() => { clicked = true; }} />);\n  await component.click();\n  expect(clicked).toBe(true);\n});\n"
+  },
+  "runnable": false,
+  "teachAlong": [],
+  "pitfalls": [],
+  "order": 26
+}

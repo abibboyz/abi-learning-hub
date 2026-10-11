@@ -1,0 +1,38 @@
+{
+  "id": "pw-l22-parallel",
+  "title": "Parallelism and sharding",
+  "topic": "Scale",
+  "summary": "Workers run test files in parallel processes; fullyParallel parallelises tests within files; --shard splits a suite across CI machines; merge-reports combines the results.",
+  "why": "A 40-minute suite blocks releases. Parallel workers on one machine and shards across machines bring it down to minutes.",
+  "body": "Each worker is a separate process with its own browser; tests must be independent. test.describe.configure({ mode: 'parallel' | 'serial' }) overrides per file. New in 1.64: test.describe.configure({ lock: 'name' }) adds test locks so tests touching the same resource never overlap. Sharding: npx playwright test --shard=1/4 on 4 machines, with reporter 'blob', then npx playwright merge-reports to build one HTML report.",
+  "objectives": [
+    "Configure workers and fullyParallel",
+    "Shard in CI and merge reports",
+    "Use serial mode / locks only when needed"
+  ],
+  "pitfalls": [
+    "Tests sharing accounts/data under parallel workers.",
+    "Using serial mode to hide dependencies between tests."
+  ],
+  "references": [
+    {
+      "title": "Parallelism",
+      "url": "https://playwright.dev/docs/test-parallel"
+    },
+    {
+      "title": "Sharding",
+      "url": "https://playwright.dev/docs/test-sharding"
+    },
+    {
+      "title": "Test locks (1.64)",
+      "url": "https://playwright.dev/docs/test-parallel#test-locks"
+    }
+  ],
+  "example": {
+    "language": "bash",
+    "code": "# 4 machines in CI\nnpx playwright test --shard=1/4 --reporter=blob\n# … collect blob-report/ from every shard, then:\nnpx playwright merge-reports --reporter=html ./all-blob-reports\n"
+  },
+  "runnable": false,
+  "teachAlong": [],
+  "order": 22
+}

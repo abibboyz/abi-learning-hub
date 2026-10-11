@@ -1,0 +1,33 @@
+{
+  "id": "pw-l14-frames-tabs",
+  "title": "iframes, new tabs and popups",
+  "topic": "UI patterns",
+  "summary": "Use locator.contentFrame() (or page.frameLocator) for iframes; capture new tabs with page.waitForEvent('popup') or context.waitForEvent('page').",
+  "why": "Embedded payment forms, chat widgets and 'open in new tab' links are common and each needs one specific technique.",
+  "body": "page.getByTitle('Payment form').contentFrame() returns a FrameLocator; every locator from it searches inside the iframe. For new tabs, start waiting before the click: const popupPromise = page.waitForEvent('popup'). The resolved value is a Page you test like any other.",
+  "objectives": [
+    "Locate inside an iframe",
+    "Capture and test a new tab"
+  ],
+  "pitfalls": [
+    "Using page-level locators for elements inside an iframe.",
+    "Not starting the wait before the click."
+  ],
+  "references": [
+    {
+      "title": "Frames",
+      "url": "https://playwright.dev/docs/frames"
+    },
+    {
+      "title": "Pages: handling new pages and popups",
+      "url": "https://playwright.dev/docs/pages"
+    }
+  ],
+  "example": {
+    "language": "typescript",
+    "code": "import { test, expect } from '@playwright/test';\n\ntest('validates the card number inside the iframe', async ({ page }) => {\n  await page.goto('/frames');\n  const payment = page.getByTitle('Payment form').contentFrame();\n  await payment.getByLabel('Card number').fill('1234');\n  await payment.getByRole('button', { name: 'Pay now' }).click();\n  await expect(payment.getByRole('status')).toHaveText('Card number must be 16 digits');\n});\n\ntest('help opens in a new tab', async ({ page, context }) => {\n  await page.goto('/newtab');\n  const pagePromise = context.waitForEvent('page');\n  await page.getByRole('link', { name: 'Open help center' }).click();\n  const help = await pagePromise;\n  await expect(help.getByRole('heading', { name: 'Help Center' })).toBeVisible();\n  expect(context.pages()).toHaveLength(2);\n});\n"
+  },
+  "runnable": true,
+  "teachAlong": [],
+  "order": 14
+}

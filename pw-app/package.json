@@ -1,0 +1,12 @@
+{
+  "name": "abi-learning-hub-pw-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Deterministic, offline app under test for the Playwright track (internal-only).",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test tests/"
+  },
+  "engines": { "node": ">=20" }
+}

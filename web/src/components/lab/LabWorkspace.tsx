@@ -7,6 +7,7 @@ import {
   fetchSchema,
   fetchTasks,
   fetchTrack,
+  fetchTracks,
 } from "@/lib/api";
 import type { ExecuteResult, Lesson, Manifest, Schema, Task } from "@/types/hub";
 import { SchemaDiagram } from "@/components/diagram/SchemaDiagram";
@@ -22,10 +23,12 @@ type Props = {
   onTrackChange: (id: string) => void;
 };
 
+/** Used until /api/tracks answers; the picker then lists every track in tracks/index.json. */
 const TRACK_OPTIONS = [
   { id: "python-sqlalchemy", label: "Python · SQLAlchemy" },
   { id: "node-typescript", label: "Node · TypeScript" },
   { id: "node-javascript", label: "Node · JavaScript" },
+  { id: "playwright-typescript", label: "Playwright · TypeScript" },
 ];
 
 function RefList({ refs }: { refs?: Array<{ title: string; url: string }> }) {
@@ -68,6 +71,15 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [passedIds, setPassedIds] = useState<Set<string>>(() => new Set());
+  const [trackOptions, setTrackOptions] = useState(TRACK_OPTIONS);
+
+  useEffect(() => {
+    fetchTracks()
+      .then((t) => {
+        if (t.length) setTrackOptions(t.map((x) => ({ id: x.id, label: x.title })));
+      })
+      .catch(() => {});
+  }, []);
 
   const task = useMemo(
     () => tasks.find((t) => t.id === taskId) || tasks[0] || null,
@@ -187,7 +199,7 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
             value={trackId}
             onChange={(e) => onTrackChange(e.target.value)}
           >
-            {TRACK_OPTIONS.map((t) => (
+            {trackOptions.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.label}
               </option>

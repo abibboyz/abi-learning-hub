@@ -18,6 +18,8 @@ const REFS = [
     title: "PostgreSQL — Foreign keys",
     url: "https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK",
   },
+  { title: "Playwright — Docs", url: "https://playwright.dev/docs/intro" },
+  { title: "Playwright — Best practices", url: "https://playwright.dev/docs/best-practices" },
   {
     title: "Next.js — Route Handlers",
     url: "https://nextjs.org/docs/app/building-your-application/routing/route-handlers",

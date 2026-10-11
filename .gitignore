@@ -56,3 +56,10 @@ venv/
 web/.next/
 yarn-debug.log*
 yarn-error.log*
+
+# Playwright runner artifacts
+pw-runner/.runs/
+test-results/
+playwright-report/
+blob-report/
+playwright/.auth/

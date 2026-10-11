@@ -1,0 +1,88 @@
+{
+  "id": "pw-11-custom-fixture",
+  "title": "Custom fixtures",
+  "summary": "LoginPage is provided in pages/LoginPage.ts (read-only). Create a loginPage fixture with test.extend and use it in two tests.",
+  "why": "Fixtures are Playwright's dependency injection: setup + teardown live in one place, tests just ask for what they need ({ loginPage }), and only the fixtures a test uses are created.",
+  "objectives": [
+    "const test = base.extend<{ loginPage: LoginPage }>({ … })",
+    "The fixture opens /login before use(loginPage)",
+    "Two tests destructure { loginPage }"
+  ],
+  "hints": [
+    "import { test as base, expect } from '@playwright/test';",
+    "import { LoginPage } from './pages/LoginPage';",
+    "Code after await use(...) is teardown."
+  ],
+  "pitfalls": [
+    "Forgetting await use(fixture).",
+    "Calling new LoginPage(page) in every test instead of using the fixture."
+  ],
+  "references": [
+    {
+      "title": "Fixtures",
+      "url": "https://playwright.dev/docs/test-fixtures"
+    },
+    {
+      "title": "Page object models",
+      "url": "https://playwright.dev/docs/pom"
+    }
+  ],
+  "teachAlong": [
+    "Cause: the fixture builds LoginPage and navigates.",
+    "Effect: tests start at the action, not the setup.",
+    "Gate: requires test.extend and a test that asks for { loginPage }."
+  ],
+  "supportFiles": [
+    {
+      "path": "pages/LoginPage.ts",
+      "content": "import { type Page, type Locator } from '@playwright/test';\n\n/** Page Object for /login. Locators live here once; tests read like the manual test case. */\nexport class LoginPage {\n  readonly page: Page;\n  readonly email: Locator;\n  readonly password: Locator;\n  readonly submit: Locator;\n  readonly error: Locator;\n\n  constructor(page: Page) {\n    this.page = page;\n    this.email = page.getByLabel('Email');\n    this.password = page.getByLabel('Password');\n    this.submit = page.getByRole('button', { name: 'Sign in' });\n    this.error = page.getByRole('alert');\n  }\n\n  async goto() {\n    await this.page.goto('/login');\n  }\n\n  async login(email: string, password: string) {\n    await this.email.fill(email);\n    await this.password.fill(password);\n    await this.submit.click();\n  }\n}\n",
+      "readOnly": true
+    }
+  ],
+  "starterCode": "import { test as base, expect } from '@playwright/test';\nimport { LoginPage } from './pages/LoginPage';\n\n// TODO: const test = base.extend<{ loginPage: LoginPage }>({ … });\nconst test = base;\n\ntest('valid user reaches the dashboard', async ({ page }) => {\n  // use the loginPage fixture instead of page\n});\n",
+  "solution": "import { test as base, expect } from '@playwright/test';\nimport { LoginPage } from './pages/LoginPage';\n\n// A custom fixture: every test that asks for loginPage gets one, already on /login.\nconst test = base.extend<{ loginPage: LoginPage }>({\n  loginPage: async ({ page }, use) => {\n    const loginPage = new LoginPage(page);\n    await loginPage.goto();\n    await use(loginPage);\n  },\n});\n\ntest('valid user reaches the dashboard', async ({ loginPage, page }) => {\n  await loginPage.login('qa@example.com', 'Passw0rd!');\n  await expect(page.getByText('Welcome, QA Tester')).toBeVisible();\n});\n\ntest('unknown user sees an error', async ({ loginPage }) => {\n  await loginPage.login('nobody@example.com', 'whatever');\n  await expect(loginPage.error).toHaveText('Invalid email or password');\n});\n",
+  "gate": {
+    "forbidCss": true,
+    "minTests": 2,
+    "requires": [
+      {
+        "rule": "call",
+        "anyOf": [
+          "extend"
+        ],
+        "reason": "Create the fixture with base.extend<{ loginPage: LoginPage }>({ loginPage: async ({ page }, use) => { … } })."
+      },
+      {
+        "rule": "fixture",
+        "name": "loginPage",
+        "reason": "Use the fixture: write your tests as async ({ loginPage }) => { … } instead of building LoginPage by hand."
+      }
+    ],
+    "mutants": [
+      {
+        "bug": "welcome-name",
+        "reason": "the dashboard greets the user as 'Guest'"
+      }
+    ]
+  },
+  "wrongSolutions": [
+    {
+      "label": "page object without a fixture",
+      "expect": [
+        "requires-extend",
+        "requires-fixture-loginPage"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\nimport { LoginPage } from './pages/LoginPage';\n\ntest('valid user reaches the dashboard', async ({ page }) => {\n  const loginPage = new LoginPage(page);\n  await loginPage.goto();\n  await loginPage.login('qa@example.com', 'Passw0rd!');\n  await expect(page.getByText('Welcome, QA Tester')).toBeVisible();\n});\n\ntest('unknown user sees an error', async ({ page }) => {\n  const loginPage = new LoginPage(page);\n  await loginPage.goto();\n  await loginPage.login('nobody@example.com', 'whatever');\n  await expect(loginPage.error).toHaveText('Invalid email or password');\n});\n"
+    },
+    {
+      "label": "imports a module that is not provided",
+      "expect": [
+        "forbidden-import"
+      ],
+      "code": "import { test as base, expect } from '@playwright/test';\nimport { LoginPage } from './pages/LoginPageX';\n\n// A custom fixture: every test that asks for loginPage gets one, already on /login.\nconst test = base.extend<{ loginPage: LoginPage }>({\n  loginPage: async ({ page }, use) => {\n    const loginPage = new LoginPage(page);\n    await loginPage.goto();\n    await use(loginPage);\n  },\n});\n\ntest('valid user reaches the dashboard', async ({ loginPage, page }) => {\n  await loginPage.login('qa@example.com', 'Passw0rd!');\n  await expect(page.getByText('Welcome, QA Tester')).toBeVisible();\n});\n\ntest('unknown user sees an error', async ({ loginPage }) => {\n  await loginPage.login('nobody@example.com', 'whatever');\n  await expect(loginPage.error).toHaveText('Invalid email or password');\n});\n"
+    }
+  ],
+  "testFile": "learner.spec.ts",
+  "order": 11,
+  "trackId": "playwright-typescript"
+}

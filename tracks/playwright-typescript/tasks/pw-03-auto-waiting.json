@@ -1,0 +1,78 @@
+{
+  "id": "pw-03-auto-waiting",
+  "title": "Auto-waiting & web-first assertions",
+  "summary": "Fix a flaky test: the orders list loads after a variable delay. Replace the sleep and the one-shot count with web-first assertions.",
+  "why": "Most 'flaky automation' comes from sleeping for a guessed time. Web-first assertions retry until the condition is true (or the timeout hits), so they are both fast and reliable.",
+  "objectives": [
+    "Delete waitForTimeout",
+    "await expect(list items).toHaveCount(3)",
+    "Assert the status text 'Loaded 3 orders'"
+  ],
+  "hints": [
+    "const orders = page.getByRole('list', { name: 'Orders' }).getByRole('listitem');",
+    "await expect(orders).toHaveCount(3);"
+  ],
+  "pitfalls": [
+    "expect(await locator.count()).toBe(3) reads once — no retry.",
+    "Raising the sleep 'fixes' it on your machine and slows every run."
+  ],
+  "references": [
+    {
+      "title": "Auto-waiting (actionability)",
+      "url": "https://playwright.dev/docs/actionability"
+    },
+    {
+      "title": "Web-first assertions",
+      "url": "https://playwright.dev/docs/test-assertions"
+    },
+    {
+      "title": "Best practices: web-first assertions",
+      "url": "https://playwright.dev/docs/best-practices#use-web-first-assertions"
+    }
+  ],
+  "teachAlong": [
+    "Cause: the API delay varies per request.",
+    "Effect: a fixed sleep passes some runs and fails others.",
+    "Gate: runs your test 3 times; the 2nd run gets the 1.6 s response."
+  ],
+  "starterCode": "import { test, expect } from '@playwright/test';\n\n// This test is flaky: the orders API answers in 250 ms, 1600 ms or 700 ms.\n// Remove the fixed sleep and use web-first assertions that wait for the real condition.\ntest('loads the three orders', async ({ page }) => {\n  await page.goto('/async');\n  await page.getByRole('button', { name: 'Load orders' }).click();\n  await page.waitForTimeout(1000); // \"give it a second\"\n  expect(await page.getByRole('list', { name: 'Orders' }).getByRole('listitem').count()).toBe(3);\n});\n",
+  "solution": "import { test, expect } from '@playwright/test';\n\ntest('loads the three orders', async ({ page }) => {\n  await page.goto('/async');\n  await page.getByRole('button', { name: 'Load orders' }).click();\n  const orders = page.getByRole('list', { name: 'Orders' }).getByRole('listitem');\n  await expect(orders).toHaveCount(3);\n  await expect(page.getByText('Loaded 3 orders')).toBeVisible();\n  await expect(orders.first()).toContainText('A-1001');\n});\n",
+  "gate": {
+    "requires": [
+      {
+        "rule": "call",
+        "anyOf": [
+          "toHaveCount"
+        ],
+        "reason": "Check the number of orders with await expect(orders).toHaveCount(3) — it retries until the list is rendered."
+      }
+    ],
+    "mutants": [
+      {
+        "bug": "orders-empty",
+        "reason": "the orders never finish loading"
+      }
+    ]
+  },
+  "wrongSolutions": [
+    {
+      "label": "starter (sleep + one-shot count)",
+      "expect": [
+        "no-wait-for-timeout",
+        "non-retrying-assertion",
+        "flaky"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\n// This test is flaky: the orders API answers in 250 ms, 1600 ms or 700 ms.\n// Remove the fixed sleep and use web-first assertions that wait for the real condition.\ntest('loads the three orders', async ({ page }) => {\n  await page.goto('/async');\n  await page.getByRole('button', { name: 'Load orders' }).click();\n  await page.waitForTimeout(1000); // \"give it a second\"\n  expect(await page.getByRole('list', { name: 'Orders' }).getByRole('listitem').count()).toBe(3);\n});\n"
+    },
+    {
+      "label": "truthy locator",
+      "expect": [
+        "weak-assertion"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('loads the three orders', async ({ page }) => {\n  await page.goto('/async');\n  await page.getByRole('button', { name: 'Load orders' }).click();\n  const orders = page.getByRole('list', { name: 'Orders' }).getByRole('listitem');\n  expect(orders).toBeTruthy();\n  await expect(orders).toHaveCount(3);\n});\n"
+    }
+  ],
+  "testFile": "learner.spec.ts",
+  "order": 3,
+  "trackId": "playwright-typescript"
+}

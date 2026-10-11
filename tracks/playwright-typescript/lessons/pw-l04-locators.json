@@ -1,0 +1,42 @@
+{
+  "id": "pw-l04-locators",
+  "title": "Locators and their priority order",
+  "topic": "Locators",
+  "summary": "Locators find elements the way users do. Prefer getByRole, then getByLabel, getByPlaceholder, getByText, getByAltText/getByTitle, then getByTestId; CSS/XPath last.",
+  "why": "Tests that depend on ids, classes or DOM structure break on harmless refactors. User-facing locators only break when what the user sees changes — which is exactly when a test should fail.",
+  "body": "A Locator is a recipe, not an element: it is resolved every time you use it, so it never goes stale, and it auto-waits. Locators are strict — if one matches several elements, actions throw so you notice. Narrow down by chaining (list.getByRole('listitem')) and filtering (filter({ hasText }), filter({ has })). New in 1.64: locator.within(parent) reads as 'this, within that'.\n\nUse getByTestId when there is no user-facing handle (a canvas, a dynamic id), and agree a data-testid convention with developers.",
+  "objectives": [
+    "Use getByRole with a name",
+    "Chain and filter locators",
+    "Know when getByTestId is the right choice"
+  ],
+  "pitfalls": [
+    "page.locator('.btn-primary') — tied to styling.",
+    "Using .first()/.nth() to silence strictness instead of writing a better locator."
+  ],
+  "references": [
+    {
+      "title": "Locators",
+      "url": "https://playwright.dev/docs/locators"
+    },
+    {
+      "title": "Best practices: locators",
+      "url": "https://playwright.dev/docs/best-practices#use-locators"
+    },
+    {
+      "title": "locator.within() (1.64)",
+      "url": "https://playwright.dev/docs/api/class-locator#locator-within"
+    },
+    {
+      "title": "Other locators (CSS/XPath)",
+      "url": "https://playwright.dev/docs/other-locators"
+    }
+  ],
+  "example": {
+    "language": "typescript",
+    "code": "import { test, expect } from '@playwright/test';\n\ntest('locators in priority order', async ({ page }) => {\n  await page.goto('/login');\n  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();   // role + name\n  await page.getByLabel('Email').fill('qa@example.com');                        // form label\n  await expect(page.getByText('Practice account')).toBeVisible();              // visible text\n\n  await page.goto('/dashboard');\n  // redirected to login, because we are not signed in:\n  await expect(page.getByRole('alert')).toHaveText('Please sign in first');\n});\n\ntest('chaining and filtering', async ({ page }) => {\n  await page.goto('/products');\n  const rows = page.getByRole('row').filter({ has: page.getByRole('cell') });\n  await expect(rows).toHaveCount(12);\n  await expect(rows.filter({ hasText: 'Cheddar' })).toContainText('$9.90');\n});\n"
+  },
+  "runnable": true,
+  "teachAlong": [],
+  "order": 4
+}

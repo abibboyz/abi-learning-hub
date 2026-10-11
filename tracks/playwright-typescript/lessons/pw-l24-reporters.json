@@ -1,0 +1,30 @@
+{
+  "id": "pw-l24-reporters",
+  "title": "Reporters",
+  "topic": "Reporting",
+  "summary": "Built-in reporters: list, line, dot, html, json, junit, github, blob. Combine several; write a custom one when you need to push results elsewhere.",
+  "why": "Reports are how the team sees results. JUnit feeds CI dashboards and test-management tools; HTML is for humans; blob is for sharding.",
+  "body": "reporter: [['list'], ['html', { open: 'never' }], ['junit', { outputFile: 'results.xml' }]]. On GitHub Actions the 'github' reporter annotates failures inline. A custom reporter implements onBegin/onTestEnd/onEnd. This hub uses the json reporter to build the results panel you see in the lab.",
+  "objectives": [
+    "Configure multiple reporters",
+    "Know which reporter fits which consumer"
+  ],
+  "references": [
+    {
+      "title": "Reporters",
+      "url": "https://playwright.dev/docs/test-reporters"
+    },
+    {
+      "title": "Custom reporter API",
+      "url": "https://playwright.dev/docs/api/class-reporter"
+    }
+  ],
+  "example": {
+    "language": "typescript",
+    "code": "import { defineConfig } from '@playwright/test';\n\nexport default defineConfig({\n  reporter: process.env.CI\n    ? [['github'], ['html', { open: 'never' }], ['junit', { outputFile: 'results/junit.xml' }]]\n    : [['list'], ['html']],\n});\n"
+  },
+  "runnable": false,
+  "teachAlong": [],
+  "pitfalls": [],
+  "order": 24
+}

@@ -1,0 +1,76 @@
+{
+  "id": "pw-15-api-testing",
+  "title": "API testing with the request fixture",
+  "summary": "Test the todos JSON API directly: create a todo (201 + body), find it in the list, and check that an empty title is rejected with 400.",
+  "why": "API tests are fast and precise: they check status codes and contracts without a browser, and they are the cheapest way to seed or verify data for UI tests.",
+  "objectives": [
+    "Use the request fixture: async ({ request }) => …",
+    "POST returns 201 with { id, title, done: false }",
+    "The new todo appears in GET /api/todos",
+    "Empty title → 400 { error: 'Title is required' }"
+  ],
+  "hints": [
+    "expect(created.status()).toBe(201)",
+    "expect(body.todos).toContainEqual(expect.objectContaining({ id: todo.id }))"
+  ],
+  "pitfalls": [
+    "Only checking response.ok() — 200 instead of 201, or a missing body, passes.",
+    "Depending on data from another test — create what you need in the test."
+  ],
+  "references": [
+    {
+      "title": "API testing",
+      "url": "https://playwright.dev/docs/api-testing"
+    },
+    {
+      "title": "APIRequestContext",
+      "url": "https://playwright.dev/docs/api/class-apirequestcontext"
+    },
+    {
+      "title": "APIResponse assertions",
+      "url": "https://playwright.dev/docs/api/class-apiresponseassertions"
+    }
+  ],
+  "teachAlong": [
+    "Cause: assert status and body, not just 'ok'.",
+    "Effect: contract changes are caught.",
+    "Gate: a planted bug returns 200 without the created todo."
+  ],
+  "starterCode": "import { test, expect } from '@playwright/test';\n\ntest('creates a todo through the API', async ({ request }) => {\n  // POST /api/todos with { title }, then check status, body, and GET /api/todos\n});\n\ntest('rejects an empty title with 400', async ({ request }) => {\n  // POST an empty title and check the status code and error message\n});\n",
+  "solution": "import { test, expect } from '@playwright/test';\n\ntest('creates a todo through the API', async ({ request }) => {\n  const created = await request.post('/api/todos', { data: { title: 'Automate checkout' } });\n  expect(created.status()).toBe(201);\n  const todo = await created.json();\n  expect(todo).toMatchObject({ title: 'Automate checkout', done: false });\n  expect(typeof todo.id).toBe('number');\n\n  const list = await request.get('/api/todos');\n  await expect(list).toBeOK();\n  const body = await list.json();\n  expect(body.todos).toContainEqual(expect.objectContaining({ id: todo.id, title: 'Automate checkout' }));\n});\n\ntest('rejects an empty title with 400', async ({ request }) => {\n  const res = await request.post('/api/todos', { data: { title: '' } });\n  expect(res.status()).toBe(400);\n  expect(await res.json()).toEqual({ error: 'Title is required' });\n});\n",
+  "gate": {
+    "minTests": 2,
+    "requires": [
+      {
+        "rule": "fixture",
+        "name": "request",
+        "reason": "Use the API fixture: test('…', async ({ request }) => { … }) — no browser needed."
+      }
+    ],
+    "mutants": [
+      {
+        "bug": "api-created",
+        "reason": "POST /api/todos answers 200 without returning the created todo"
+      }
+    ]
+  },
+  "wrongSolutions": [
+    {
+      "label": "only checks ok()",
+      "expect": [
+        "weak-test"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('creates a todo through the API', async ({ request }) => {\n  const created = await request.post('/api/todos', { data: { title: 'Automate checkout' } });\n  expect(created.ok()).toBeTruthy();\n});\n\ntest('rejects an empty title', async ({ request }) => {\n  const res = await request.post('/api/todos', { data: { title: '' } });\n  expect(res.ok()).toBeFalsy();\n});\n"
+    },
+    {
+      "label": "drives the UI instead",
+      "expect": [
+        "requires-fixture-request"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('creates a todo through the UI', async ({ page }) => {\n  await page.goto('/todos');\n  await page.getByLabel('New todo').fill('Automate checkout');\n  await page.getByRole('button', { name: 'Add' }).click();\n  await expect(page.getByText('Automate checkout')).toBeVisible();\n});\n\ntest('rejects an empty title', async ({ page }) => {\n  await page.goto('/todos');\n  await page.getByRole('button', { name: 'Add' }).click();\n  await expect(page.getByRole('alert')).toHaveText('Title is required');\n});\n"
+    }
+  ],
+  "testFile": "learner.spec.ts",
+  "order": 15,
+  "trackId": "playwright-typescript"
+}

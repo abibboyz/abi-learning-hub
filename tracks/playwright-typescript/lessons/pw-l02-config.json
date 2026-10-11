@@ -1,0 +1,38 @@
+{
+  "id": "pw-l02-config",
+  "title": "playwright.config.ts explained",
+  "topic": "Setup",
+  "summary": "The config decides where tests are, which browsers run (projects), the base URL, timeouts, retries, reporters and what to record (trace, screenshot, video).",
+  "why": "Most 'it works locally but not in CI' problems are config problems. Reading the config is the fastest way to understand any Playwright repo you join.",
+  "body": "defineConfig() gives you type-checked options. Top-level options apply to the runner (testDir, timeout, retries, workers, reporter). `use` sets defaults for fixtures (baseURL, trace, screenshot, viewport). `projects` run the same tests with different `use` settings — typically one per browser or device. `webServer` can start your app before the tests.\n\nThe Prerequisites panel in this lab shows the exact config the hub generates for every run.",
+  "objectives": [
+    "Find testDir, baseURL, projects, retries and reporter in a config",
+    "Know the difference between top-level options and `use`",
+    "Know what webServer does"
+  ],
+  "pitfalls": [
+    "Hard-coding full URLs in tests instead of baseURL.",
+    "retries > 0 locally — it hides flakiness while you develop."
+  ],
+  "references": [
+    {
+      "title": "Test configuration",
+      "url": "https://playwright.dev/docs/test-configuration"
+    },
+    {
+      "title": "Test use options",
+      "url": "https://playwright.dev/docs/test-use-options"
+    },
+    {
+      "title": "Web server",
+      "url": "https://playwright.dev/docs/test-webserver"
+    }
+  ],
+  "example": {
+    "language": "typescript",
+    "code": "import { defineConfig, devices } from '@playwright/test';\n\nexport default defineConfig({\n  testDir: './tests',\n  fullyParallel: true,\n  forbidOnly: !!process.env.CI,          // fail CI if someone commits test.only\n  retries: process.env.CI ? 2 : 0,\n  workers: process.env.CI ? 1 : undefined,\n  reporter: [['html'], ['list']],\n  use: {\n    baseURL: 'http://localhost:3000',\n    trace: 'on-first-retry',\n    screenshot: 'only-on-failure',\n  },\n  projects: [\n    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },\n    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },\n    // New in 1.64: keep a project configured but run it only when asked (--project=webkit)\n    { name: 'webkit', use: { ...devices['Desktop Safari'] }, default: false },\n  ],\n  webServer: {\n    command: 'npm run start',\n    url: 'http://localhost:3000',\n    reuseExistingServer: !process.env.CI,\n  },\n});\n"
+  },
+  "runnable": false,
+  "teachAlong": [],
+  "order": 2
+}

@@ -1,0 +1,84 @@
+{
+  "id": "pw-14-storage-state",
+  "title": "Reuse the signed-in state",
+  "summary": "auth.setup.ts is provided. Write tests that start already signed in via storageState: open the dashboard directly and call /api/me with the same session.",
+  "why": "This is what makes large suites fast: hundreds of tests skip the login form. page.request shares the browser's cookies, so API calls are authenticated too.",
+  "objectives": [
+    "test.use({ storageState: 'playwright/.auth/user.json' })",
+    "Open /dashboard directly and assert the greeting",
+    "page.request.get('/api/me') is OK and returns qa@example.com"
+  ],
+  "hints": [
+    "Do not fill the login form in these tests.",
+    "await expect(response).toBeOK();"
+  ],
+  "pitfalls": [
+    "Logging in again in every test (slow, couples every test to the login page).",
+    "Sharing one account across parallel tests that change user data."
+  ],
+  "references": [
+    {
+      "title": "Authentication: reuse signed-in state",
+      "url": "https://playwright.dev/docs/auth#basic-shared-account-in-all-tests"
+    },
+    {
+      "title": "testOptions.storageState",
+      "url": "https://playwright.dev/docs/api/class-testoptions#test-options-storage-state"
+    },
+    {
+      "title": "API testing: page.request",
+      "url": "https://playwright.dev/docs/api-testing#sending-api-requests-from-ui-tests"
+    }
+  ],
+  "teachAlong": [
+    "Cause: storageState loads the saved cookie.",
+    "Effect: the dashboard opens without a login step.",
+    "Gate: login-form code in this file fails the task."
+  ],
+  "supportFiles": [
+    {
+      "path": "auth.setup.ts",
+      "content": "import { test as setup, expect } from '@playwright/test';\n\nconst authFile = 'playwright/.auth/user.json';\n\nsetup('sign in once and save the session', async ({ page }) => {\n  await page.goto('/login');\n  await page.getByLabel('Email').fill('qa@example.com');\n  await page.getByLabel('Password').fill('Passw0rd!');\n  await page.getByRole('button', { name: 'Sign in' }).click();\n  // Wait until the login has really finished, otherwise the saved state may lack the cookie.\n  await expect(page).toHaveURL(/\\/dashboard$/);\n  await page.context().storageState({ path: authFile });\n});\n",
+      "readOnly": true
+    }
+  ],
+  "starterCode": "import { test, expect } from '@playwright/test';\n\n// TODO: test.use({ storageState: … })\n\ntest('signed-in user sees the dashboard', async ({ page }) => {\n  await page.goto('/dashboard');\n});\n",
+  "solution": "import { test, expect } from '@playwright/test';\n\ntest.use({ storageState: 'playwright/.auth/user.json' });\n\ntest('signed-in user sees the dashboard', async ({ page }) => {\n  await page.goto('/dashboard');\n  await expect(page).toHaveURL(/\\/dashboard$/);\n  await expect(page.getByText('Welcome, QA Tester')).toBeVisible();\n});\n\ntest('API calls share the session', async ({ page }) => {\n  const response = await page.request.get('/api/me');\n  await expect(response).toBeOK();\n  expect(await response.json()).toMatchObject({ email: 'qa@example.com', name: 'QA Tester' });\n});\n",
+  "gate": {
+    "forbidCss": true,
+    "preset": "auth",
+    "minTests": 2,
+    "requires": [
+      {
+        "rule": "property",
+        "name": "storageState",
+        "reason": "Load the saved session with test.use({ storageState: 'playwright/.auth/user.json' })."
+      },
+      {
+        "rule": "forbid-text",
+        "pattern": "Passw0rd!|getByLabel\\(\\s*['\"]Password",
+        "reason": "You logged in through the form again. Reuse the saved session via storageState — that is what keeps large suites fast."
+      }
+    ],
+    "mutants": [
+      {
+        "bug": "welcome-name",
+        "reason": "the dashboard greets the user as 'Guest'"
+      }
+    ]
+  },
+  "wrongSolutions": [
+    {
+      "label": "logs in through the UI again",
+      "expect": [
+        "requires-storageState",
+        "forbidden-pattern",
+        "min-tests"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('signed-in user sees the dashboard', async ({ page }) => {\n  await page.goto('/login');\n  await page.getByLabel('Email').fill('qa@example.com');\n  await page.getByLabel('Password').fill('Passw0rd!');\n  await page.getByRole('button', { name: 'Sign in' }).click();\n  await expect(page.getByText('Welcome, QA Tester')).toBeVisible();\n});\n"
+    }
+  ],
+  "testFile": "learner.spec.ts",
+  "order": 14,
+  "trackId": "playwright-typescript"
+}
