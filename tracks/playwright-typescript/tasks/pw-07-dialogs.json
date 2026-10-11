@@ -1,0 +1,75 @@
+{
+  "id": "pw-07-dialogs",
+  "title": "Native dialogs & modals",
+  "summary": "Accept a native confirm() to delete a team member, and drive an in-page modal dialog.",
+  "why": "Playwright auto-dismisses native dialogs (alert/confirm/prompt) unless you handle them — a classic 'works manually, fails in automation' trap. Modals, on the other hand, are normal DOM you scope with getByRole('dialog').",
+  "objectives": [
+    "Register page.once('dialog', d => d.accept()) before clicking Delete",
+    "Assert 'Deleted Ana' and that Ana's row is gone",
+    "Open Settings, tick the checkbox inside the dialog, Save, and assert the dialog closes"
+  ],
+  "hints": [
+    "page.once('dialog', (dialog) => dialog.accept());",
+    "await expect(page.getByRole('listitem').filter({ hasText: 'Ana' })).toHaveCount(0)",
+    "await expect(dialog).toBeHidden()"
+  ],
+  "pitfalls": [
+    "Registering the dialog handler after the click — the dialog has already been dismissed.",
+    "Asserting only the status text: a delete that doesn't remove the row slips through."
+  ],
+  "references": [
+    {
+      "title": "Dialogs",
+      "url": "https://playwright.dev/docs/dialogs"
+    },
+    {
+      "title": "getByRole",
+      "url": "https://playwright.dev/docs/api/class-page#page-get-by-role"
+    }
+  ],
+  "teachAlong": [
+    "Cause: without a handler Playwright dismisses confirm().",
+    "Effect: the app reads 'Cancel' and keeps Ana.",
+    "Gate: a planted bug keeps the row after delete — check the row really disappears."
+  ],
+  "starterCode": "import { test, expect } from '@playwright/test';\n\ntest('deletes a team member after confirming', async ({ page }) => {\n  await page.goto('/dialogs');\n  await page.getByRole('button', { name: 'Delete Ana' }).click();\n  await expect(page.getByRole('status')).toHaveText('Deleted Ana');\n});\n\ntest('saves settings in the modal', async ({ page }) => {\n  await page.goto('/dialogs');\n  await page.getByRole('button', { name: 'Open settings' }).click();\n  const dialog = page.getByRole('dialog', { name: 'Settings' });\n  await dialog.getByLabel('Email notifications').check();\n  await dialog.getByRole('button', { name: 'Save' }).click();\n  await expect(page.getByRole('status')).toHaveText('Settings saved (notifications on)');\n});\n",
+  "solution": "import { test, expect } from '@playwright/test';\n\ntest('deletes a team member after confirming', async ({ page }) => {\n  await page.goto('/dialogs');\n  page.once('dialog', (dialog) => dialog.accept());\n  await page.getByRole('button', { name: 'Delete Ana' }).click();\n  await expect(page.getByRole('status')).toHaveText('Deleted Ana');\n  await expect(page.getByRole('list', { name: 'Team members' }).getByRole('listitem').filter({ hasText: 'Ana' })).toHaveCount(0);\n});\n\ntest('saves settings in the modal', async ({ page }) => {\n  await page.goto('/dialogs');\n  await page.getByRole('button', { name: 'Open settings' }).click();\n  const dialog = page.getByRole('dialog', { name: 'Settings' });\n  await expect(dialog).toBeVisible();\n  await dialog.getByLabel('Email notifications').check();\n  await dialog.getByRole('button', { name: 'Save' }).click();\n  await expect(dialog).toBeHidden();\n  await expect(page.getByRole('status')).toHaveText('Settings saved (notifications on)');\n});\n",
+  "gate": {
+    "forbidCss": true,
+    "minTests": 2,
+    "requires": [
+      {
+        "rule": "call",
+        "anyOf": [
+          "once",
+          "on",
+          "waitForEvent"
+        ],
+        "reason": "Handle the native confirm(): page.once('dialog', (dialog) => dialog.accept()) before clicking Delete."
+      }
+    ],
+    "mutants": [
+      {
+        "bug": "dialog-noop",
+        "reason": "confirming a delete does not remove the row"
+      },
+      {
+        "bug": "settings-noop",
+        "reason": "the Settings dialog Save button does nothing"
+      }
+    ]
+  },
+  "wrongSolutions": [
+    {
+      "label": "no dialog handler",
+      "expect": [
+        "requires-once",
+        "test-failed"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('deletes a team member after confirming', async ({ page }) => {\n  await page.goto('/dialogs');\n  await page.getByRole('button', { name: 'Delete Ana' }).click();\n  await expect(page.getByRole('status')).toHaveText('Deleted Ana');\n});\n\ntest('saves settings in the modal', async ({ page }) => {\n  await page.goto('/dialogs');\n  await page.getByRole('button', { name: 'Open settings' }).click();\n  const dialog = page.getByRole('dialog', { name: 'Settings' });\n  await dialog.getByLabel('Email notifications').check();\n  await dialog.getByRole('button', { name: 'Save' }).click();\n  await expect(page.getByRole('status')).toHaveText('Settings saved (notifications on)');\n});\n"
+    }
+  ],
+  "testFile": "learner.spec.ts",
+  "order": 7,
+  "trackId": "playwright-typescript"
+}

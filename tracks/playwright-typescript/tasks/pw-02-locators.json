@@ -1,0 +1,102 @@
+{
+  "id": "pw-02-locators",
+  "title": "Locators: refactor to user-facing",
+  "summary": "The starter test passes but uses CSS selectors. Refactor it to getByLabel / getByRole / getByText and also assert you landed on the dashboard.",
+  "why": "Locators that read like the UI (label, role, accessible name) keep working when developers rename ids or restructure markup, and they double as a basic accessibility check.",
+  "objectives": [
+    "Use getByLabel for the Email and Password fields",
+    "Use getByRole('button', { name: 'Sign in' })",
+    "Assert the URL with toHaveURL and the greeting with getByText(...)"
+  ],
+  "hints": [
+    "Priority: getByRole → getByLabel → getByPlaceholder → getByText → getByAltText/getByTitle → getByTestId → CSS/XPath (last resort).",
+    "await expect(page).toHaveURL(/\\/dashboard$/)"
+  ],
+  "pitfalls": [
+    "CSS such as 'form button[type=submit]' breaks the day a second form appears.",
+    "Asserting only the URL: a broken greeting would slip through."
+  ],
+  "references": [
+    {
+      "title": "Locators",
+      "url": "https://playwright.dev/docs/locators"
+    },
+    {
+      "title": "Best practices: user-facing attributes",
+      "url": "https://playwright.dev/docs/best-practices#use-locators"
+    },
+    {
+      "title": "Other locators (CSS/XPath)",
+      "url": "https://playwright.dev/docs/other-locators"
+    }
+  ],
+  "teachAlong": [
+    "Cause: locators describe what a user sees.",
+    "Effect: markup refactors don't break the test.",
+    "Gate: CSS/XPath fail this task; the app is also run with planted bugs your assertions must catch."
+  ],
+  "starterCode": "import { test, expect } from '@playwright/test';\n\n// This test passes, but it is tied to markup details (ids, tags, nesting).\n// Refactor every locator to a user-facing one: getByLabel / getByRole / getByText.\ntest('signs in with valid credentials', async ({ page }) => {\n  await page.goto('/login');\n  await page.locator('#email').fill('qa@example.com');\n  await page.locator('#password').fill('Passw0rd!');\n  await page.locator('form button[type=submit]').click();\n  await expect(page.locator('main p:first-of-type')).toHaveText('Welcome, QA Tester');\n});\n",
+  "solution": "import { test, expect } from '@playwright/test';\n\ntest('signs in with valid credentials', async ({ page }) => {\n  await page.goto('/login');\n  await page.getByLabel('Email').fill('qa@example.com');\n  await page.getByLabel('Password').fill('Passw0rd!');\n  await page.getByRole('button', { name: 'Sign in' }).click();\n  await expect(page).toHaveURL(/\\/dashboard$/);\n  await expect(page.getByText('Welcome, QA Tester')).toBeVisible();\n});\n",
+  "gate": {
+    "forbidCss": true,
+    "requires": [
+      {
+        "rule": "call",
+        "anyOf": [
+          "getByLabel"
+        ],
+        "reason": "Fill the fields by their visible label: page.getByLabel('Email') / page.getByLabel('Password')."
+      },
+      {
+        "rule": "call",
+        "anyOf": [
+          "getByRole"
+        ],
+        "reason": "Click the button by role and name: page.getByRole('button', { name: 'Sign in' })."
+      },
+      {
+        "rule": "call",
+        "anyOf": [
+          "toHaveURL"
+        ],
+        "reason": "Assert where the user lands: await expect(page).toHaveURL(/\\/dashboard$/)."
+      }
+    ],
+    "mutants": [
+      {
+        "bug": "login-redirect",
+        "reason": "after sign-in the app goes to the home page instead of the dashboard"
+      },
+      {
+        "bug": "welcome-name",
+        "reason": "the dashboard greets the user as 'Guest'"
+      }
+    ]
+  },
+  "wrongSolutions": [
+    {
+      "label": "starter (CSS selectors)",
+      "expect": [
+        "prefer-user-facing-locators"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\n// This test passes, but it is tied to markup details (ids, tags, nesting).\n// Refactor every locator to a user-facing one: getByLabel / getByRole / getByText.\ntest('signs in with valid credentials', async ({ page }) => {\n  await page.goto('/login');\n  await page.locator('#email').fill('qa@example.com');\n  await page.locator('#password').fill('Passw0rd!');\n  await page.locator('form button[type=submit]').click();\n  await expect(page.locator('main p:first-of-type')).toHaveText('Welcome, QA Tester');\n});\n"
+    },
+    {
+      "label": "XPath button",
+      "expect": [
+        "prefer-user-facing-locators"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('signs in with valid credentials', async ({ page }) => {\n  await page.goto('/login');\n  await page.getByLabel('Email').fill('qa@example.com');\n  await page.getByLabel('Password').fill('Passw0rd!');\n  await page.locator('//button[text()=\"Sign in\"]').click();\n  await expect(page).toHaveURL(/\\/dashboard$/);\n  await expect(page.getByText('Welcome, QA Tester')).toBeVisible();\n});\n"
+    },
+    {
+      "label": "only checks the URL",
+      "expect": [
+        "weak-test"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('signs in with valid credentials', async ({ page }) => {\n  await page.goto('/login');\n  await page.getByLabel('Email').fill('qa@example.com');\n  await page.getByLabel('Password').fill('Passw0rd!');\n  await page.getByRole('button', { name: 'Sign in' }).click();\n  await expect(page).toHaveURL(/\\/dashboard$/);\n  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();\n});\n"
+    }
+  ],
+  "testFile": "learner.spec.ts",
+  "order": 2,
+  "trackId": "playwright-typescript"
+}

@@ -1,0 +1,37 @@
+{
+  "id": "pw-l03-first-test",
+  "title": "Your first test",
+  "topic": "Basics",
+  "summary": "test() declares a test, the { page } fixture gives you a fresh browser tab, and await expect(...) checks the result.",
+  "why": "Every test you write has the same skeleton. Getting it right — async function, await on every action and assertion — avoids most beginner bugs.",
+  "body": "Each test gets an isolated BrowserContext (like a fresh incognito window): no cookies or storage leak between tests. Actions (goto, click, fill) and web-first assertions return Promises, so you await them. Run this example with the Run button and open the trace to see every step with a DOM snapshot.",
+  "objectives": [
+    "Write test('title', async ({ page }) => { … })",
+    "Use page.goto with a relative URL",
+    "Await every action and assertion"
+  ],
+  "pitfalls": [
+    "Missing await — the test can finish before the check runs.",
+    "Sharing state between tests through global variables."
+  ],
+  "references": [
+    {
+      "title": "Writing tests",
+      "url": "https://playwright.dev/docs/writing-tests"
+    },
+    {
+      "title": "Test isolation",
+      "url": "https://playwright.dev/docs/browser-contexts"
+    }
+  ],
+  "teachAlong": [
+    "Run it.",
+    "Open the trace → Actions tab → click each step to see the page at that moment."
+  ],
+  "example": {
+    "language": "typescript",
+    "code": "import { test, expect } from '@playwright/test';\n\ntest('has title and heading', async ({ page }) => {\n  await page.goto('/');\n  await expect(page).toHaveTitle(/QA Practice Shop/);\n  await expect(page.getByRole('heading', { name: 'QA Practice Shop' })).toBeVisible();\n});\n\ntest('navigates to the login page', async ({ page }) => {\n  await page.goto('/');\n  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Login' }).click();\n  await expect(page).toHaveURL(/\\/login$/);\n});\n"
+  },
+  "runnable": true,
+  "order": 3
+}

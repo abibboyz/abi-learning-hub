@@ -1,0 +1,34 @@
+{
+  "id": "pw-l10-custom-fixtures",
+  "title": "Custom fixtures",
+  "topic": "Test design",
+  "summary": "test.extend() creates your own fixtures: page objects, signed-in pages, seeded data — with setup before use() and teardown after.",
+  "why": "Fixtures remove copy-pasted setup, run only when a test asks for them, and clean up even when the test fails.",
+  "body": "Define fixtures with test.extend<{ todoPage: TodoPage }>({ todoPage: async ({ page }, use) => { …setup…; await use(value); …teardown… } }). Export the extended test from a fixtures file and import it in your specs. Worker-scoped fixtures ({ scope: 'worker' }) are created once per worker — useful for expensive resources like a test account. Option fixtures let projects pass values in config.",
+  "objectives": [
+    "Write a test-scoped fixture",
+    "Know setup vs teardown around use()",
+    "Know worker-scoped fixtures exist"
+  ],
+  "pitfalls": [
+    "Forgetting await use(...).",
+    "Doing heavy work in a test-scoped fixture that could be worker-scoped."
+  ],
+  "references": [
+    {
+      "title": "Fixtures",
+      "url": "https://playwright.dev/docs/test-fixtures"
+    },
+    {
+      "title": "Fixtures: worker scope",
+      "url": "https://playwright.dev/docs/test-fixtures#worker-scoped-fixtures"
+    }
+  ],
+  "example": {
+    "language": "typescript",
+    "code": "import { test as base, expect } from '@playwright/test';\n\ntype Todo = { id: number; title: string };\n\n// Fixture that seeds a todo through the API and deletes it afterwards.\nconst test = base.extend<{ seededTodo: Todo }>({\n  seededTodo: async ({ page }, use) => {\n    const res = await page.request.post('/api/todos', { data: { title: 'Seeded by fixture' } });\n    const todo = (await res.json()) as Todo;\n    await use(todo);\n    await page.request.delete(`/api/todos/${todo.id}`); // teardown\n  },\n});\n\ntest('shows the seeded todo', async ({ page, seededTodo }) => {\n  await page.goto('/todos');\n  await expect(page.getByText(seededTodo.title)).toBeVisible();\n});\n"
+  },
+  "runnable": true,
+  "teachAlong": [],
+  "order": 10
+}

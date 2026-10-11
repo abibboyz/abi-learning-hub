@@ -1,0 +1,81 @@
+{
+  "id": "pw-01-first-test",
+  "title": "Your first test",
+  "summary": "Open the home page and check what a user sees first: the tab title and the main heading.",
+  "why": "A first test proves the whole chain works (runner → browser → app → assertion). In manual QA this is your smoke check; automated, it runs on every change in seconds.",
+  "objectives": [
+    "Navigate with page.goto('/') (baseURL is configured for you)",
+    "Assert the title with await expect(page).toHaveTitle(...)",
+    "Assert the h1 with a role locator and toBeVisible()"
+  ],
+  "hints": [
+    "The exact title is 'Home · QA Practice Shop'.",
+    "page.getByRole('heading', { name: 'QA Practice Shop', level: 1 })"
+  ],
+  "pitfalls": [
+    "Forgetting await on expect(...) — the test 'passes' before the check runs.",
+    "expect(await page.title()).toBe(...) reads the title once and never retries."
+  ],
+  "references": [
+    {
+      "title": "Writing tests",
+      "url": "https://playwright.dev/docs/writing-tests"
+    },
+    {
+      "title": "Assertions",
+      "url": "https://playwright.dev/docs/test-assertions"
+    }
+  ],
+  "teachAlong": [
+    "Cause: you await every step.",
+    "Effect: Playwright reports the exact failing line if the title changes.",
+    "Gate: runs your test 3× and checks the assertions are web-first."
+  ],
+  "starterCode": "import { test, expect } from '@playwright/test';\n\ntest('home page shows the shop name', async ({ page }) => {\n  // 1. Open the home page ('/' — baseURL points at the app under test)\n\n  // 2. Assert the tab title is 'Home · QA Practice Shop'\n\n  // 3. Assert the main heading 'QA Practice Shop' is visible\n});\n",
+  "solution": "import { test, expect } from '@playwright/test';\n\ntest('home page shows the shop name', async ({ page }) => {\n  await page.goto('/');\n  await expect(page).toHaveTitle('Home · QA Practice Shop');\n  await expect(page.getByRole('heading', { name: 'QA Practice Shop', level: 1 })).toBeVisible();\n});\n",
+  "gate": {
+    "requires": [
+      {
+        "rule": "call",
+        "anyOf": [
+          "toHaveTitle"
+        ],
+        "reason": "Assert the tab title with await expect(page).toHaveTitle('Home · QA Practice Shop')."
+      },
+      {
+        "rule": "call",
+        "anyOf": [
+          "getByRole"
+        ],
+        "reason": "Find the heading the way a user (or screen reader) does: page.getByRole('heading', { name: … })."
+      }
+    ]
+  },
+  "wrongSolutions": [
+    {
+      "label": "missing await on assertion",
+      "expect": [
+        "missing-await"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('home page shows the shop name', async ({ page }) => {\n  await page.goto('/');\n  expect(page).toHaveTitle('Home · QA Practice Shop');\n  await expect(page.getByRole('heading', { name: 'QA Practice Shop', level: 1 })).toBeVisible();\n});\n"
+    },
+    {
+      "label": "non-retrying title check",
+      "expect": [
+        "non-retrying-assertion",
+        "requires-toHaveTitle"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('home page shows the shop name', async ({ page }) => {\n  await page.goto('/');\n  expect(await page.title()).toBe('Home · QA Practice Shop');\n  await expect(page.getByRole('heading', { name: 'QA Practice Shop', level: 1 })).toBeVisible();\n});\n"
+    },
+    {
+      "label": "wrong expected title",
+      "expect": [
+        "test-failed"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('home page shows the shop name', async ({ page }) => {\n  await page.goto('/');\n  await expect(page).toHaveTitle('QA Practice Shop');\n  await expect(page.getByRole('heading', { name: 'QA Practice Shop', level: 1 })).toBeVisible();\n});\n"
+    }
+  ],
+  "testFile": "learner.spec.ts",
+  "order": 1,
+  "trackId": "playwright-typescript"
+}

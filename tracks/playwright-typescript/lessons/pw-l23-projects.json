@@ -1,0 +1,35 @@
+{
+  "id": "pw-l23-projects",
+  "title": "Projects, browsers and devices",
+  "topic": "Scale",
+  "summary": "Projects run the same tests with different settings: browsers, mobile devices, locales, or setup/teardown stages via dependencies.",
+  "why": "Cross-browser coverage is a config change, not new tests. Projects also give a clean way to run setup (auth, seeding) once.",
+  "body": "projects: [{ name: 'chromium', use: devices['Desktop Chrome'] }, { name: 'Mobile Safari', use: devices['iPhone 15'] }]. Run one with --project=name. dependencies: ['setup'] orders projects; teardown: 'cleanup' runs after. New in 1.64: default: false keeps a project in the config without running it by default (run all with --project=\"*\"); device descriptors now also forward `screen`.",
+  "objectives": [
+    "Add browser and device projects",
+    "Use project dependencies",
+    "Use default: false (1.64)"
+  ],
+  "references": [
+    {
+      "title": "Projects",
+      "url": "https://playwright.dev/docs/test-projects"
+    },
+    {
+      "title": "Emulation (devices)",
+      "url": "https://playwright.dev/docs/emulation"
+    },
+    {
+      "title": "Browsers",
+      "url": "https://playwright.dev/docs/browsers"
+    }
+  ],
+  "example": {
+    "language": "typescript",
+    "code": "import { defineConfig, devices } from '@playwright/test';\n\nexport default defineConfig({\n  projects: [\n    { name: 'setup', testMatch: /.*\\.setup\\.ts/ },\n    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, dependencies: ['setup'] },\n    { name: 'mobile', use: { ...devices['Pixel 7'] }, dependencies: ['setup'] },\n    { name: 'webkit', use: { ...devices['Desktop Safari'] }, dependencies: ['setup'], default: false },\n  ],\n});\n"
+  },
+  "runnable": false,
+  "teachAlong": [],
+  "pitfalls": [],
+  "order": 23
+}

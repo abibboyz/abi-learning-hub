@@ -1,0 +1,73 @@
+{
+  "id": "pw-10-page-object",
+  "title": "Page Object Model",
+  "summary": "Write a LoginPage page object (locators + goto + login) and use it in a positive and a negative login test.",
+  "why": "When the login form changes, you fix one class instead of 40 tests. Page objects also make tests read like your manual steps: loginPage.login(user, password).",
+  "objectives": [
+    "class LoginPage with locators created once in the constructor",
+    "goto() and login(email, password) methods",
+    "Two tests that create new LoginPage(page)"
+  ],
+  "hints": [
+    "Keep assertions in tests, not in page objects (except small helpers).",
+    "Expose locators (loginPage.error) so tests can assert on them."
+  ],
+  "pitfalls": [
+    "Putting expect() everywhere inside the page object — failures become harder to read.",
+    "Creating locators inside every method instead of once."
+  ],
+  "references": [
+    {
+      "title": "Page object models",
+      "url": "https://playwright.dev/docs/pom"
+    },
+    {
+      "title": "Best practices",
+      "url": "https://playwright.dev/docs/best-practices"
+    }
+  ],
+  "teachAlong": [
+    "Cause: locators live in one class.",
+    "Effect: UI changes are a one-line fix.",
+    "Gate: requires new LoginPage(page) and catches a wrong redirect."
+  ],
+  "starterCode": "import { test, expect, type Page, type Locator } from '@playwright/test';\n\n// Build a Page Object for /login, then use it in both tests.\nclass LoginPage {\n  readonly page: Page;\n  // TODO: email, password, submit, error locators\n\n  constructor(page: Page) {\n    this.page = page;\n    // TODO: create the locators once, here\n  }\n\n  async goto() {\n    // TODO\n  }\n\n  async login(email: string, password: string) {\n    // TODO\n  }\n}\n\ntest('valid user reaches the dashboard', async ({ page }) => {\n  // const loginPage = new LoginPage(page); …\n});\n\ntest('wrong password shows an error', async ({ page }) => {\n  // …\n});\n",
+  "solution": "import { test, expect, type Page, type Locator } from '@playwright/test';\n\n/** Page Object for /login. Locators live here once; tests read like the manual test case. */\nclass LoginPage {\n  readonly page: Page;\n  readonly email: Locator;\n  readonly password: Locator;\n  readonly submit: Locator;\n  readonly error: Locator;\n\n  constructor(page: Page) {\n    this.page = page;\n    this.email = page.getByLabel('Email');\n    this.password = page.getByLabel('Password');\n    this.submit = page.getByRole('button', { name: 'Sign in' });\n    this.error = page.getByRole('alert');\n  }\n\n  async goto() {\n    await this.page.goto('/login');\n  }\n\n  async login(email: string, password: string) {\n    await this.email.fill(email);\n    await this.password.fill(password);\n    await this.submit.click();\n  }\n}\n\ntest('valid user reaches the dashboard', async ({ page }) => {\n  const loginPage = new LoginPage(page);\n  await loginPage.goto();\n  await loginPage.login('qa@example.com', 'Passw0rd!');\n  await expect(page).toHaveURL(/\\/dashboard$/);\n  await expect(page.getByText('Welcome, QA Tester')).toBeVisible();\n});\n\ntest('wrong password shows an error', async ({ page }) => {\n  const loginPage = new LoginPage(page);\n  await loginPage.goto();\n  await loginPage.login('qa@example.com', 'wrong');\n  await expect(loginPage.error).toHaveText('Invalid email or password');\n});\n",
+  "solutionJs": "import { test, expect } from '@playwright/test';\n\nclass LoginPage {\n  constructor(page) {\n    this.page = page;\n    this.email = page.getByLabel('Email');\n    this.password = page.getByLabel('Password');\n    this.submit = page.getByRole('button', { name: 'Sign in' });\n    this.error = page.getByRole('alert');\n  }\n\n  async goto() {\n    await this.page.goto('/login');\n  }\n\n  async login(email, password) {\n    await this.email.fill(email);\n    await this.password.fill(password);\n    await this.submit.click();\n  }\n}\n\ntest('valid user reaches the dashboard', async ({ page }) => {\n  const loginPage = new LoginPage(page);\n  await loginPage.goto();\n  await loginPage.login('qa@example.com', 'Passw0rd!');\n  await expect(page).toHaveURL(/\\/dashboard$/);\n  await expect(page.getByText('Welcome, QA Tester')).toBeVisible();\n});\n\ntest('wrong password shows an error', async ({ page }) => {\n  const loginPage = new LoginPage(page);\n  await loginPage.goto();\n  await loginPage.login('qa@example.com', 'wrong');\n  await expect(loginPage.error).toHaveText('Invalid email or password');\n});\n",
+  "starterCodeJs": "import { test, expect } from '@playwright/test';\n\nclass LoginPage {\n  constructor(page) {\n    this.page = page;\n    // TODO: this.email, this.password, this.submit, this.error\n  }\n\n  async goto() {\n    // TODO\n  }\n\n  async login(email, password) {\n    // TODO\n  }\n}\n\ntest('valid user reaches the dashboard', async ({ page }) => {\n  // const loginPage = new LoginPage(page); …\n});\n\ntest('wrong password shows an error', async ({ page }) => {\n  // …\n});\n",
+  "gate": {
+    "forbidCss": true,
+    "minTests": 2,
+    "requires": [
+      {
+        "rule": "new",
+        "anyOf": [
+          "LoginPage"
+        ],
+        "reason": "The task requires the page object: create it with new LoginPage(page) in your tests."
+      }
+    ],
+    "mutants": [
+      {
+        "bug": "login-redirect",
+        "reason": "after sign-in the app goes to the home page instead of the dashboard"
+      },
+      {
+        "bug": "welcome-name",
+        "reason": "the dashboard greets the user as 'Guest'"
+      }
+    ]
+  },
+  "wrongSolutions": [
+    {
+      "label": "no page object",
+      "expect": [
+        "requires-new-LoginPage"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('valid user reaches the dashboard', async ({ page }) => {\n  await page.goto('/login');\n  await page.getByLabel('Email').fill('qa@example.com');\n  await page.getByLabel('Password').fill('Passw0rd!');\n  await page.getByRole('button', { name: 'Sign in' }).click();\n  await expect(page).toHaveURL(/\\/dashboard$/);\n  await expect(page.getByText('Welcome, QA Tester')).toBeVisible();\n});\n\ntest('wrong password shows an error', async ({ page }) => {\n  await page.goto('/login');\n  await page.getByLabel('Email').fill('qa@example.com');\n  await page.getByLabel('Password').fill('wrong');\n  await page.getByRole('button', { name: 'Sign in' }).click();\n  await expect(page.getByRole('alert')).toHaveText('Invalid email or password');\n});\n"
+    }
+  ],
+  "testFile": "learner.spec.ts",
+  "order": 10,
+  "trackId": "playwright-typescript"
+}

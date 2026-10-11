@@ -33,7 +33,19 @@
       "description": "Same Prisma patterns without TypeScript \u2014 Zod at the boundaries.",
       "order": 3,
       "icon": "\ud83d\udcd2"
+    },
+    {
+      "id": "playwright-typescript",
+      "title": "Playwright \u00b7 TypeScript",
+      "language": "typescript",
+      "variant": "e2e",
+      "runtime": "playwright",
+      "api": "playwright",
+      "kind": "playwright",
+      "description": "Test automation with Playwright Test (UI + API) against a local practice app: locators, web-first assertions, fixtures, POM, auth, mocking, visual, CI.",
+      "order": 4,
+      "icon": "\ud83c\udfad"
     }
   ],
-  "howToAdd": "Create tracks/<id>/manifest.json + lessons/ + tasks/. Register in index.json."
+  "howToAdd": "Create tracks/<id>/manifest.json + lessons/ + tasks/. Register in index.json. Set manifest kind (\"orm\" default, \"playwright\") so the UI picks the right lab and the BFF the right runner."
 }

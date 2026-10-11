@@ -1,0 +1,63 @@
+{
+  "id": "pw-09-upload",
+  "title": "File upload",
+  "summary": "Upload an in-memory CSV through the 'Attachment' input and check the file list.",
+  "why": "Upload flows are common in QA scope (reports, avatars, imports). setInputFiles sets files directly — no OS file picker — and can build the file in memory so the test needs no fixtures on disk.",
+  "objectives": [
+    "page.getByLabel('Attachment').setInputFiles({ name, mimeType, buffer })",
+    "Assert the list shows 'report.csv (17 bytes)'",
+    "Assert the status '1 file(s) ready'"
+  ],
+  "hints": [
+    "buffer: Buffer.from('id,result\\n1,pass\\n') is 17 bytes",
+    "toHaveText([...]) on a list locator checks every item in order"
+  ],
+  "pitfalls": [
+    "Clicking the input to open the native picker — automation can't drive OS dialogs.",
+    "Checking a locator is truthy instead of checking the text."
+  ],
+  "references": [
+    {
+      "title": "Upload files",
+      "url": "https://playwright.dev/docs/input#upload-files"
+    },
+    {
+      "title": "locator.setInputFiles()",
+      "url": "https://playwright.dev/docs/api/class-locator#locator-set-input-files"
+    }
+  ],
+  "starterCode": "import { test, expect } from '@playwright/test';\n\ntest('uploads a CSV report', async ({ page }) => {\n  await page.goto('/upload');\n  // set an in-memory file on the 'Attachment' input and assert the result\n});\n",
+  "solution": "import { test, expect } from '@playwright/test';\n\ntest('uploads a CSV report', async ({ page }) => {\n  await page.goto('/upload');\n  await page.getByLabel('Attachment').setInputFiles({\n    name: 'report.csv',\n    mimeType: 'text/csv',\n    buffer: Buffer.from('id,result\\n1,pass\\n'),\n  });\n  await expect(page.getByRole('list', { name: 'Selected files' }).getByRole('listitem')).toHaveText(['report.csv (17 bytes)']);\n  await expect(page.getByRole('status')).toHaveText('1 file(s) ready');\n});\n",
+  "gate": {
+    "forbidCss": true,
+    "requires": [
+      {
+        "rule": "call",
+        "anyOf": [
+          "setInputFiles"
+        ],
+        "reason": "Set the file with page.getByLabel('Attachment').setInputFiles({ name, mimeType, buffer })."
+      }
+    ],
+    "mutants": [
+      {
+        "bug": "upload-noop",
+        "reason": "choosing a file no longer shows the file name"
+      }
+    ]
+  },
+  "wrongSolutions": [
+    {
+      "label": "truthy locator check",
+      "expect": [
+        "weak-assertion",
+        "weak-test"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('uploads a CSV report', async ({ page }) => {\n  await page.goto('/upload');\n  await page.getByLabel('Attachment').setInputFiles({ name: 'report.csv', mimeType: 'text/csv', buffer: Buffer.from('id,result\\n1,pass\\n') });\n  expect(page.getByText('report.csv')).toBeTruthy();\n});\n"
+    }
+  ],
+  "testFile": "learner.spec.ts",
+  "teachAlong": [],
+  "order": 9,
+  "trackId": "playwright-typescript"
+}

@@ -1,0 +1,83 @@
+{
+  "id": "pw-05-test-case-to-test",
+  "title": "From manual test case to automated test",
+  "summary": "Turn the manual test case TC-LOGIN-003 into one automated test that checks every expected result. Keep the ID in the test title for traceability.",
+  "why": "You already write good test cases. Automation is the same thinking: preconditions → Arrange, steps → Act, expected results → Assert. Keeping the case ID in the title links reports back to your test management tool.",
+  "objectives": [
+    "Title starts with 'TC-LOGIN-003'",
+    "Arrange / Act / Assert sections",
+    "Assert all three expected results (a, b, c)"
+  ],
+  "hints": [
+    "Field values: await expect(page.getByLabel('Email')).toHaveValue('qa@example.com')",
+    "Empty password: toHaveValue('') or toBeEmpty()",
+    "URL: toHaveURL(/\\/login/)"
+  ],
+  "pitfalls": [
+    "Automating the steps but only one expected result.",
+    "One giant test that covers several test cases — keep one behaviour per test."
+  ],
+  "references": [
+    {
+      "title": "Best practices",
+      "url": "https://playwright.dev/docs/best-practices"
+    },
+    {
+      "title": "Test annotations & titles",
+      "url": "https://playwright.dev/docs/test-annotations"
+    }
+  ],
+  "teachAlong": [
+    "Cause: each expected result becomes an assertion.",
+    "Effect: a regression in any of a/b/c fails the test with a clear line.",
+    "Gate: checks the ID in the title and the field-value assertions."
+  ],
+  "starterCode": "import { test, expect } from '@playwright/test';\n\n/*\n Manual test case TC-LOGIN-003 — Sign-in with a wrong password\n Preconditions: user qa@example.com exists\n Steps:\n   1. Open /login\n   2. Enter email qa@example.com and password 'wrong'\n   3. Click 'Sign in'\n Expected:\n   a. Error 'Invalid email or password' is shown\n   b. The user stays on the login page\n   c. The email field keeps 'qa@example.com'; the password field is empty\n*/\n\ntest('TC-LOGIN-003 wrong password shows an error', async ({ page }) => {\n  // Arrange\n\n  // Act\n\n  // Assert (a, b, c)\n});\n",
+  "solution": "import { test, expect } from '@playwright/test';\n\n/*\n Manual test case TC-LOGIN-003 — Sign-in with a wrong password\n Preconditions: user qa@example.com exists\n Steps:\n   1. Open /login\n   2. Enter email qa@example.com and password 'wrong'\n   3. Click 'Sign in'\n Expected:\n   a. Error 'Invalid email or password' is shown\n   b. The user stays on the login page\n   c. The email field keeps 'qa@example.com'; the password field is empty\n*/\n\ntest('TC-LOGIN-003 wrong password shows an error', async ({ page }) => {\n  // Arrange\n  await page.goto('/login');\n\n  // Act\n  await page.getByLabel('Email').fill('qa@example.com');\n  await page.getByLabel('Password').fill('wrong');\n  await page.getByRole('button', { name: 'Sign in' }).click();\n\n  // Assert\n  await expect(page.getByRole('alert')).toHaveText('Invalid email or password');\n  await expect(page).toHaveURL(/\\/login/);\n  await expect(page.getByLabel('Email')).toHaveValue('qa@example.com');\n  await expect(page.getByLabel('Password')).toHaveValue('');\n});\n",
+  "gate": {
+    "forbidCss": true,
+    "requires": [
+      {
+        "rule": "require-text",
+        "pattern": "test\\(\\s*['\"`]TC-LOGIN-003",
+        "reason": "Start the test title with the case ID 'TC-LOGIN-003' so reports trace back to the manual test case."
+      },
+      {
+        "rule": "call",
+        "anyOf": [
+          "toHaveValue",
+          "toBeEmpty"
+        ],
+        "reason": "Expected result (c) is about field values — assert them with toHaveValue(...)."
+      },
+      {
+        "rule": "call",
+        "anyOf": [
+          "toHaveURL"
+        ],
+        "reason": "Expected result (b): assert the user stays on /login with toHaveURL(/\\/login/)."
+      }
+    ]
+  },
+  "wrongSolutions": [
+    {
+      "label": "only checks the error message",
+      "expect": [
+        "requires-toHaveValue",
+        "requires-toHaveURL"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('TC-LOGIN-003 wrong password shows an error', async ({ page }) => {\n  await page.goto('/login');\n  await page.getByLabel('Email').fill('qa@example.com');\n  await page.getByLabel('Password').fill('wrong');\n  await page.getByRole('button', { name: 'Sign in' }).click();\n  await expect(page.getByRole('alert')).toHaveText('Invalid email or password');\n});\n"
+    },
+    {
+      "label": "missing case ID + wrong expected text",
+      "expect": [
+        "required-pattern",
+        "test-failed"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('wrong password', async ({ page }) => {\n  await page.goto('/login');\n  await page.getByLabel('Email').fill('qa@example.com');\n  await page.getByLabel('Password').fill('wrong');\n  await page.getByRole('button', { name: 'Sign in' }).click();\n  await expect(page.getByRole('alert')).toHaveText('Wrong password');\n  await expect(page).toHaveURL(/\\/login/);\n  await expect(page.getByLabel('Email')).toHaveValue('qa@example.com');\n});\n"
+    }
+  ],
+  "testFile": "learner.spec.ts",
+  "order": 5,
+  "trackId": "playwright-typescript"
+}

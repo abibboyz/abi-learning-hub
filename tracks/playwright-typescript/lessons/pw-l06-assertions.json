@@ -1,0 +1,43 @@
+{
+  "id": "pw-l06-assertions",
+  "title": "Web-first assertions & auto-waiting",
+  "topic": "Assertions",
+  "summary": "await expect(locator).toBeVisible()/toHaveText()/toHaveCount() retry until true or until the expect timeout (5 s by default).",
+  "why": "Pages load asynchronously. A check that reads the DOM once (isVisible(), textContent(), count()) races the app; a web-first assertion waits for the expected state, so it is reliable without sleeps.",
+  "body": "Web-first (async, retrying): toBeVisible, toBeHidden, toHaveText, toContainText, toHaveValue, toBeChecked, toHaveCount, toHaveAttribute, toHaveURL, toHaveTitle, toHaveScreenshot, toMatchAriaSnapshot, toBeOK.\nGeneric (sync, no retry): toBe, toEqual, toContain, toMatchObject — use them on plain values (API JSON).\n\nexpect.soft() records a failure but continues; expect.poll() retries any function; expect(...).toPass() retries a block. Never use page.waitForTimeout() in a real test.",
+  "objectives": [
+    "Pick a web-first matcher for a UI check",
+    "Know when generic matchers are fine",
+    "Use expect.poll for non-DOM values"
+  ],
+  "pitfalls": [
+    "expect(await locator.isVisible()).toBe(true) — no retry.",
+    "expect(locator).toBeTruthy() — always passes.",
+    "waitForTimeout(…) — slow and still flaky."
+  ],
+  "references": [
+    {
+      "title": "Assertions",
+      "url": "https://playwright.dev/docs/test-assertions"
+    },
+    {
+      "title": "Auto-waiting",
+      "url": "https://playwright.dev/docs/actionability"
+    },
+    {
+      "title": "Best practices: web-first assertions",
+      "url": "https://playwright.dev/docs/best-practices#use-web-first-assertions"
+    }
+  ],
+  "teachAlong": [
+    "The orders API answers after 250–1600 ms.",
+    "toHaveCount keeps re-checking until 3 items exist.",
+    "No sleep, no flake."
+  ],
+  "example": {
+    "language": "typescript",
+    "code": "import { test, expect } from '@playwright/test';\n\ntest('waits for slow data without sleeping', async ({ page }) => {\n  await page.goto('/async');\n  await page.getByRole('button', { name: 'Load orders' }).click();\n  await expect(page.getByText('Loading orders…')).toBeVisible();\n  const orders = page.getByRole('list', { name: 'Orders' }).getByRole('listitem');\n  await expect(orders).toHaveCount(3);\n  await expect(orders).toContainText(['A-1001', 'A-1002', 'A-1003']);\n});\n\ntest('soft assertions and polling', async ({ page }) => {\n  await page.goto('/products');\n  await expect.soft(page.getByRole('status')).toHaveText('Showing 12 of 12 products');\n  await expect.poll(async () => (await page.request.get('/api/products?category=Fruit')).json())\n    .toMatchObject({ total: 4 });\n});\n"
+  },
+  "runnable": true,
+  "order": 6
+}

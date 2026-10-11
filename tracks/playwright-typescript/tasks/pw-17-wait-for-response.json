@@ -1,0 +1,62 @@
+{
+  "id": "pw-17-wait-for-response",
+  "title": "Wait for the network, not the clock",
+  "summary": "Start waiting for the /api/orders response before clicking 'Load orders', then assert on both the JSON and the UI.",
+  "why": "Sometimes you need the data the page received (an order id, a total). waitForResponse gives you the real response without guessing a delay.",
+  "objectives": [
+    "const responsePromise = page.waitForResponse(…) before the click",
+    "Assert the JSON has 3 orders",
+    "Assert the page shows as many list items as the API returned"
+  ],
+  "hints": [
+    "page.waitForResponse((res) => res.url().endsWith('/api/orders') && res.status() === 200)"
+  ],
+  "pitfalls": [
+    "Starting waitForResponse after the click (race).",
+    "Replacing it with waitForTimeout(2000)."
+  ],
+  "references": [
+    {
+      "title": "Network events",
+      "url": "https://playwright.dev/docs/network#network-events"
+    },
+    {
+      "title": "page.waitForResponse()",
+      "url": "https://playwright.dev/docs/api/class-page#page-wait-for-response"
+    }
+  ],
+  "starterCode": "import { test, expect } from '@playwright/test';\n\ntest('orders API and UI agree', async ({ page }) => {\n  await page.goto('/async');\n  await page.getByRole('button', { name: 'Load orders' }).click();\n  await page.waitForTimeout(2000);\n  await expect(page.getByRole('list', { name: 'Orders' }).getByRole('listitem')).toHaveCount(3);\n});\n",
+  "solution": "import { test, expect } from '@playwright/test';\n\ntest('orders API and UI agree', async ({ page }) => {\n  await page.goto('/async');\n  const responsePromise = page.waitForResponse((res) => res.url().endsWith('/api/orders') && res.status() === 200);\n  await page.getByRole('button', { name: 'Load orders' }).click();\n  const response = await responsePromise;\n  const data = await response.json();\n  expect(data.orders).toHaveLength(3);\n  await expect(page.getByRole('list', { name: 'Orders' }).getByRole('listitem')).toHaveCount(data.orders.length);\n  await expect(page.getByText(`Loaded ${data.orders.length} orders`)).toBeVisible();\n});\n",
+  "gate": {
+    "forbidCss": true,
+    "requires": [
+      {
+        "rule": "call",
+        "anyOf": [
+          "waitForResponse"
+        ],
+        "reason": "Wait for the network: const responsePromise = page.waitForResponse(…) before clicking 'Load orders'."
+      }
+    ],
+    "mutants": [
+      {
+        "bug": "orders-empty",
+        "reason": "the orders API never returns any orders"
+      }
+    ]
+  },
+  "wrongSolutions": [
+    {
+      "label": "starter (fixed sleep)",
+      "expect": [
+        "no-wait-for-timeout",
+        "requires-waitForResponse"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('orders API and UI agree', async ({ page }) => {\n  await page.goto('/async');\n  await page.getByRole('button', { name: 'Load orders' }).click();\n  await page.waitForTimeout(2000);\n  await expect(page.getByRole('list', { name: 'Orders' }).getByRole('listitem')).toHaveCount(3);\n});\n"
+    }
+  ],
+  "testFile": "learner.spec.ts",
+  "teachAlong": [],
+  "order": 17,
+  "trackId": "playwright-typescript"
+}

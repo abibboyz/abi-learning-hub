@@ -1,0 +1,35 @@
+{
+  "id": "pw-l08-test-design",
+  "title": "Test design: from manual test cases to automation",
+  "topic": "Test design",
+  "summary": "Turn test cases into tests: preconditions → fixtures/hooks, steps → actions, expected results → assertions. One behaviour per test, independent, named like the case.",
+  "why": "Your manual QA experience is the hard part of automation: knowing what to test. This lesson maps that knowledge onto code so your suites stay readable and trustworthy.",
+  "body": "Good automated tests are: independent (any order, any worker), deterministic (same input → same result), focused (one behaviour, several assertions about it are fine), readable (Arrange–Act–Assert, case ID in the title), and fast (set up data via API, not the UI).\n\nWhat to automate first: smoke paths, high-risk regressions, data-heavy checks. Keep exploratory and UX judgement manual.\n\nA useful layering: API tests for rules and contracts, a few UI tests per critical journey, visual tests for layout.",
+  "objectives": [
+    "Map a test case onto Arrange–Act–Assert",
+    "Choose what to automate",
+    "Keep tests independent"
+  ],
+  "pitfalls": [
+    "One giant end-to-end test covering 10 cases.",
+    "Tests that depend on previous tests' data.",
+    "Asserting only that 'no error happened'."
+  ],
+  "references": [
+    {
+      "title": "Best practices",
+      "url": "https://playwright.dev/docs/best-practices"
+    },
+    {
+      "title": "Annotations (tags, skip, fixme)",
+      "url": "https://playwright.dev/docs/test-annotations"
+    }
+  ],
+  "example": {
+    "language": "typescript",
+    "code": "import { test, expect } from '@playwright/test';\n\n// TC-LOGIN-001 — valid sign-in lands on the dashboard\ntest('TC-LOGIN-001 valid sign-in', { tag: '@smoke' }, async ({ page }) => {\n  // Arrange\n  await page.goto('/login');\n  // Act\n  await page.getByLabel('Email').fill('qa@example.com');\n  await page.getByLabel('Password').fill('Passw0rd!');\n  await page.getByRole('button', { name: 'Sign in' }).click();\n  // Assert\n  await expect(page).toHaveURL(/\\/dashboard$/);\n  await expect(page.getByText('Welcome, QA Tester')).toBeVisible();\n});\n\n// TC-LOGIN-002 — empty email is rejected\ntest('TC-LOGIN-002 empty email', async ({ page }) => {\n  await page.goto('/login');\n  await page.getByRole('button', { name: 'Sign in' }).click();\n  await expect(page.getByRole('alert')).toHaveText('Email is required');\n});\n"
+  },
+  "runnable": true,
+  "teachAlong": [],
+  "order": 8
+}

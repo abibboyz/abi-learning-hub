@@ -1,0 +1,34 @@
+{
+  "id": "pw-l12-forms-tables",
+  "title": "Forms, validation & tables",
+  "topic": "UI patterns",
+  "summary": "Assert validation messages and field state (toHaveValue, toBeChecked, toHaveAttribute('aria-invalid')), and check tables with row/cell locators and array matchers.",
+  "why": "Forms and tables carry most business rules. Asserting the right state (not just 'no error') is what catches regressions.",
+  "body": "For forms, test negative paths (each rule) and the positive path. Check field state with toHaveValue / toBeChecked / toBeDisabled. For tables, data rows are getByRole('row') with a cell; column headers are getByRole('columnheader'). toHaveText([...]) checks a whole list in order; aria-sort tells you the sort direction.",
+  "objectives": [
+    "Assert validation errors and field state",
+    "Assert table rows and sort order"
+  ],
+  "references": [
+    {
+      "title": "Assertions",
+      "url": "https://playwright.dev/docs/test-assertions"
+    },
+    {
+      "title": "Locator lists",
+      "url": "https://playwright.dev/docs/locators#lists"
+    },
+    {
+      "title": "Aria snapshots",
+      "url": "https://playwright.dev/docs/aria-snapshots"
+    }
+  ],
+  "example": {
+    "language": "typescript",
+    "code": "import { test, expect } from '@playwright/test';\n\ntest('sorting by name descending', async ({ page }) => {\n  await page.goto('/products');\n  await page.getByLabel('Category').selectOption('Fruit');\n  const name = page.getByRole('button', { name: 'Name' });\n  await name.click();\n  await name.click();\n  await expect(page.getByRole('columnheader', { name: 'Name' })).toHaveAttribute('aria-sort', 'descending');\n  // 1.64: locator.within() — the first cell of every row = the Name column\n  const nameColumn = page.getByRole('cell').first().within(page.getByRole('row'));\n  await expect(nameColumn).toHaveText(['Date', 'Cherry', 'Banana', 'Apple']);\n});\n\ntest('aria snapshot of the login form', async ({ page }) => {\n  await page.goto('/login');\n  await expect(page.getByRole('main')).toMatchAriaSnapshot(`\n    - heading \"Sign in\" [level=1]\n    - textbox \"Email\"\n    - textbox \"Password\"\n    - paragraph:\n      - button \"Sign in\"\n  `);\n  // Templates match a subsequence of children at each level: the button sits inside a <p>,\n  // so it must be nested under '- paragraph:'.\n});\n"
+  },
+  "runnable": true,
+  "teachAlong": [],
+  "pitfalls": [],
+  "order": 12
+}

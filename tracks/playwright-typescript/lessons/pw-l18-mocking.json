@@ -1,0 +1,38 @@
+{
+  "id": "pw-l18-mocking",
+  "title": "Network mocking and interception",
+  "topic": "Network",
+  "summary": "page.route() intercepts requests: fulfill with fake data, modify a real response, abort, or delay — to test states the backend can't easily produce.",
+  "why": "Empty states, errors, slow networks and third-party outages are where users get stuck — and they are hard to reproduce manually.",
+  "body": "Register routes before navigation. route.fulfill({ json | body, status, headers }) answers immediately; route.fetch() gets the real response so you can tweak it; route.abort() simulates network failure; route.continue({ headers }) passes through with changes. context.route() applies to all pages; routeFromHAR() replays recorded traffic.",
+  "objectives": [
+    "Fulfill with mock data",
+    "Modify a real response",
+    "Simulate a failure"
+  ],
+  "pitfalls": [
+    "Routing after page.goto.",
+    "Glob mismatch ('/api/todos' vs '**/api/todos')."
+  ],
+  "references": [
+    {
+      "title": "Mock APIs",
+      "url": "https://playwright.dev/docs/mock"
+    },
+    {
+      "title": "Network",
+      "url": "https://playwright.dev/docs/network"
+    },
+    {
+      "title": "Route",
+      "url": "https://playwright.dev/docs/api/class-route"
+    }
+  ],
+  "example": {
+    "language": "typescript",
+    "code": "import { test, expect } from '@playwright/test';\n\ntest('modifies the real response', async ({ page }) => {\n  await page.route('**/api/todos', async (route) => {\n    const response = await route.fetch();\n    const json = await response.json();\n    json.todos.push({ id: 99, title: 'Injected by route', done: false });\n    await route.fulfill({ response, json });\n  });\n  await page.goto('/todos');\n  await expect(page.getByText('Injected by route')).toBeVisible();\n  await expect(page.getByText('3 items left')).toBeVisible();\n});\n\ntest('network failure shows the error state', async ({ page }) => {\n  await page.route('**/api/todos', (route) => route.abort());\n  await page.goto('/todos');\n  await expect(page.getByRole('alert')).toHaveText('Could not load todos. Please try again.');\n});\n"
+  },
+  "runnable": true,
+  "teachAlong": [],
+  "order": 18
+}

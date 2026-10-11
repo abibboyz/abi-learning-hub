@@ -1,0 +1,38 @@
+{
+  "id": "pw-l25-ci",
+  "title": "CI with GitHub Actions",
+  "topic": "CI",
+  "summary": "Run tests on every push/PR: install deps and browsers, run, upload the HTML report and traces as artifacts. Shard with a matrix for speed.",
+  "why": "Tests only protect you if they run automatically before merge. CI is also where flakiness shows up first.",
+  "body": "`npm init playwright@latest` can generate .github/workflows/playwright.yml. Key steps: actions/checkout, actions/setup-node, npm ci, npx playwright install --with-deps, npx playwright test, upload playwright-report/ with actions/upload-artifact (always, so failures keep evidence). Alternatively run inside the mcr.microsoft.com/playwright:v1.64.0-noble container to skip the browser install. Set retries and forbidOnly from process.env.CI.",
+  "objectives": [
+    "Write a GitHub Actions workflow",
+    "Upload reports/traces as artifacts",
+    "Shard with a matrix"
+  ],
+  "pitfalls": [
+    "Not uploading the report on failure (if: always()).",
+    "Baselines for visual tests generated on a different OS than CI."
+  ],
+  "references": [
+    {
+      "title": "Continuous Integration",
+      "url": "https://playwright.dev/docs/ci"
+    },
+    {
+      "title": "Setting up CI (GitHub Actions)",
+      "url": "https://playwright.dev/docs/ci-intro"
+    },
+    {
+      "title": "Sharding in GitHub Actions",
+      "url": "https://playwright.dev/docs/test-sharding#github-actions-example"
+    }
+  ],
+  "example": {
+    "language": "yaml",
+    "code": "name: Playwright Tests\non:\n  push: { branches: [main] }\n  pull_request: { branches: [main] }\njobs:\n  test:\n    timeout-minutes: 30\n    runs-on: ubuntu-latest\n    strategy:\n      fail-fast: false\n      matrix:\n        shard: [1/2, 2/2]\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with: { node-version: lts/* }\n      - run: npm ci\n      - run: npx playwright install --with-deps\n      - run: npx playwright test --shard=${{ matrix.shard }}\n      - uses: actions/upload-artifact@v4\n        if: ${{ !cancelled() }}\n        with:\n          name: playwright-report-${{ strategy.job-index }}\n          path: playwright-report/\n          retention-days: 30\n"
+  },
+  "runnable": false,
+  "teachAlong": [],
+  "order": 25
+}

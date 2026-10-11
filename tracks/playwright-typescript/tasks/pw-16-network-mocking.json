@@ -1,0 +1,80 @@
+{
+  "id": "pw-16-network-mocking",
+  "title": "Network mocking with page.route",
+  "summary": "Mock GET /api/todos to show exact data, and mock a 500 to test the error state the real API never gives you on demand.",
+  "why": "Mocking lets you test edge cases (empty lists, server errors, slow responses) deterministically, without changing the backend.",
+  "objectives": [
+    "page.route('**/api/todos', route => route.fulfill({ json: … })) before page.goto",
+    "Assert the two mocked todos and '1 items left'",
+    "Second test: fulfill with status 500 → the alert 'Could not load todos. Please try again.'"
+  ],
+  "hints": [
+    "route.fulfill({ json: { todos: [...] } })",
+    "route.fulfill({ status: 500, json: { error: 'boom' } })"
+  ],
+  "pitfalls": [
+    "Registering the route after page.goto — the request already happened.",
+    "Mocking so much that you no longer test anything real."
+  ],
+  "references": [
+    {
+      "title": "Mock APIs",
+      "url": "https://playwright.dev/docs/mock"
+    },
+    {
+      "title": "Network",
+      "url": "https://playwright.dev/docs/network"
+    },
+    {
+      "title": "route.fulfill()",
+      "url": "https://playwright.dev/docs/api/class-route#route-fulfill"
+    }
+  ],
+  "teachAlong": [
+    "Cause: the route intercepts the page's fetch.",
+    "Effect: the UI renders your data or your error.",
+    "Gate: a planted bug ignores the API data — your mocked-data assertions must catch it."
+  ],
+  "starterCode": "import { test, expect } from '@playwright/test';\n\ntest('shows todos returned by the API', async ({ page }) => {\n  // mock /api/todos, then open /todos and assert the mocked items\n  await page.goto('/todos');\n});\n\ntest('shows an error when the API fails', async ({ page }) => {\n  // mock a 500 and assert the alert\n});\n",
+  "solution": "import { test, expect } from '@playwright/test';\n\ntest('shows todos returned by the API', async ({ page }) => {\n  await page.route('**/api/todos', async (route) => {\n    await route.fulfill({\n      json: { todos: [\n        { id: 1, title: 'Mocked: pay invoices', done: false },\n        { id: 2, title: 'Mocked: call bank', done: true },\n      ] },\n    });\n  });\n  await page.goto('/todos');\n  const items = page.getByRole('list', { name: 'Todo list' }).getByRole('listitem');\n  await expect(items).toHaveText(['Mocked: pay invoices', '✅ Mocked: call bank']);\n  await expect(page.getByText('1 items left')).toBeVisible();\n});\n\ntest('shows an error when the API fails', async ({ page }) => {\n  await page.route('**/api/todos', (route) => route.fulfill({ status: 500, json: { error: 'boom' } }));\n  await page.goto('/todos');\n  await expect(page.getByRole('alert')).toHaveText('Could not load todos. Please try again.');\n});\n",
+  "gate": {
+    "forbidCss": true,
+    "minTests": 2,
+    "requires": [
+      {
+        "rule": "call",
+        "anyOf": [
+          "route"
+        ],
+        "reason": "Didn't mock the route: call page.route('**/api/todos', …) before page.goto so the page receives your data."
+      },
+      {
+        "rule": "call",
+        "anyOf": [
+          "fulfill"
+        ],
+        "reason": "Answer the intercepted request with route.fulfill({ json: … }) (or { status: 500 })."
+      }
+    ],
+    "mutants": [
+      {
+        "bug": "todos-ignore-api",
+        "reason": "the todo page ignores the API response"
+      }
+    ]
+  },
+  "wrongSolutions": [
+    {
+      "label": "no mocking (real seed data)",
+      "expect": [
+        "requires-route",
+        "requires-fulfill",
+        "min-tests"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('shows todos', async ({ page }) => {\n  await page.goto('/todos');\n  await expect(page.getByText('Write test plan')).toBeVisible();\n});\n"
+    }
+  ],
+  "testFile": "learner.spec.ts",
+  "order": 16,
+  "trackId": "playwright-typescript"
+}

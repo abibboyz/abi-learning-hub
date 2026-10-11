@@ -1,0 +1,75 @@
+{
+  "id": "pw-19-steps-tags",
+  "title": "Steps & tags for readable reports",
+  "summary": "Structure a checkout test into test.step blocks (like manual test steps) and tag it @smoke and @checkout.",
+  "why": "Steps show up in the HTML report and the trace viewer, so a failure reads 'pay with a valid card' instead of a bare line number. Tags let CI run subsets: --grep @smoke.",
+  "objectives": [
+    "Three awaited test.step blocks",
+    "{ tag: ['@smoke', '@checkout'] } in the test details",
+    "Assert the confirmation inside the iframe"
+  ],
+  "hints": [
+    "test('title', { tag: '@smoke' }, async ({ page }) => …)",
+    "npx playwright test --grep @smoke"
+  ],
+  "pitfalls": [
+    "Forgetting await on test.step.",
+    "Putting @smoke only in the title text instead of the tag option."
+  ],
+  "references": [
+    {
+      "title": "test.step()",
+      "url": "https://playwright.dev/docs/api/class-test#test-step"
+    },
+    {
+      "title": "Tag tests",
+      "url": "https://playwright.dev/docs/test-annotations#tag-tests"
+    }
+  ],
+  "starterCode": "import { test, expect } from '@playwright/test';\n\ntest('checkout with a test card', async ({ page }) => {\n  await page.goto('/frames');\n  const payment = page.getByTitle('Payment form').contentFrame();\n  await payment.getByLabel('Card number').fill('4242424242424242');\n  await payment.getByRole('button', { name: 'Pay now' }).click();\n  await expect(payment.getByRole('status')).toHaveText('Payment accepted for card ending 4242');\n});\n",
+  "solution": "import { test, expect } from '@playwright/test';\n\ntest('checkout with a test card', { tag: ['@smoke', '@checkout'] }, async ({ page }) => {\n  await test.step('open checkout', async () => {\n    await page.goto('/frames');\n    await expect(page.getByText('Order total: $42.50')).toBeVisible();\n  });\n\n  const payment = page.getByTitle('Payment form').contentFrame();\n\n  await test.step('pay with a valid card', async () => {\n    await payment.getByLabel('Card number').fill('4242424242424242');\n    await payment.getByRole('button', { name: 'Pay now' }).click();\n  });\n\n  await test.step('see the confirmation', async () => {\n    await expect(payment.getByRole('status')).toHaveText('Payment accepted for card ending 4242');\n  });\n});\n",
+  "gate": {
+    "forbidCss": true,
+    "requires": [
+      {
+        "rule": "call",
+        "anyOf": [
+          "step"
+        ],
+        "reason": "Wrap the phases in await test.step('…', async () => { … }) so reports read like test steps."
+      },
+      {
+        "rule": "property",
+        "name": "tag",
+        "reason": "Tag the test: test('…', { tag: ['@smoke', '@checkout'] }, async ({ page }) => …)."
+      }
+    ],
+    "mutants": [
+      {
+        "bug": "frame-declined",
+        "reason": "the payment iframe declines every card"
+      }
+    ]
+  },
+  "wrongSolutions": [
+    {
+      "label": "unawaited step",
+      "expect": [
+        "missing-await"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('checkout with a test card', { tag: ['@smoke', '@checkout'] }, async ({ page }) => {\n  await test.step('open checkout', async () => {\n    await page.goto('/frames');\n    await expect(page.getByText('Order total: $42.50')).toBeVisible();\n  });\n\n  const payment = page.getByTitle('Payment form').contentFrame();\n\n  await test.step('pay with a valid card', async () => {\n    await payment.getByLabel('Card number').fill('4242424242424242');\n    await payment.getByRole('button', { name: 'Pay now' }).click();\n  });\n\n  test.step('see the confirmation', async () => {\n    await expect(payment.getByRole('status')).toHaveText('Payment accepted for card ending 4242');\n  });\n});\n"
+    },
+    {
+      "label": "no steps or tags",
+      "expect": [
+        "requires-step",
+        "requires-tag"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest('checkout with a test card', async ({ page }) => {\n  await page.goto('/frames');\n  const payment = page.getByTitle('Payment form').contentFrame();\n  await payment.getByLabel('Card number').fill('4242424242424242');\n  await payment.getByRole('button', { name: 'Pay now' }).click();\n  await expect(payment.getByRole('status')).toHaveText('Payment accepted for card ending 4242');\n});\n"
+    }
+  ],
+  "testFile": "learner.spec.ts",
+  "teachAlong": [],
+  "order": 19,
+  "trackId": "playwright-typescript"
+}

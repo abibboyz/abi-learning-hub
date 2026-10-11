@@ -1,0 +1,34 @@
+{
+  "id": "pw-l19-visual",
+  "title": "Visual comparisons",
+  "topic": "Visual",
+  "summary": "expect(page|locator).toHaveScreenshot() compares against a stored baseline; mask, animations and maxDiffPixels make it stable.",
+  "why": "Layout and styling bugs pass every text assertion. Visual checks catch them — if you control dynamic content.",
+  "body": "First run writes the baseline (in 1.64, --update-snapshots=missing now passes the run). Later runs compare pixel-by-pixel with a configurable threshold. Mask dynamic regions, disable animations (default for toHaveScreenshot), and take baselines in the same OS/browser as CI (use the Playwright Docker image). Update intentionally with --update-snapshots. New in 1.64: expect.toHaveScreenshot.type: 'webp' in config for smaller files.",
+  "objectives": [
+    "Write a stable screenshot assertion",
+    "Mask dynamic content",
+    "Know how baselines are updated"
+  ],
+  "pitfalls": [
+    "Baselines from macOS compared on Linux CI.",
+    "Screenshots of whole pages with live data."
+  ],
+  "references": [
+    {
+      "title": "Visual comparisons",
+      "url": "https://playwright.dev/docs/test-snapshots"
+    },
+    {
+      "title": "PageAssertions.toHaveScreenshot",
+      "url": "https://playwright.dev/docs/api/class-pageassertions#page-assertions-to-have-screenshot-1"
+    }
+  ],
+  "example": {
+    "language": "typescript",
+    "code": "import { test, expect } from '@playwright/test';\n\ntest('product table looks right', async ({ page }) => {\n  await page.goto('/products');\n  await expect(page.getByRole('table')).toHaveScreenshot('products-table.png');\n});\n\ntest('login form with tolerance', async ({ page }) => {\n  await page.goto('/login');\n  await expect(page.getByRole('main')).toHaveScreenshot('login.png', { maxDiffPixelRatio: 0.01 });\n});\n"
+  },
+  "runnable": true,
+  "teachAlong": [],
+  "order": 19
+}

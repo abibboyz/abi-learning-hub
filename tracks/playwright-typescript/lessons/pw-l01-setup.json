@@ -1,0 +1,38 @@
+{
+  "id": "pw-l01-setup",
+  "title": "Why Playwright, and setting it up",
+  "topic": "Setup",
+  "summary": "Install Playwright Test, understand what `npm init playwright@latest` creates, and how the pieces fit: test runner, browsers, config, reports.",
+  "why": "As a manual tester you already know what to check. Playwright Test is the runner that executes those checks in real Chromium, Firefox and WebKit, in parallel, with auto-waiting, traces and reports built in — no extra libraries to wire together.",
+  "body": "Playwright Test (@playwright/test) bundles the runner, assertions (expect), fixtures and reporters. Browsers are downloaded separately with `npx playwright install` so their versions match the library exactly.\n\nA new project has: playwright.config.ts (where tests live, base URL, browsers = projects, retries, reporters), tests/ (your *.spec.ts files) and, after a run, playwright-report/ and test-results/ (traces, screenshots).\n\nIn this hub you never install anything: the runner container is the official mcr.microsoft.com/playwright image for the pinned version, and the app under test runs next to it.",
+  "objectives": [
+    "Know the three commands: init, install, test",
+    "Recognise the generated files",
+    "Know that browser versions are pinned to the Playwright version"
+  ],
+  "pitfalls": [
+    "Upgrading @playwright/test without re-running npx playwright install.",
+    "Committing playwright-report/ and test-results/ — they are build output."
+  ],
+  "references": [
+    {
+      "title": "Installation",
+      "url": "https://playwright.dev/docs/intro"
+    },
+    {
+      "title": "Running and debugging tests",
+      "url": "https://playwright.dev/docs/running-tests"
+    },
+    {
+      "title": "Docker",
+      "url": "https://playwright.dev/docs/docker"
+    }
+  ],
+  "example": {
+    "language": "bash",
+    "code": "# new project (choose TypeScript, tests folder, GitHub Actions workflow)\nnpm init playwright@latest\n\n# or add to an existing project\nnpm install -D @playwright/test@latest\nnpx playwright install --with-deps   # browsers + OS dependencies\n\nnpx playwright test                  # run all tests headless\nnpx playwright test --ui             # UI mode\nnpx playwright show-report           # open the HTML report\n"
+  },
+  "runnable": false,
+  "teachAlong": [],
+  "order": 1
+}

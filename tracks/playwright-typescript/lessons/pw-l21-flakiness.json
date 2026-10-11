@@ -1,0 +1,38 @@
+{
+  "id": "pw-l21-flakiness",
+  "title": "Flakiness and retries",
+  "topic": "Reliability",
+  "summary": "A flaky test passes and fails on the same code. Find it with --repeat-each, understand it with traces, fix the cause; use retries only as a CI safety net.",
+  "why": "A suite people don't trust gets ignored. Every flaky test erodes trust in all the others.",
+  "body": "Common causes: fixed sleeps, non-retrying checks, shared test data, order dependence, animations, real third-party services. Detect: --repeat-each=5, --shuffle (new in 1.64, random order), --fail-on-flaky-tests in CI. Retries: retries: 2 in CI marks a test that passes on retry as 'flaky' in the report — read those reports. trace: 'on-first-retry' records exactly the failing attempt.",
+  "objectives": [
+    "Reproduce flakiness with --repeat-each",
+    "Read the 'flaky' status",
+    "Fix root causes instead of adding retries"
+  ],
+  "pitfalls": [
+    "Raising timeouts to hide flakiness.",
+    "Retries locally."
+  ],
+  "references": [
+    {
+      "title": "Test retries",
+      "url": "https://playwright.dev/docs/test-retries"
+    },
+    {
+      "title": "Command line (--repeat-each, --shuffle)",
+      "url": "https://playwright.dev/docs/test-cli"
+    },
+    {
+      "title": "Best practices",
+      "url": "https://playwright.dev/docs/best-practices"
+    }
+  ],
+  "example": {
+    "language": "bash",
+    "code": "npx playwright test --repeat-each=5 --workers=4   # shake out flakes\nnpx playwright test --shuffle                     # 1.64: random order, prints the seed\nnpx playwright test --retries=2 --fail-on-flaky-tests\n"
+  },
+  "runnable": false,
+  "teachAlong": [],
+  "order": 21
+}

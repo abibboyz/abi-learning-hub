@@ -1,0 +1,83 @@
+{
+  "id": "pw-06-hooks-tables",
+  "title": "Hooks, describe & tables",
+  "summary": "Group two table tests in test.describe, move the shared navigation into test.beforeEach, and check filtering (category + search) and sorting.",
+  "why": "Hooks remove duplicated setup and make each test start from the same known state — the automated version of a test precondition.",
+  "objectives": [
+    "test.describe('product table', …) with a test.beforeEach that opens /products",
+    "Filter: Category 'Dairy' → 'Showing 4 of 12 products'; search 'ch' → only Cheddar",
+    "Sort: click 'Price' → first row Banana, aria-sort ascending; click again → Cheddar first"
+  ],
+  "hints": [
+    "Data rows only: page.getByRole('row').filter({ has: page.getByRole('cell') })",
+    "await expect(page.getByRole('columnheader', { name: 'Price' })).toHaveAttribute('aria-sort', 'ascending')"
+  ],
+  "pitfalls": [
+    "beforeAll with a shared page couples tests — prefer beforeEach + the page fixture.",
+    "Counting rows including the header row."
+  ],
+  "references": [
+    {
+      "title": "Test hooks & describe",
+      "url": "https://playwright.dev/docs/api/class-test#test-before-each"
+    },
+    {
+      "title": "Locators: filtering",
+      "url": "https://playwright.dev/docs/locators#filtering-locators"
+    },
+    {
+      "title": "Locator lists",
+      "url": "https://playwright.dev/docs/locators#lists"
+    }
+  ],
+  "teachAlong": [
+    "Cause: beforeEach runs before every test in the describe.",
+    "Effect: each test is independent and can run alone or in parallel.",
+    "Gate: planted bugs break sorting and searching — your tests must notice both."
+  ],
+  "starterCode": "import { test, expect } from '@playwright/test';\n\ntest.describe('product table', () => {\n  test('filters by category', async ({ page }) => {\n    await page.goto('/products');\n    await page.getByLabel('Category').selectOption('Dairy');\n    await expect(page.getByRole('status')).toHaveText('Showing 4 of 12 products');\n  });\n\n  test('sorts by price', async ({ page }) => {\n    await page.goto('/products');\n    await page.getByRole('button', { name: 'Price' }).click();\n    const rows = page.getByRole('row').filter({ has: page.getByRole('cell') });\n    await expect(rows.first()).toContainText('Banana');\n  });\n});\n",
+  "solution": "import { test, expect } from '@playwright/test';\n\ntest.describe('product table', () => {\n  test.beforeEach(async ({ page }) => {\n    await page.goto('/products');\n  });\n\n  test('filters by category and search text', async ({ page }) => {\n    const rows = page.getByRole('row').filter({ has: page.getByRole('cell') });\n    await page.getByLabel('Category').selectOption('Dairy');\n    await expect(page.getByRole('status')).toHaveText('Showing 4 of 12 products');\n    await expect(rows).toHaveCount(4);\n    await page.getByLabel('Search products').fill('ch');\n    await expect(rows).toHaveCount(1);\n    await expect(rows.first()).toContainText('Cheddar');\n  });\n\n  test('sorts by price both ways', async ({ page }) => {\n    const rows = page.getByRole('row').filter({ has: page.getByRole('cell') });\n    const price = page.getByRole('columnheader', { name: 'Price' });\n    await page.getByRole('button', { name: 'Price' }).click();\n    await expect(price).toHaveAttribute('aria-sort', 'ascending');\n    await expect(rows.first()).toContainText('Banana');\n    await page.getByRole('button', { name: 'Price' }).click();\n    await expect(price).toHaveAttribute('aria-sort', 'descending');\n    await expect(rows.first()).toContainText('Cheddar');\n  });\n});\n",
+  "gate": {
+    "forbidCss": true,
+    "minTests": 2,
+    "requires": [
+      {
+        "rule": "call",
+        "anyOf": [
+          "describe"
+        ],
+        "reason": "Group the tests with test.describe('product table', () => { … })."
+      },
+      {
+        "rule": "call",
+        "anyOf": [
+          "beforeEach"
+        ],
+        "reason": "Move the shared page.goto('/products') into test.beforeEach — the automated precondition."
+      }
+    ],
+    "mutants": [
+      {
+        "bug": "sort-broken",
+        "reason": "clicking a column header no longer sorts"
+      },
+      {
+        "bug": "filter-broken",
+        "reason": "the search box is ignored"
+      }
+    ]
+  },
+  "wrongSolutions": [
+    {
+      "label": "duplicated setup, no hook, misses the search bug",
+      "expect": [
+        "requires-beforeEach",
+        "weak-test"
+      ],
+      "code": "import { test, expect } from '@playwright/test';\n\ntest.describe('product table', () => {\n  test('filters by category', async ({ page }) => {\n    await page.goto('/products');\n    await page.getByLabel('Category').selectOption('Dairy');\n    await expect(page.getByRole('status')).toHaveText('Showing 4 of 12 products');\n  });\n\n  test('sorts by price', async ({ page }) => {\n    await page.goto('/products');\n    await page.getByRole('button', { name: 'Price' }).click();\n    const rows = page.getByRole('row').filter({ has: page.getByRole('cell') });\n    await expect(rows.first()).toContainText('Banana');\n  });\n});\n"
+    }
+  ],
+  "testFile": "learner.spec.ts",
+  "order": 6,
+  "trackId": "playwright-typescript"
+}

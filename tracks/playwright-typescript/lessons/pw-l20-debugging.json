@@ -1,0 +1,46 @@
+{
+  "id": "pw-l20-debugging",
+  "title": "Debugging: trace viewer, UI mode, codegen, inspector",
+  "topic": "Debugging",
+  "summary": "Trace viewer replays a run step by step; UI mode is a watch-mode IDE for tests; codegen records actions into code; the inspector steps through a test live.",
+  "why": "Reading a trace is faster than re-running a test ten times. These tools turn 'it failed in CI' into 'it failed because the button was still disabled'.",
+  "body": "Trace viewer: every run in this lab records a trace — open it from the results list. It shows actions, before/after DOM snapshots, console, network, source, and errors. Locally: npx playwright show-trace trace.zip, or drop it on trace.playwright.dev (runs fully in your browser).\nUI mode: npx playwright test --ui — pick tests, watch files, time-travel through steps.\nCodegen: npx playwright codegen <url> — records clicks into locator-based code (a starting point, then refactor).\nInspector: npx playwright test --debug, or await page.pause() in a test.\nVS Code extension: run/debug tests from the editor, pick locators.\n`npx playwright trace` (CLI) inspects traces from the terminal.",
+  "objectives": [
+    "Open and read a trace",
+    "Use UI mode and codegen",
+    "Pause a test with the inspector"
+  ],
+  "pitfalls": [
+    "Committing await page.pause().",
+    "Keeping codegen output as-is (no assertions, brittle flow)."
+  ],
+  "references": [
+    {
+      "title": "Trace viewer",
+      "url": "https://playwright.dev/docs/trace-viewer"
+    },
+    {
+      "title": "UI mode",
+      "url": "https://playwright.dev/docs/test-ui-mode"
+    },
+    {
+      "title": "Codegen",
+      "url": "https://playwright.dev/docs/codegen"
+    },
+    {
+      "title": "Debugging tests",
+      "url": "https://playwright.dev/docs/debug"
+    },
+    {
+      "title": "VS Code extension",
+      "url": "https://playwright.dev/docs/getting-started-vscode"
+    }
+  ],
+  "example": {
+    "language": "bash",
+    "code": "npx playwright test --ui                  # UI mode\nnpx playwright test --debug               # inspector, step through\nnpx playwright test --trace on            # force traces locally\nnpx playwright show-trace test-results/…/trace.zip\nnpx playwright codegen http://localhost:3000/login\n"
+  },
+  "runnable": false,
+  "teachAlong": [],
+  "order": 20
+}

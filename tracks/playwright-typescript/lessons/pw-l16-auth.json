@@ -1,0 +1,44 @@
+{
+  "id": "pw-l16-auth",
+  "title": "Authentication: setup project + storageState",
+  "topic": "Auth",
+  "summary": "Log in once in a setup project, save cookies/localStorage with storageState, and start every other test already signed in.",
+  "why": "UI login in every test is slow and makes the whole suite fail when login breaks. Saved state turns login into a one-time precondition.",
+  "body": "Config: a 'setup' project with testMatch /.*\\.setup\\.ts/, and your browser projects with dependencies: ['setup'] and use: { storageState: 'playwright/.auth/user.json' }. The setup test logs in, waits for the post-login page, then calls page.context().storageState({ path }). Add playwright/.auth to .gitignore. For multiple roles, save one file per role and pick with test.use({ storageState }). API login (request.post + storageState) is even faster.\n\nThis lesson's lab runs with the hub's auth preset: auth.setup.ts below is provided and runs first.",
+  "objectives": [
+    "Configure a setup project and dependencies",
+    "Save and reuse storageState",
+    "Handle multiple roles"
+  ],
+  "pitfalls": [
+    "Saving state before the redirect completes.",
+    "Tests that log out while sharing one saved session (they break each other)."
+  ],
+  "references": [
+    {
+      "title": "Authentication",
+      "url": "https://playwright.dev/docs/auth"
+    },
+    {
+      "title": "Project dependencies",
+      "url": "https://playwright.dev/docs/test-projects#dependencies"
+    }
+  ],
+  "lab": {
+    "preset": "auth",
+    "supportFiles": [
+      {
+        "path": "auth.setup.ts",
+        "readOnly": true,
+        "content": "import { test as setup, expect } from '@playwright/test';\n\nsetup('authenticate', async ({ page }) => {\n  await page.goto('/login');\n  await page.getByLabel('Email').fill('qa@example.com');\n  await page.getByLabel('Password').fill('Passw0rd!');\n  await page.getByRole('button', { name: 'Sign in' }).click();\n  await expect(page).toHaveURL(/\\/dashboard$/);\n  await page.context().storageState({ path: 'playwright/.auth/user.json' });\n});\n"
+      }
+    ]
+  },
+  "example": {
+    "language": "typescript",
+    "code": "import { test, expect } from '@playwright/test';\n\ntest.use({ storageState: 'playwright/.auth/user.json' });\n\ntest('starts signed in', async ({ page }) => {\n  await page.goto('/dashboard');\n  await expect(page.getByText('Welcome, QA Tester')).toBeVisible();\n});\n\ntest.describe('as a signed-out visitor', () => {\n  test.use({ storageState: { cookies: [], origins: [] } });\n  test('is redirected to login', async ({ page }) => {\n    await page.goto('/dashboard');\n    await expect(page).toHaveURL(/\\/login/);\n  });\n});\n"
+  },
+  "runnable": true,
+  "teachAlong": [],
+  "order": 16
+}

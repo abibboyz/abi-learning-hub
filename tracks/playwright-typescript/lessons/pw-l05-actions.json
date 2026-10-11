@@ -1,0 +1,33 @@
+{
+  "id": "pw-l05-actions",
+  "title": "Actions: fill, click, check, select, press",
+  "topic": "Basics",
+  "summary": "Actions simulate a real user. Before each action Playwright waits until the element is visible, stable, enabled and receives events (actionability).",
+  "why": "You never need manual waits before clicking: Playwright already checks that the element is ready, which removes a whole class of flaky failures.",
+  "body": "Common actions: fill (replaces the value), pressSequentially (types key by key, for inputs that react to keys), click/dblclick, check/uncheck (and verify the new state), selectOption, press('Enter'), hover, setInputFiles, dragTo. All of them auto-wait for actionability checks.",
+  "objectives": [
+    "Use fill, check, selectOption and click",
+    "Know what actionability checks do"
+  ],
+  "pitfalls": [
+    "Using click() on checkboxes and not verifying the state — check() does both.",
+    "force: true to 'fix' a click — it hides real UI bugs."
+  ],
+  "references": [
+    {
+      "title": "Actions",
+      "url": "https://playwright.dev/docs/input"
+    },
+    {
+      "title": "Auto-waiting / actionability",
+      "url": "https://playwright.dev/docs/actionability"
+    }
+  ],
+  "example": {
+    "language": "typescript",
+    "code": "import { test, expect } from '@playwright/test';\n\ntest('fills the registration form', async ({ page }) => {\n  await page.goto('/register');\n  await page.getByLabel('Full name').fill('Ana Silva');\n  await page.getByLabel('Email').fill('ana@example.com');\n  await page.getByLabel('Age').fill('30');\n  await page.getByLabel('Country').selectOption('Australia');\n  await page.getByLabel('Pro').check();\n  await page.getByLabel('I accept the terms').check();\n  await page.getByRole('button', { name: 'Create account' }).click();\n  await expect(page.getByRole('status')).toHaveText('Account created for Ana Silva (Pro plan)');\n});\n"
+  },
+  "runnable": true,
+  "teachAlong": [],
+  "order": 5
+}
