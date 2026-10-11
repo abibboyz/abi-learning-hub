@@ -8,6 +8,9 @@ import {
   fetchTasks,
   fetchTrack,
   fetchTracks,
+  fetchSolution,
+  fetchHistoryDetail,
+  type HistoryDetail,
 } from "@/lib/api";
 import type { ExecuteResult, Lesson, Manifest, Schema, Task } from "@/types/hub";
 import { SchemaDiagram } from "@/components/diagram/SchemaDiagram";
@@ -15,6 +18,8 @@ import { CodeEditor } from "@/components/editor/CodeEditor";
 import { PrereqPanel } from "@/components/lab/PrereqPanel";
 import { DbTools } from "@/components/lab/DbTools";
 import { HistoryPanel } from "@/components/lab/HistoryPanel";
+import { GateResult } from "@/components/lab/GateResult";
+import { LessonExercise } from "@/components/lab/LessonExercise";
 import clsx from "clsx";
 
 type Props = {
@@ -28,6 +33,7 @@ const TRACK_OPTIONS = [
   { id: "python-sqlalchemy", label: "Python · SQLAlchemy" },
   { id: "node-typescript", label: "Node · TypeScript" },
   { id: "node-javascript", label: "Node · JavaScript" },
+  { id: "sql-postgres", label: "Raw SQL · PostgreSQL" },
   { id: "playwright-typescript", label: "Playwright · TypeScript" },
 ];
 
@@ -72,6 +78,33 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
   const [loading, setLoading] = useState(true);
   const [passedIds, setPassedIds] = useState<Set<string>>(() => new Set());
   const [trackOptions, setTrackOptions] = useState(TRACK_OPTIONS);
+  const [historyKey, setHistoryKey] = useState(0);
+  const [lessonReplay, setLessonReplay] = useState<{ code: string; nonce: number } | null>(null);
+  const [pendingTaskCode, setPendingTaskCode] = useState<string | null>(null);
+
+  /** Replay a past run: tasks load in Execute mode, lesson runs in Topics mode (same page or via URL). */
+  function replay(d: HistoryDetail) {
+    const lessonId = d.mode?.startsWith("lesson:") ? d.mode.slice(7) : null;
+    if (lessonId) {
+      if (mode !== "topics") {
+        window.location.href = `/lab?track=${trackId}&mode=topics&replay=${d.id}`;
+        return;
+      }
+      const idx = lessons.findIndex((l) => l.id === lessonId);
+      if (idx >= 0) setLessonIdx(idx);
+      setLessonReplay({ code: d.code, nonce: Date.now() });
+      return;
+    }
+    if (mode !== "execute") {
+      window.location.href = `/lab?track=${trackId}&mode=execute&replay=${d.id}`;
+      return;
+    }
+    if (d.task_id && d.task_id !== task?.id) {
+      setPendingTaskCode(d.code); // applied after the task switch resets the editor
+      setTaskId(d.task_id);
+    } else setCode(d.code);
+    setResult(null);
+  }
 
   useEffect(() => {
     fetchTracks()
@@ -112,6 +145,22 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
         const panels = Object.keys(m.runtimePanels || {});
         setRuntimePanel(panels[0] || "");
         setLessonIdx(0);
+        const replayId = Number(new URLSearchParams(window.location.search).get("replay"));
+        if (replayId) {
+          fetchHistoryDetail(trackId, replayId)
+            .then((d) => {
+              const lessonId = d.mode?.startsWith("lesson:") ? d.mode.slice(7) : null;
+              if (lessonId) {
+                const idx = l.findIndex((x) => x.id === lessonId);
+                if (idx >= 0) setLessonIdx(idx);
+                setLessonReplay({ code: d.code, nonce: Date.now() });
+              } else if (d.task_id) {
+                setPendingTaskCode(d.code);
+                setTaskId(d.task_id);
+              }
+            })
+            .catch(() => {});
+        }
       })
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
@@ -119,12 +168,17 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
   }, [trackId, refreshSchema]);
 
   useEffect(() => {
-    if (task) setCode(task.starterCode || "");
+    if (!task) return;
+    if (pendingTaskCode !== null) {
+      setCode(pendingTaskCode);
+      setPendingTaskCode(null);
+    } else setCode(task.starterCode || "");
+    setResult(null);
   }, [task?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && mode === "execute") {
         e.preventDefault();
         void run();
       }
@@ -134,7 +188,7 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
   });
 
   async function run() {
-    if (!task && mode === "execute") return;
+    if (!task || mode !== "execute") return;
     setExecuting(true);
     setResult(null);
     setHighlightTables([]);
@@ -144,11 +198,11 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
     try {
       const res = await executeCode({
         trackId,
-        taskId: mode === "execute" ? task?.id : null,
+        taskId: task.id,
         code,
-        mode: mode === "topics" ? "topic-exercise" : "execute",
       });
       setResult(res);
+      setHistoryKey((k) => k + 1);
       if (res.schema) setSchema(res.schema);
       if (res.success && res.animation) {
         setHighlightTables(res.animation.highlightTables || []);
@@ -312,6 +366,7 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
                   {lesson.order}. {lesson.title}
                 </h2>
                 <span className="text-xs text-ink-400">
+                  {lesson.level ? `${lesson.level} · ` : ""}
                   {lessonIdx + 1}/{lessons.length}
                 </span>
               </div>
@@ -368,12 +423,28 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
                 </pre>
               )}
               <RefList refs={lesson.references} />
+              <LessonExercise
+                trackId={trackId}
+                lesson={lesson}
+                replay={lessonReplay}
+                onResult={(r) => {
+                  if (r.schema) setSchema(r.schema);
+                  setHistoryKey((k) => k + 1);
+                  if (r.success && r.animation?.highlightTables?.length) {
+                    setHighlightTables(r.animation.highlightTables);
+                    setTimeout(() => setHighlightTables([]), 4000);
+                  }
+                }}
+              />
               <div className="flex gap-2">
                 <button
                   type="button"
                   className="btn-ghost"
                   disabled={lessonIdx === 0}
-                  onClick={() => setLessonIdx((i) => Math.max(0, i - 1))}
+                  onClick={() => {
+                    setLessonReplay(null);
+                    setLessonIdx((i) => Math.max(0, i - 1));
+                  }}
                 >
                   Prev
                 </button>
@@ -381,7 +452,10 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
                   type="button"
                   className="btn-ghost"
                   disabled={lessonIdx >= lessons.length - 1}
-                  onClick={() => setLessonIdx((i) => Math.min(lessons.length - 1, i + 1))}
+                  onClick={() => {
+                    setLessonReplay(null);
+                    setLessonIdx((i) => Math.min(lessons.length - 1, i + 1));
+                  }}
                 >
                   Next topic
                 </button>
@@ -469,7 +543,7 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
               )}
               <RefList refs={task.references} />
               <CodeEditor
-                label="Your ORM / schema code"
+                label={task.language === "sql" ? "Your SQL" : task.language === "prisma" ? "Your Prisma schema" : "Your ORM code"}
                 value={code}
                 onChange={setCode}
                 minHeight={280}
@@ -491,38 +565,22 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
                 >
                   Reset starter
                 </button>
-              </div>
-              {result && (
-                <div
-                  className={clsx(
-                    "rounded-xl border px-3 py-2 text-sm animate-fade-up",
-                    result.success
-                      ? "border-accent/40 bg-accent/10 text-accent-glow"
-                      : "border-danger/40 bg-danger/10 text-danger"
-                  )}
-                  role="status"
-                  aria-live="polite"
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() =>
+                    fetchSolution(trackId, "tasks", task.id)
+                      .then((s) => {
+                        setCode(s);
+                        setResult(null);
+                      })
+                      .catch((e) => setResult({ success: false, gate: "client_error", message: `No solution available: ${e}` }))
+                  }
                 >
-                  <p className="font-medium">
-                    {result.gate}: {result.message}
-                  </p>
-                  {result.validation?.errors?.length ? (
-                    <ul className="mt-1 list-disc pl-4">
-                      {result.validation.errors.map((e) => (
-                        <li key={e}>{e}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  {result.note && <p className="mt-1 text-ink-300">{result.note}</p>}
-                  {result.success && (result.teachAlong || task.teachAlong) && (
-                    <ol className="mt-2 list-decimal pl-4 text-ink-200">
-                      {(result.teachAlong || task.teachAlong || []).map((s) => (
-                        <li key={s}>{s}</li>
-                      ))}
-                    </ol>
-                  )}
-                </div>
-              )}
+                  Show solution
+                </button>
+              </div>
+              {result && <GateResult result={result} teachAlong={result.teachAlong || task.teachAlong} />}
               {!result && teachAlong && (
                 <div className="rounded-lg border border-ink-700 bg-ink-950/50 p-3 text-sm text-ink-300">
                   <p className="text-xs uppercase tracking-wide text-ink-400 mb-1">
@@ -598,7 +656,7 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
             highlightRels={highlightRels}
             executing={executing}
           />
-          <HistoryPanel trackId={trackId} />
+          <HistoryPanel trackId={trackId} refreshKey={historyKey} onReplay={replay} />
           <DbTools trackId={trackId} onSchema={refreshSchema} />
         </div>
       </div>
