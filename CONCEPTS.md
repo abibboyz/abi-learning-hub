@@ -1,4 +1,4 @@
-# CONCEPTS — Database relationships learning guide
+# CONCEPTS — Database relationships & test automation learning guide
 
 Structured like a focused SQLAlchemy / Prisma handbook: basics → advanced, with parallel **Node ORM**, **raw SQL**, and **validation** sections. Every section answers **what**, **why**, and points to **official references**.
 
@@ -178,6 +178,33 @@ Use Pydantic models as DTOs at the FastAPI boundary (same idea as Zod).
 
 ---
 
+## Playwright test automation (Playwright Test 1.64)
+
+The `playwright-typescript` track teaches UI + API automation against the hub's practice app. Short version of the ideas the gate enforces:
+
+| Concept | What | Why | Reference |
+|---|---|---|---|
+| **Locators** | `getByRole`, `getByLabel`, `getByText`, `getByTestId`; chain/filter (`filter({ hasText })`, `locator.within()` new in 1.64) | Match what users see; survive markup/CSS refactors. CSS/XPath couple tests to implementation | [Locators](https://playwright.dev/docs/locators) |
+| **Auto-waiting** | Actions wait for the element to be attached, visible, stable, enabled | No manual waits before clicks | [Actionability](https://playwright.dev/docs/actionability) |
+| **Web-first assertions** | `await expect(locator).toBeVisible()/toHaveText()/toHaveURL()` retry until timeout | `expect(await el.isVisible())` checks once and races the page; `waitForTimeout` is either too slow or flaky | [Assertions](https://playwright.dev/docs/test-assertions) |
+| **Always await** | Every action/assertion returns a promise | A missing `await` lets the test end before the check runs — it "passes" without checking | [Writing tests](https://playwright.dev/docs/writing-tests) |
+| **Isolation** | Each test gets a fresh `BrowserContext` | No shared cookies/state; tests can run in any order and in parallel | [Isolation](https://playwright.dev/docs/browser-contexts) |
+| **Fixtures & hooks** | `page`, `context`, `request`; `test.extend()` for your own; `beforeEach` | Setup is declared once and composed, not copy-pasted | [Fixtures](https://playwright.dev/docs/test-fixtures) |
+| **Page Object Model** | Class wrapping locators + actions of one page | One place to update when the UI changes; tests read like the test case | [POM](https://playwright.dev/docs/pom) |
+| **Auth state** | Setup project logs in once, `storageState` saved and reused | UI login per test is slow and makes every test fail when login breaks | [Authentication](https://playwright.dev/docs/auth) |
+| **API testing** | `request` fixture / `page.request` (shares cookies) | Fast setup/teardown and backend checks without the UI | [API testing](https://playwright.dev/docs/api-testing) |
+| **Network mocking** | `page.route()` + `route.fulfill()`; `waitForResponse()` | Deterministic edge cases (empty, error, slow) without a special backend | [Mock APIs](https://playwright.dev/docs/mock) |
+| **Visual comparisons** | `toHaveScreenshot()` with `mask` for dynamic parts | Catches layout/styling regressions functional checks miss | [Visual comparisons](https://playwright.dev/docs/test-snapshots) |
+| **Flakiness** | Same test, different results on identical runs | Usually a race (sleep, non-retrying check, shared state). Fix the wait; retries only hide it | [Retries](https://playwright.dev/docs/test-retries) |
+| **Trace viewer** | Recorded actions, DOM snapshots, console, network per test | Debug a CI failure without re-running it | [Trace viewer](https://playwright.dev/docs/trace-viewer) |
+| **Agents, MCP, CLI** | `npx playwright init-agents` (planner/generator/healer, since 1.56), bundled `npx playwright mcp` / `cli` (1.62), WebMCP (1.64) | AI-assisted planning/generation/healing — the output still has to pass the same review as hand-written tests | [Test agents](https://playwright.dev/docs/test-agents) · [Release notes](https://playwright.dev/docs/release-notes) |
+
+**How the hub checks a "good" test (mutation idea):** a test that passes is not enough. For many tasks the runner re-runs your green tests against the app with a planted bug (`x-sut-bug` header, e.g. the welcome heading shows the wrong name). If your test still passes, it is too weak (`weak-test`). Task tests also run 3× (`repeatEach: 3`); `/api/orders` answers with varying latency per run, so a fixed sleep is flaky and a web-first assertion is not.
+
+**Manual test case → automated test:** each step becomes an action with a user-facing locator; each expected result becomes a web-first assertion; preconditions become fixtures/hooks or API setup; test data becomes parameters (`for (const row of rows) test(...)`).
+
+---
+
 ## Official references (index)
 
 - [SQLAlchemy 2.0 ORM relationships](https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html)
@@ -189,3 +216,4 @@ Use Pydantic models as DTOs at the FastAPI boundary (same idea as Zod).
 - [PostgreSQL foreign keys](https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK)
 - [PostgreSQL joins](https://www.postgresql.org/docs/current/tutorial-join.html)
 - [Next.js Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/route-handlers)
+- Playwright: [Docs](https://playwright.dev/docs/intro) · [Best practices](https://playwright.dev/docs/best-practices) · [Release notes](https://playwright.dev/docs/release-notes) · [v1.64.0 release](https://github.com/microsoft/playwright/releases/tag/v1.64.0) · [Docker image](https://playwright.dev/docs/docker)
