@@ -366,7 +366,7 @@ def _scratch(body: ExecuteBody, language: str, tables: list[str], hint_level: in
     before = _snapshot(tables)
     try:
         if language == "sql":
-            result = run_lab_sql(body.code, lab_database_url(settings.database_url), commit=False, reset_tables=tables)
+            result = run_lab_sql(body.code, lab_database_url(settings.database_url), commit=False, sandbox=True)
         else:
             result = run_lab_code(body.code, lab_database_url(settings.database_url))
     except UnsafeCodeError as e:

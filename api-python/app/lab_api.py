@@ -149,12 +149,7 @@ def explain(body: ExplainBody) -> dict[str, Any]:
         return {"ok": False, "error": tgt["error"], "line": tgt.get("line")}
     if TX_CONTROL.search(_strip_comments(tgt["query"])):
         return {"ok": False, "error": "Transaction control cannot be explained.", "line": tgt.get("line")}
-    reset: list[str] = []
-    if body.taskId or body.lessonId:
-        item = _load(body.trackId, "task" if body.taskId else "lesson", body.taskId or body.lessonId or "")
-        ex = item if body.taskId else (item.get("exercise") or {})
-        reset = exercise_tables(ex.get("requirements"))
-    r = run_lab_sql(tgt["setup"], lab_database_url(settings.database_url), reset_tables=reset, explain=("ANALYZE " if body.analyze else "") + tgt["query"])
+    r = run_lab_sql(tgt["setup"], lab_database_url(settings.database_url), sandbox=True, explain=("ANALYZE " if body.analyze else "") + tgt["query"])
     if not r.get("ok"):
         return {"ok": False, "error": r.get("error"), "line": r.get("line")}
     return {

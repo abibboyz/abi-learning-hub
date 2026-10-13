@@ -57,10 +57,13 @@ def run_lab_sql(
     commit: bool = True,
     explain: str | None = None,
     reset_tables: list[str] | None = None,
+    sandbox: bool = False,
 ) -> dict[str, Any]:
     """Run learner SQL in one transaction.
 
-    commit=False is the scratch mode ("run selection"): same checks, but always rolled back.
+    commit=False is the scratch mode (Run): same checks, but always rolled back.
+    sandbox=True puts pg_temp first in search_path, so CREATE TABLE makes temp tables that shadow (and never
+    touch) the shared lab tables — Run and EXPLAIN work no matter which track created those tables.
     explain=<statement> runs the script as setup, then `EXPLAIN (FORMAT JSON …)` of that statement, and
     always rolls back (EXPLAIN ANALYZE really executes the statement; nothing is kept).
     """
@@ -86,6 +89,8 @@ def run_lab_sql(
     try:
         with conn.cursor() as cur:
             cur.execute("SET LOCAL lock_timeout = '3s'")
+            if sandbox:  # Run / EXPLAIN: new tables are session-private temp tables, so shared lab tables are never touched
+                cur.execute("SET LOCAL search_path = pg_temp, public")
             for t in reset_tables or []:  # clean slate inside the same transaction (separate statement → lines stay)
                 if re.fullmatch(r"lab_[a-z0-9_]{1,58}", t):
                     cur.execute("SAVEPOINT hub_reset")
