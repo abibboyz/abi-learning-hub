@@ -19,6 +19,10 @@ const nav = [
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [health, setHealth] = useState<string>("…");
+  const [labMode, setLabMode] = useState<string | null>(null);
+  useEffect(() => {
+    setLabMode(new URLSearchParams(window.location.search).get("mode"));
+  }, [pathname]);
 
   useEffect(() => {
     import("@/lib/api").then(({ healthCheck }) =>
@@ -48,10 +52,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <nav className="flex flex-wrap items-center gap-1" aria-label="Primary">
             {nav.map((n) => {
               const base = n.href.split("?")[0];
+              const mode = n.href.includes("mode=") ? n.href.split("mode=")[1] : null;
               const active =
                 n.href === "/"
                   ? pathname === "/"
-                  : pathname === base || pathname.startsWith(`${base}/`);
+                  : mode
+                    ? pathname === "/lab" && (labMode === "topics" ? "topics" : "execute") === mode
+                    : pathname === base || pathname.startsWith(`${base}/`);
               return (
                 <Link
                   key={n.href}

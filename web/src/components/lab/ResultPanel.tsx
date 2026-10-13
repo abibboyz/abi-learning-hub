@@ -74,7 +74,13 @@ function StatusBanner({ status, result, runLabel, checkLabel }: { status: RunSta
       <m.Icon className={clsx("mt-0.5 h-4 w-4 shrink-0", status === "running" && "motion-safe:animate-spin")} aria-hidden />
       <div>
         <p className="font-semibold">{m.text}</p>
-        {result?.message && status !== "running" && <p className="text-ink-100">{result.message}</p>}
+        {status === "failed" ? (
+          <p className="text-ink-100">
+            {(result?.validation?.failures || []).length} thing(s) to fix — see the Check tab and the checklist.
+          </p>
+        ) : (
+          result?.message && status !== "running" && <p className="text-ink-100">{result.message}</p>
+        )}
         {status === "ran" && <p className="text-ink-300">Press Check ({checkLabel}) when you are ready to be graded.</p>}
       </div>
     </div>
