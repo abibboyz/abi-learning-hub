@@ -1,0 +1,80 @@
+{
+ "data": {
+  "lab_l08_categories": {
+   "columns": [
+    "id",
+    "name",
+    "parent_id"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  }
+ },
+ "id": "08-self-ref",
+ "kind": "lesson",
+ "results": [],
+ "schema": {
+  "relationships": [
+   {
+    "constraint": "lab_l08_categories_parent_id_fkey",
+    "fromColumn": "parent_id",
+    "fromTable": "lab_l08_categories",
+    "onDelete": "NO ACTION",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_l08_categories",
+    "type": "many-to-one"
+   }
+  ],
+  "tables": [
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_l08_categories_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "name",
+      "nullable": false,
+      "type": "character varying"
+     },
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "parent_id",
+      "nullable": true,
+      "references": {
+       "column": "id",
+       "table": "lab_l08_categories"
+      },
+      "type": "integer"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_l08_categories",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   }
+  ]
+ },
+ "sql": [],
+ "stdout": "",
+ "trackId": "python-sqlalchemy"
+}

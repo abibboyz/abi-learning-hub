@@ -1,0 +1,98 @@
+{
+ "data": {
+  "lab_l03_cities": {
+   "columns": [
+    "id",
+    "name"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_l03_countries": {
+   "columns": [
+    "code",
+    "name"
+   ],
+   "primaryKey": [
+    "code"
+   ],
+   "rows": [],
+   "total": 0
+  }
+ },
+ "id": "03-primary-keys",
+ "kind": "lesson",
+ "results": [],
+ "schema": {
+  "relationships": [],
+  "tables": [
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_l03_cities_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "name",
+      "nullable": false,
+      "type": "text"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_l03_cities",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "code",
+      "nullable": false,
+      "type": "character"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "name",
+      "nullable": false,
+      "type": "text"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_l03_countries",
+    "primaryKey": [
+     "code"
+    ],
+    "uniqueConstraints": []
+   }
+  ]
+ },
+ "sql": [
+  "CREATE TABLE \"lab_l03_countries\" (\n  \"code\" CHAR(2) NOT NULL,\n  \"name\" TEXT NOT NULL,\n  CONSTRAINT \"lab_l03_countries_pkey\" PRIMARY KEY (\"code\")\n);",
+  "CREATE TABLE \"lab_l03_cities\" (\n  \"id\" SERIAL NOT NULL,\n  \"name\" TEXT NOT NULL,\n  CONSTRAINT \"lab_l03_cities_pkey\" PRIMARY KEY (\"id\")\n);"
+ ],
+ "stdout": "",
+ "trackId": "node-typescript"
+}

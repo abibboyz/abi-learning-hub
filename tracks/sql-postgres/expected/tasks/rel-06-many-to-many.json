@@ -1,0 +1,176 @@
+{
+ "data": {
+  "lab_class_enrollments": {
+   "columns": [
+    "learner_id",
+    "class_id",
+    "grade"
+   ],
+   "primaryKey": [
+    "learner_id",
+    "class_id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_classes": {
+   "columns": [
+    "id",
+    "title"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_learners": {
+   "columns": [
+    "id",
+    "name"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  }
+ },
+ "id": "rel-06-many-to-many",
+ "kind": "task",
+ "results": [],
+ "schema": {
+  "relationships": [
+   {
+    "constraint": "lab_class_enrollments_learner_id_fkey",
+    "fromColumn": "learner_id",
+    "fromTable": "lab_class_enrollments",
+    "onDelete": "CASCADE",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_learners",
+    "type": "many-to-one"
+   },
+   {
+    "constraint": "lab_class_enrollments_class_id_fkey",
+    "fromColumn": "class_id",
+    "fromTable": "lab_class_enrollments",
+    "onDelete": "CASCADE",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_classes",
+    "type": "many-to-one"
+   }
+  ],
+  "tables": [
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": true,
+      "isUnique": false,
+      "name": "learner_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_learners"
+      },
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": true,
+      "isUnique": false,
+      "name": "class_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_classes"
+      },
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "grade",
+      "nullable": true,
+      "type": "character varying"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_class_enrollments",
+    "primaryKey": [
+     "learner_id",
+     "class_id"
+    ],
+    "uniqueConstraints": []
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_classes_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "title",
+      "nullable": false,
+      "type": "character varying"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_classes",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_learners_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "name",
+      "nullable": false,
+      "type": "character varying"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_learners",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   }
+  ]
+ },
+ "sql": [],
+ "stdout": "",
+ "trackId": "sql-postgres"
+}

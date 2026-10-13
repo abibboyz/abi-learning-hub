@@ -1,0 +1,140 @@
+{
+ "data": {
+  "lab_l14_inventory": {
+   "columns": [
+    "id",
+    "store_id",
+    "sku",
+    "stock"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_l14_stores": {
+   "columns": [
+    "id",
+    "name"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  }
+ },
+ "id": "14-constraints",
+ "kind": "lesson",
+ "results": [],
+ "schema": {
+  "relationships": [
+   {
+    "constraint": "lab_l14_inventory_store_id_fkey",
+    "fromColumn": "store_id",
+    "fromTable": "lab_l14_inventory",
+    "onDelete": "NO ACTION",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_l14_stores",
+    "type": "many-to-one"
+   }
+  ],
+  "tables": [
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_l14_inventory_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "store_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_l14_stores"
+      },
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "sku",
+      "nullable": false,
+      "type": "character varying"
+     },
+     {
+      "default": "0",
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "stock",
+      "nullable": false,
+      "type": "integer"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_l14_inventory",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": [
+     [
+      "store_id",
+      "sku"
+     ]
+    ]
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_l14_stores_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "name",
+      "nullable": false,
+      "type": "text"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_l14_stores",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   }
+  ]
+ },
+ "sql": [
+  "CREATE TABLE \"lab_l14_stores\" (\n  \"id\" SERIAL NOT NULL,\n  \"name\" TEXT NOT NULL,\n  CONSTRAINT \"lab_l14_stores_pkey\" PRIMARY KEY (\"id\")\n);",
+  "CREATE TABLE \"lab_l14_inventory\" (\n  \"id\" SERIAL NOT NULL,\n  \"store_id\" INTEGER NOT NULL,\n  \"sku\" VARCHAR(32) NOT NULL,\n  \"stock\" INTEGER NOT NULL DEFAULT 0,\n  CONSTRAINT \"lab_l14_inventory_pkey\" PRIMARY KEY (\"id\")\n);",
+  "ALTER TABLE \"lab_l14_inventory\" ADD CONSTRAINT \"lab_l14_inventory_store_id_fkey\" FOREIGN KEY (\"store_id\") REFERENCES \"lab_l14_stores\" (\"id\");",
+  "CREATE UNIQUE INDEX \"lab_l14_inventory_store_id_sku_key\" ON \"lab_l14_inventory\" (\"store_id\", \"sku\");"
+ ],
+ "stdout": "",
+ "trackId": "node-typescript"
+}

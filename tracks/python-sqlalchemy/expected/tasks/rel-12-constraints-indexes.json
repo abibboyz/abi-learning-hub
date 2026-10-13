@@ -1,0 +1,140 @@
+{
+ "data": {
+  "lab_inventory": {
+   "columns": [
+    "id",
+    "store_id",
+    "sku",
+    "quantity"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_stores": {
+   "columns": [
+    "id",
+    "name"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  }
+ },
+ "id": "rel-12-constraints-indexes",
+ "kind": "task",
+ "results": [],
+ "schema": {
+  "relationships": [
+   {
+    "constraint": "lab_inventory_store_id_fkey",
+    "fromColumn": "store_id",
+    "fromTable": "lab_inventory",
+    "onDelete": "NO ACTION",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_stores",
+    "type": "many-to-one"
+   }
+  ],
+  "tables": [
+   {
+    "checks": [
+     {
+      "definition": "CHECK ((quantity >= 0))",
+      "name": "ck_inventory_quantity"
+     }
+    ],
+    "columns": [
+     {
+      "default": "nextval('lab_inventory_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "store_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_stores"
+      },
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "sku",
+      "nullable": false,
+      "type": "character varying"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "quantity",
+      "nullable": false,
+      "type": "integer"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_inventory",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": [
+     [
+      "store_id",
+      "sku"
+     ]
+    ]
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_stores_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "name",
+      "nullable": false,
+      "type": "character varying"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_stores",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   }
+  ]
+ },
+ "sql": [],
+ "stdout": "",
+ "trackId": "python-sqlalchemy"
+}

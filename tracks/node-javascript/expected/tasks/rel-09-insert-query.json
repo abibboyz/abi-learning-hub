@@ -1,0 +1,124 @@
+{
+ "data": {
+  "lab_players": {
+   "columns": [
+    "id",
+    "name",
+    "team_id"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_teams": {
+   "columns": [
+    "id",
+    "name"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  }
+ },
+ "id": "rel-09-insert-query",
+ "kind": "task",
+ "results": [],
+ "schema": {
+  "relationships": [
+   {
+    "constraint": "lab_players_team_id_fkey",
+    "fromColumn": "team_id",
+    "fromTable": "lab_players",
+    "onDelete": "NO ACTION",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_teams",
+    "type": "many-to-one"
+   }
+  ],
+  "tables": [
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_players_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "name",
+      "nullable": false,
+      "type": "text"
+     },
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "team_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_teams"
+      },
+      "type": "integer"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_players",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_teams_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "name",
+      "nullable": false,
+      "type": "text"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_teams",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   }
+  ]
+ },
+ "sql": [
+  "CREATE TABLE \"lab_teams\" (\n  \"id\" SERIAL NOT NULL,\n  \"name\" TEXT NOT NULL,\n  CONSTRAINT \"lab_teams_pkey\" PRIMARY KEY (\"id\")\n);",
+  "CREATE TABLE \"lab_players\" (\n  \"id\" SERIAL NOT NULL,\n  \"name\" TEXT NOT NULL,\n  \"team_id\" INTEGER NOT NULL,\n  CONSTRAINT \"lab_players_pkey\" PRIMARY KEY (\"id\")\n);",
+  "ALTER TABLE \"lab_players\" ADD CONSTRAINT \"lab_players_team_id_fkey\" FOREIGN KEY (\"team_id\") REFERENCES \"lab_teams\" (\"id\");"
+ ],
+ "stdout": "",
+ "trackId": "node-javascript"
+}

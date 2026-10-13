@@ -1,0 +1,74 @@
+{
+ "data": {
+  "lab_l11_magazines": {
+   "columns": [
+    "id",
+    "title",
+    "publisher_id"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  }
+ },
+ "id": "11-validation",
+ "kind": "lesson",
+ "results": [],
+ "schema": {
+  "relationships": [],
+  "tables": [
+   {
+    "checks": [
+     {
+      "definition": "CHECK ((publisher_id > 0))",
+      "name": "lab_l11_magazines_publisher_id_check"
+     },
+     {
+      "definition": "CHECK ((length(TRIM(BOTH FROM title)) > 0))",
+      "name": "lab_l11_magazines_title_check"
+     }
+    ],
+    "columns": [
+     {
+      "default": "nextval('lab_l11_magazines_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "title",
+      "nullable": false,
+      "type": "character varying"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "publisher_id",
+      "nullable": false,
+      "type": "integer"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_l11_magazines",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   }
+  ]
+ },
+ "sql": [],
+ "stdout": "",
+ "trackId": "sql-postgres"
+}

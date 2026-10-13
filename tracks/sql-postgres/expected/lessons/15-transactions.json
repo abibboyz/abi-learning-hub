@@ -1,0 +1,85 @@
+{
+ "data": {
+  "lab_l15_accounts": {
+   "columns": [
+    "id",
+    "owner",
+    "balance"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [
+    [
+     1,
+     "alice",
+     "70.00"
+    ],
+    [
+     2,
+     "bob",
+     "30.00"
+    ]
+   ],
+   "total": 2
+  }
+ },
+ "id": "15-transactions",
+ "kind": "lesson",
+ "results": [],
+ "schema": {
+  "relationships": [],
+  "tables": [
+   {
+    "checks": [
+     {
+      "definition": "CHECK ((balance >= (0)::numeric))",
+      "name": "lab_l15_accounts_balance_check"
+     }
+    ],
+    "columns": [
+     {
+      "default": "nextval('lab_l15_accounts_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": true,
+      "name": "owner",
+      "nullable": false,
+      "type": "character varying"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "balance",
+      "nullable": false,
+      "type": "numeric"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_l15_accounts",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": [
+     [
+      "owner"
+     ]
+    ]
+   }
+  ]
+ },
+ "sql": [],
+ "stdout": "",
+ "trackId": "sql-postgres"
+}

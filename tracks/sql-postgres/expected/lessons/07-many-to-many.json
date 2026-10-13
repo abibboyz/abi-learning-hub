@@ -1,0 +1,166 @@
+{
+ "data": {
+  "lab_l07_courses": {
+   "columns": [
+    "id",
+    "title"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_l07_enrollments": {
+   "columns": [
+    "student_id",
+    "course_id"
+   ],
+   "primaryKey": [
+    "student_id",
+    "course_id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_l07_students": {
+   "columns": [
+    "id",
+    "name"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  }
+ },
+ "id": "07-many-to-many",
+ "kind": "lesson",
+ "results": [],
+ "schema": {
+  "relationships": [
+   {
+    "constraint": "lab_l07_enrollments_student_id_fkey",
+    "fromColumn": "student_id",
+    "fromTable": "lab_l07_enrollments",
+    "onDelete": "NO ACTION",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_l07_students",
+    "type": "many-to-one"
+   },
+   {
+    "constraint": "lab_l07_enrollments_course_id_fkey",
+    "fromColumn": "course_id",
+    "fromTable": "lab_l07_enrollments",
+    "onDelete": "NO ACTION",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_l07_courses",
+    "type": "many-to-one"
+   }
+  ],
+  "tables": [
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_l07_courses_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "title",
+      "nullable": false,
+      "type": "character varying"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_l07_courses",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": true,
+      "isUnique": false,
+      "name": "student_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_l07_students"
+      },
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": true,
+      "isUnique": false,
+      "name": "course_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_l07_courses"
+      },
+      "type": "integer"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_l07_enrollments",
+    "primaryKey": [
+     "student_id",
+     "course_id"
+    ],
+    "uniqueConstraints": []
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_l07_students_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "name",
+      "nullable": false,
+      "type": "character varying"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_l07_students",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   }
+  ]
+ },
+ "sql": [],
+ "stdout": "",
+ "trackId": "sql-postgres"
+}

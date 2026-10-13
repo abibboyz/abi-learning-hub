@@ -1,0 +1,13 @@
+{
+ "data": {},
+ "id": "01-connections",
+ "kind": "lesson",
+ "results": [],
+ "schema": {
+  "relationships": [],
+  "tables": []
+ },
+ "sql": [],
+ "stdout": "",
+ "trackId": "node-typescript"
+}

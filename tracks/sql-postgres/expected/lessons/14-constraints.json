@@ -1,0 +1,88 @@
+{
+ "data": {
+  "lab_l14_products": {
+   "columns": [
+    "id",
+    "sku",
+    "price",
+    "stock"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  }
+ },
+ "id": "14-constraints",
+ "kind": "lesson",
+ "results": [],
+ "schema": {
+  "relationships": [],
+  "tables": [
+   {
+    "checks": [
+     {
+      "definition": "CHECK ((price >= (0)::numeric))",
+      "name": "lab_l14_products_price_check"
+     },
+     {
+      "definition": "CHECK ((stock >= 0))",
+      "name": "lab_l14_products_stock_check"
+     }
+    ],
+    "columns": [
+     {
+      "default": "nextval('lab_l14_products_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": true,
+      "name": "sku",
+      "nullable": false,
+      "type": "character varying"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "price",
+      "nullable": false,
+      "type": "numeric"
+     },
+     {
+      "default": "0",
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "stock",
+      "nullable": false,
+      "type": "integer"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_l14_products",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": [
+     [
+      "sku"
+     ]
+    ]
+   }
+  ]
+ },
+ "sql": [],
+ "stdout": "",
+ "trackId": "sql-postgres"
+}

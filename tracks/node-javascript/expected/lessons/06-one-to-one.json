@@ -1,0 +1,129 @@
+{
+ "data": {
+  "lab_l06_profiles": {
+   "columns": [
+    "id",
+    "title",
+    "user_id"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_l06_users": {
+   "columns": [
+    "id",
+    "name"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  }
+ },
+ "id": "06-one-to-one",
+ "kind": "lesson",
+ "results": [],
+ "schema": {
+  "relationships": [
+   {
+    "constraint": "lab_l06_profiles_user_id_fkey",
+    "fromColumn": "user_id",
+    "fromTable": "lab_l06_profiles",
+    "onDelete": "NO ACTION",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_l06_users",
+    "type": "many-to-one"
+   }
+  ],
+  "tables": [
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_l06_profiles_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "title",
+      "nullable": false,
+      "type": "text"
+     },
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": false,
+      "isUnique": true,
+      "name": "user_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_l06_users"
+      },
+      "type": "integer"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_l06_profiles",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": [
+     [
+      "user_id"
+     ]
+    ]
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_l06_users_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "name",
+      "nullable": false,
+      "type": "text"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_l06_users",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   }
+  ]
+ },
+ "sql": [
+  "CREATE TABLE \"lab_l06_users\" (\n  \"id\" SERIAL NOT NULL,\n  \"name\" TEXT NOT NULL,\n  CONSTRAINT \"lab_l06_users_pkey\" PRIMARY KEY (\"id\")\n);",
+  "CREATE TABLE \"lab_l06_profiles\" (\n  \"id\" SERIAL NOT NULL,\n  \"title\" TEXT NOT NULL,\n  \"user_id\" INTEGER NOT NULL,\n  CONSTRAINT \"lab_l06_profiles_pkey\" PRIMARY KEY (\"id\")\n);",
+  "CREATE UNIQUE INDEX \"lab_l06_profiles_user_id_key\" ON \"lab_l06_profiles\" (\"user_id\");",
+  "ALTER TABLE \"lab_l06_profiles\" ADD CONSTRAINT \"lab_l06_profiles_user_id_fkey\" FOREIGN KEY (\"user_id\") REFERENCES \"lab_l06_users\" (\"id\");"
+ ],
+ "stdout": "",
+ "trackId": "node-javascript"
+}

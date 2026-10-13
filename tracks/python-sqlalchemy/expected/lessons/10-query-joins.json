@@ -1,0 +1,145 @@
+{
+ "data": {
+  "lab_l10_magazines": {
+   "columns": [
+    "id",
+    "title",
+    "publisher_id"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [
+    [
+     1,
+     "Monthly Review",
+     1
+    ],
+    [
+     2,
+     "Data Weekly",
+     1
+    ],
+    [
+     3,
+     "Outdoor Life",
+     2
+    ]
+   ],
+   "total": 3
+  },
+  "lab_l10_publishers": {
+   "columns": [
+    "id",
+    "name"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [
+    [
+     1,
+     "Acme"
+    ],
+    [
+     2,
+     "Globex"
+    ]
+   ],
+   "total": 2
+  }
+ },
+ "id": "10-query-joins",
+ "kind": "lesson",
+ "results": [],
+ "schema": {
+  "relationships": [
+   {
+    "constraint": "lab_l10_magazines_publisher_id_fkey",
+    "fromColumn": "publisher_id",
+    "fromTable": "lab_l10_magazines",
+    "onDelete": "NO ACTION",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_l10_publishers",
+    "type": "many-to-one"
+   }
+  ],
+  "tables": [
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_l10_magazines_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "title",
+      "nullable": false,
+      "type": "character varying"
+     },
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "publisher_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_l10_publishers"
+      },
+      "type": "integer"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_l10_magazines",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_l10_publishers_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "name",
+      "nullable": false,
+      "type": "character varying"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_l10_publishers",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   }
+  ]
+ },
+ "sql": [],
+ "stdout": "Data Weekly | Acme\nMonthly Review | Acme\nOutdoor Life | Globex\n",
+ "trackId": "python-sqlalchemy"
+}

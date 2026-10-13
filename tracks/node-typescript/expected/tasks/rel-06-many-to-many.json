@@ -1,0 +1,172 @@
+{
+ "data": {
+  "lab_class_enrollments": {
+   "columns": [
+    "learner_id",
+    "class_id"
+   ],
+   "primaryKey": [
+    "learner_id",
+    "class_id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_classes": {
+   "columns": [
+    "id",
+    "title"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_learners": {
+   "columns": [
+    "id",
+    "name"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  }
+ },
+ "id": "rel-06-many-to-many",
+ "kind": "task",
+ "results": [],
+ "schema": {
+  "relationships": [
+   {
+    "constraint": "lab_class_enrollments_learner_id_fkey",
+    "fromColumn": "learner_id",
+    "fromTable": "lab_class_enrollments",
+    "onDelete": "NO ACTION",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_learners",
+    "type": "many-to-one"
+   },
+   {
+    "constraint": "lab_class_enrollments_class_id_fkey",
+    "fromColumn": "class_id",
+    "fromTable": "lab_class_enrollments",
+    "onDelete": "NO ACTION",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_classes",
+    "type": "many-to-one"
+   }
+  ],
+  "tables": [
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": true,
+      "isUnique": false,
+      "name": "learner_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_learners"
+      },
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": true,
+      "isUnique": false,
+      "name": "class_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_classes"
+      },
+      "type": "integer"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_class_enrollments",
+    "primaryKey": [
+     "learner_id",
+     "class_id"
+    ],
+    "uniqueConstraints": []
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_classes_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "title",
+      "nullable": false,
+      "type": "text"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_classes",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_learners_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "name",
+      "nullable": false,
+      "type": "text"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_learners",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   }
+  ]
+ },
+ "sql": [
+  "CREATE TABLE \"lab_learners\" (\n  \"id\" SERIAL NOT NULL,\n  \"name\" TEXT NOT NULL,\n  CONSTRAINT \"lab_learners_pkey\" PRIMARY KEY (\"id\")\n);",
+  "CREATE TABLE \"lab_classes\" (\n  \"id\" SERIAL NOT NULL,\n  \"title\" TEXT NOT NULL,\n  CONSTRAINT \"lab_classes_pkey\" PRIMARY KEY (\"id\")\n);",
+  "CREATE TABLE \"lab_class_enrollments\" (\n  \"learner_id\" INTEGER NOT NULL,\n  \"class_id\" INTEGER NOT NULL,\n  CONSTRAINT \"lab_class_enrollments_pkey\" PRIMARY KEY (\"learner_id\", \"class_id\")\n);",
+  "ALTER TABLE \"lab_class_enrollments\" ADD CONSTRAINT \"lab_class_enrollments_learner_id_fkey\" FOREIGN KEY (\"learner_id\") REFERENCES \"lab_learners\" (\"id\");",
+  "ALTER TABLE \"lab_class_enrollments\" ADD CONSTRAINT \"lab_class_enrollments_class_id_fkey\" FOREIGN KEY (\"class_id\") REFERENCES \"lab_classes\" (\"id\");"
+ ],
+ "stdout": "",
+ "trackId": "node-typescript"
+}
