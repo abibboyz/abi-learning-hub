@@ -10,7 +10,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        {/* Apply the saved theme before first paint (system | dark | light), so there is no flash. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('alh:theme')||'system';var d=t==='dark'||(t==='system'&&!matchMedia('(prefers-color-scheme: light)').matches);var c=document.documentElement.classList;c.toggle('dark',d);c.toggle('light',!d)}catch(e){}`,
+          }}
+        />
+      </head>
       <body>
         <a
           href="#main-content"

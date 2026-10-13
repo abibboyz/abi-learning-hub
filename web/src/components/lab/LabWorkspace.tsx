@@ -416,7 +416,7 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
                 </ol>
               )}
               {lesson.example && (
-                <pre className="overflow-auto rounded-lg bg-ink-950 p-3 text-[11px] text-accent-glow">
+                <pre className="overflow-auto rounded-lg bg-ink-950 p-3 text-xs text-accent-glow">
                   {typeof lesson.example === "string"
                     ? lesson.example
                     : lesson.example.code || ""}
@@ -536,7 +536,7 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
               {task.sqlEquivalent && (
                 <details open className="text-sm">
                   <summary className="cursor-pointer text-accent">Equivalent SQL</summary>
-                  <pre className="mt-2 overflow-auto rounded-lg bg-ink-950 p-3 text-[11px] text-ink-200">
+                  <pre className="mt-2 overflow-auto rounded-lg bg-ink-950 p-3 text-xs text-ink-200">
                     {task.sqlEquivalent}
                   </pre>
                 </details>
@@ -556,7 +556,7 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
                   onClick={() => void run()}
                 >
                   {executing ? "Running…" : "Run & validate"}
-                  <span className="kbd !text-[10px]">⌘↵</span>
+                  <span className="kbd !text-xs">⌘↵</span>
                 </button>
                 <button
                   type="button"
@@ -642,7 +642,7 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
                   </button>
                 ))}
               </div>
-              <pre className="overflow-auto rounded-lg bg-ink-950 p-3 text-[11px] text-accent-glow">
+              <pre className="overflow-auto rounded-lg bg-ink-950 p-3 text-xs text-accent-glow">
                 {manifest.validationCatalog[valCat]?.example}
               </pre>
             </div>

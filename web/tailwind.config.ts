@@ -6,33 +6,35 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: {
-          50: "#f4f7fb",
-          100: "#e8eef7",
-          200: "#c9d6ea",
-          300: "#9bb0d0",
-          400: "#6b86b3",
-          500: "#4a6796",
-          600: "#384f78",
-          700: "#2c3e5c",
-          800: "#1e2b42",
-          900: "#141c2c",
-          950: "#0b111c",
-        },
+        // Every colour is a CSS variable (see globals.css: html.dark / html.light), so existing class
+        // names keep working and both themes come from one set of tokens.
+        ink: Object.fromEntries(
+          ["50", "100", "200", "300", "400", "500", "600", "700", "800", "900", "950"].map((k) => [k, `rgb(var(--ink-${k}) / <alpha-value>)`])
+        ),
         accent: {
-          DEFAULT: "#6ee7b7",
-          dim: "#34d399",
-          glow: "#a7f3d0",
-          soft: "#059669",
+          DEFAULT: "rgb(var(--accent) / <alpha-value>)",
+          dim: "rgb(var(--accent-dim) / <alpha-value>)",
+          glow: "rgb(var(--accent-glow) / <alpha-value>)",
+          soft: "rgb(var(--accent-soft) / <alpha-value>)",
         },
-        ember: { DEFAULT: "#fbbf24", soft: "#f59e0b" },
-        mint: { DEFAULT: "#34d399", soft: "#10b981" },
-        rose: { DEFAULT: "#fb7185" },
-        warn: "#fbbf24",
-        danger: "#f87171",
+        ember: { DEFAULT: "rgb(var(--warn) / <alpha-value>)", soft: "rgb(var(--warn) / <alpha-value>)" },
+        mint: { DEFAULT: "rgb(var(--accent-dim) / <alpha-value>)", soft: "rgb(var(--accent-soft) / <alpha-value>)" },
+        rose: { DEFAULT: "rgb(var(--danger) / <alpha-value>)" },
+        warn: "rgb(var(--warn) / <alpha-value>)",
+        danger: "rgb(var(--danger) / <alpha-value>)",
+        info: "rgb(var(--info) / <alpha-value>)",
+        "on-accent": "rgb(var(--on-accent) / <alpha-value>)",
       },
+      fontSize: {
+        // 1.2 type scale (rem / line-height)
+        xs: [".75rem", "1rem"], sm: [".875rem", "1.25rem"], base: ["1rem", "1.5rem"], lg: ["1.125rem", "1.75rem"],
+        xl: ["1.25rem", "1.75rem"], "2xl": ["1.5rem", "2rem"], "3xl": ["1.875rem", "2.25rem"],
+      },
+      borderRadius: { sm: "4px", md: "8px", lg: "12px" },
       boxShadow: {
-        glow: "0 0 40px rgba(110, 231, 183, 0.15)",
+        glow: "var(--shadow-glow)",
+        "elev-1": "var(--shadow-1)",
+        "elev-2": "var(--shadow-2)",
       },
       keyframes: {
         "pulse-line": {

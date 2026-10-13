@@ -23,7 +23,7 @@ export function GateResult({ result, teachAlong }: { result: ExecuteResult; teac
         <ul className="space-y-1.5" aria-label="Why it failed">
           {failures.map((f, i) => (
             <li key={`${f.rule}-${i}`} className="flex gap-2 text-ink-100">
-              <code className="shrink-0 self-start rounded bg-danger/20 px-1.5 py-0.5 text-[11px] text-danger">{f.rule}</code>
+              <code className="shrink-0 self-start rounded bg-danger/20 px-1.5 py-0.5 text-xs text-danger">{f.rule}</code>
               <span>
                 {f.line ? <span className="mr-1 text-warn">line {f.line}:</span> : null}
                 {f.message}
@@ -38,7 +38,7 @@ export function GateResult({ result, teachAlong }: { result: ExecuteResult; teac
       {result.stdout ? (
         <details open className="text-ink-200">
           <summary className="cursor-pointer text-xs uppercase tracking-wide text-ink-400">Output</summary>
-          <pre className="mt-1 max-h-48 overflow-auto rounded-lg bg-ink-950 p-2 text-[11px]">{result.stdout}</pre>
+          <pre className="mt-1 max-h-48 overflow-auto rounded-lg bg-ink-950 p-2 text-xs">{result.stdout}</pre>
         </details>
       ) : null}
       {result.success && teachAlong?.length ? (
