@@ -84,3 +84,22 @@ def ensure_meta_tables(engine: Engine | None = None) -> None:
                 """
             )
         )
+        # Lab UX (hint ladder, per-run data snapshots). Additive, so older databases upgrade in place.
+        conn.execute(text("ALTER TABLE run_history ADD COLUMN IF NOT EXISTS data_before JSONB"))
+        conn.execute(text("ALTER TABLE run_history ADD COLUMN IF NOT EXISTS data_after JSONB"))
+        conn.execute(text("ALTER TABLE run_history ADD COLUMN IF NOT EXISTS hint_level INTEGER NOT NULL DEFAULT 0"))
+        conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS hint_usage (
+                    id SERIAL PRIMARY KEY,
+                    track_id VARCHAR(64) NOT NULL,
+                    item_kind VARCHAR(16) NOT NULL,
+                    item_id VARCHAR(64) NOT NULL,
+                    level INTEGER NOT NULL,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    UNIQUE (track_id, item_kind, item_id, level)
+                )
+                """
+            )
+        )

@@ -31,8 +31,10 @@ from app.task_checker import (
     merge,
 )
 from app import tracks_loader as tracks
+from app.lab_api import hint_level_used, router as lab_router
+from app.lab_tools import exercise_tables, snapshot_tables
 
-PRIVATE_KEYS = ("solution", "wrongSolutions")
+PRIVATE_KEYS = ("solution", "wrongSolutions", "hintLadder")
 LAB_TABLE = re.compile(r"^lab_[a-z0-9_]{1,58}$")
 
 
@@ -58,6 +60,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(lab_router)
 
 
 class ExecuteBody(BaseModel):
@@ -67,6 +70,8 @@ class ExecuteBody(BaseModel):
     code: str = Field(..., min_length=1, max_length=20_000)
     mode: str = "execute"  # execute | dry-run
     validateOnly: bool = False
+    # Run (no grading): SQL is rolled back, Python runs as usual; nothing counts towards progress.
+    scratch: bool = False
 
 
 class ProgressBody(BaseModel):
@@ -230,6 +235,13 @@ def execute(body: ExecuteBody) -> dict[str, Any]:
     if body.lessonId and not body.taskId:
         body.mode = f"lesson:{body.lessonId}"[:32]
 
+    item_kind, item_id = ("task", body.taskId) if body.taskId else ("lesson", body.lessonId)
+    hint_level = hint_level_used(body.trackId, item_kind, item_id) if item_id else 0
+    tables = exercise_tables(requirements)
+
+    if body.scratch:
+        return _scratch(body, language, tables, hint_level)
+
     if quiz is not None:
         schema = introspect_schema(engine)
         validation = grade_quiz(quiz, body.code)
@@ -246,9 +258,11 @@ def execute(body: ExecuteBody) -> dict[str, Any]:
 
     # Clean slate: drop the tables this exercise checks, so leftovers from an earlier attempt can neither
     # make a wrong answer pass nor make a right one fail (create_all never alters an existing table).
+    data_before = _snapshot(tables)
     if requirements:
-        _drop_lab_tables([t["name"] for t in requirements.get("tables", [])] + requirements.get("resetTables", []))
+        _drop_lab_tables(tables)
     schema_before = introspect_schema(engine)
+    snap = {"before": data_before, "tables": tables, "hint_level": hint_level}
 
     calls = (requirements or {}).get("calls") or []
     try:
@@ -265,13 +279,14 @@ def execute(body: ExecuteBody) -> dict[str, Any]:
         validation = _validation([{"rule": rule, "message": err, "line": result.get("line")}])
         validation["message"] = err
         schema_after = introspect_schema(engine)
-        _record_history(body, False, err, schema_before, schema_after, validation)
+        _record_history(body, False, err, schema_before, schema_after, validation, snap)
         return {
             "success": False,
             "gate": "rejected" if rule == "rejected" else "runtime_error",
             "message": err,
             "traceback": result.get("traceback"),
             "stdout": result.get("stdout") or "",
+            **_extras(result, snap),
             "schema": schema_after,
             "validation": validation,
             "animation": None,
@@ -289,7 +304,7 @@ def execute(body: ExecuteBody) -> dict[str, Any]:
         extra += check_stdout(requirements.get("stdout"), stdout)
         validation = merge(validation, extra)
         if not validation["ok"]:
-            _record_history(body, False, validation["message"], schema_before, schema_after, validation)
+            _record_history(body, False, validation["message"], schema_before, schema_after, validation, snap)
             return {
                 "success": False,
                 "gate": "validation_failed",
@@ -297,6 +312,7 @@ def execute(body: ExecuteBody) -> dict[str, Any]:
                 "schema": schema_after,
                 "validation": validation,
                 "stdout": stdout,
+                **_extras(result, snap),
                 "animation": None,
                 "note": "Requirements not met. Extra tables/columns are OK; the listed rules are not.",
             }
@@ -306,7 +322,7 @@ def execute(body: ExecuteBody) -> dict[str, Any]:
         msg = "Lesson exercise passed!" if body.lessonId and not body.taskId else (
             "Task passed! Schema updated — watch the diagram highlight."
         )
-    _record_history(body, True, msg, schema_before, schema_after, validation)
+    _record_history(body, True, msg, schema_before, schema_after, validation, snap)
     if body.taskId and validation and validation["ok"]:
         _upsert_progress(body.trackId, body.taskId, True, body.code)
 
@@ -317,8 +333,62 @@ def execute(body: ExecuteBody) -> dict[str, Any]:
         "schema": schema_after,
         "validation": validation,
         "stdout": stdout,
+        **_extras(result, snap),
         "animation": animation,
         "schemaBefore": schema_before,
+    }
+
+
+def _snapshot(tables: list[str]) -> dict[str, Any]:
+    try:
+        return snapshot_tables(get_engine(), tables)
+    except Exception as e:  # noqa: BLE001
+        print(f"[snapshot] skip: {e}")
+        return {}
+
+
+def _extras(result: dict[str, Any], snap: dict[str, Any]) -> dict[str, Any]:
+    """Run artefacts for the lab UI: SQL result tables, before/after data, hints used."""
+    if "after" not in snap:
+        snap["after"] = _snapshot(snap.get("tables") or [])
+    return {
+        "results": result.get("results") or [],
+        "dataBefore": snap.get("before") or {},
+        "dataAfter": snap.get("after") or {},
+        "hintsUsed": snap.get("hint_level", 0),
+    }
+
+
+def _scratch(body: ExecuteBody, language: str, tables: list[str], hint_level: int) -> dict[str, Any]:
+    """Run without grading. SQL runs in a transaction that is rolled back, so it never changes the lab."""
+    body.mode = ("run:" + (body.mode if body.mode.startswith("lesson:") else (body.taskId or "adhoc")))[:32]
+    engine = get_engine()
+    before = _snapshot(tables)
+    try:
+        if language == "sql":
+            result = run_lab_sql(body.code, lab_database_url(settings.database_url), commit=False, reset_tables=tables)
+        else:
+            result = run_lab_code(body.code, lab_database_url(settings.database_url))
+    except UnsafeCodeError as e:
+        result = {"ok": False, "rejected": True, "error": str(e), "line": getattr(e, "line", None)}
+    schema = introspect_schema(engine)
+    snap = {"before": before, "tables": tables, "hint_level": hint_level}
+    ok = bool(result.get("ok"))
+    failures = [] if ok else [{"rule": "rejected" if result.get("rejected") else "runtime-error", "message": result.get("error") or "Runtime error", "line": result.get("line")}]
+    validation = _validation(failures)
+    msg = ("Ran — not checked. Press Check to grade it." + (" (SQL was rolled back.)" if language == "sql" else "")) if ok else (result.get("error") or "Runtime error")
+    _record_history(body, False if not ok else True, msg, schema, schema, validation, snap)
+    return {
+        "success": ok,
+        "checked": False,
+        "gate": "ran" if ok else ("rejected" if result.get("rejected") else "runtime_error"),
+        "message": msg,
+        "stdout": result.get("stdout") or "",
+        "traceback": result.get("traceback"),
+        "schema": schema,
+        "validation": validation if not ok else None,
+        **_extras(result, snap),
+        "animation": None,
     }
 
 
@@ -359,7 +429,11 @@ def _record_history(
     before: dict,
     after: dict,
     validation: dict | None,
+    snap: dict[str, Any] | None = None,
 ) -> None:
+    snap = snap if snap is not None else {}
+    if "after" not in snap:
+        snap["after"] = _snapshot(snap.get("tables") or [])
     try:
         with session_scope() as session:
             session.execute(
@@ -367,11 +441,12 @@ def _record_history(
                     """
                     INSERT INTO run_history
                       (track_id, task_id, mode, code, success, message,
-                       schema_before, schema_after, validation)
+                       schema_before, schema_after, validation, data_before, data_after, hint_level)
                     VALUES
                       (:track_id, :task_id, :mode, :code, :success, :message,
                        CAST(:schema_before AS JSONB), CAST(:schema_after AS JSONB),
-                       CAST(:validation AS JSONB))
+                       CAST(:validation AS JSONB), CAST(:data_before AS JSONB), CAST(:data_after AS JSONB),
+                       :hint_level)
                     """
                 ),
                 {
@@ -384,6 +459,9 @@ def _record_history(
                     "schema_before": json.dumps(before),
                     "schema_after": json.dumps(after),
                     "validation": json.dumps(validation) if validation else None,
+                    "data_before": json.dumps(snap.get("before") or {}),
+                    "data_after": json.dumps(snap["after"]),
+                    "hint_level": int(snap.get("hint_level") or 0),
                 },
             )
     except Exception as e:  # noqa: BLE001
