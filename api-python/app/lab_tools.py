@@ -135,10 +135,8 @@ def _mask_line(line: str) -> str:
         (r"(secondary\s*=\s*)(\w+)", r"\1____"),
         (r"(back_populates\s*=\s*)(\"[^\"]*\"|'[^']*')", r'\1"____"'),
     ]
-    for pat, rep in patterns:
-        new = re.sub(pat, rep, line, flags=re.I)
-        if new != line:
-            return new
+    for pat, rep in patterns:  # every pattern: one line can hold several answers (REFERENCES … ON DELETE …)
+        line = re.sub(pat, rep, line, flags=re.I)
     return line
 
 
@@ -188,7 +186,7 @@ def hint_ladder(item: dict[str, Any], kind: str) -> list[dict[str, Any]]:
 
 
 def reveal_hints(ladder: list[dict[str, Any]], level: int) -> list[dict[str, Any]]:
-    level = max(1, min(level, len(ladder)))
+    level = max(0, min(level, len(ladder)))
     return ladder[:level]
 
 

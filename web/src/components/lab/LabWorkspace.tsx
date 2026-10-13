@@ -57,6 +57,9 @@ function Section({ title, children, tone }: { title: string; children: React.Rea
   );
 }
 
+/** History mode → lesson id: "lesson:<id>" (Check) or "run:lesson:<id>" (Run). */
+const lessonOf = (mode?: string | null) => (mode || "").replace(/^run:/, "").match(/^lesson:(.+)$/)?.[1] || null;
+
 const editorLabel = (lang?: string) =>
   lang === "sql" ? "Your SQL" : lang === "prisma" ? "Your Prisma schema" : lang === "python" ? "Your Python" : lang ? `Your ${lang}` : "Your code";
 
@@ -117,7 +120,7 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
         if (replayId) {
           try {
             const d = await fetchHistoryDetail(trackId, replayId);
-            const target = d.mode?.startsWith("lesson:") ? d.mode.slice(7) : d.task_id;
+            const target = lessonOf(d.mode) || d.task_id;
             if (target && list.includes(target)) {
               pick = target;
               setReplay({ id: replayId, nonce: Date.now() });
@@ -198,7 +201,7 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
   }
 
   function replayFromHistory(d: HistoryDetail) {
-    const lessonId = d.mode?.startsWith("lesson:") ? d.mode.slice(7) : null;
+    const lessonId = lessonOf(d.mode);
     const wantTopics = Boolean(lessonId);
     if (wantTopics !== isTopics) {
       window.location.href = `/lab?track=${trackId}&mode=${wantTopics ? "topics" : "execute"}&replay=${d.id}`;

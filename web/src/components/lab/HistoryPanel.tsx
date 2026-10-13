@@ -37,7 +37,9 @@ export function HistoryPanel({
       <ul className="max-h-60 space-y-1 overflow-auto text-xs">
         {rows.map((r) => {
           const mode = String(r.mode || "");
-          const what = r.task_id ? String(r.task_id) : mode.startsWith("lesson:") ? `lesson ${mode.slice(7)}` : "ad-hoc";
+          const isRun = mode.startsWith("run:");
+          const m = mode.replace(/^run:/, "");
+          const what = `${isRun ? "Run · " : ""}${r.task_id ? String(r.task_id) : m.startsWith("lesson:") ? `lesson ${m.slice(7)}` : "ad-hoc"}`;
           return (
             <li key={String(r.id)} className="rounded-lg border border-ink-700/50 bg-ink-950/40 px-2 py-1.5">
               <div className="flex justify-between gap-2">

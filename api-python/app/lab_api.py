@@ -79,14 +79,15 @@ def hints_used(trackId: str, kind: Kind, id: str) -> dict[str, Any]:
 
 @router.get("/timeline")
 def timeline(trackId: str, kind: Kind, id: str, limit: int = 100) -> dict[str, Any]:
-    where = "task_id = :i" if kind == "task" else "task_id IS NULL AND mode = :m"
+    # Check of a lesson → mode "lesson:<id>"; Run of a lesson → "run:lesson:<id>" (both cut to 32 chars)
+    where = "task_id = :i" if kind == "task" else "task_id IS NULL AND mode IN (:m, :rm)"
     with get_engine().connect() as conn:
         rows = conn.execute(
             text(
                 "SELECT id, created_at, success, mode, message, validation, hint_level, code FROM run_history "
                 f"WHERE track_id = :t AND {where} ORDER BY id DESC LIMIT :limit"
             ),
-            {"t": trackId, "i": id, "m": f"lesson:{id}"[:32], "limit": min(limit, 500)},
+            {"t": trackId, "i": id, "m": f"lesson:{id}"[:32], "rm": f"run:lesson:{id}"[:32], "limit": min(limit, 500)},
         ).mappings().all()
     runs = [timeline_entry(dict(r)) for r in reversed(rows)]
     return {"runs": runs, "firstPassId": next((r["id"] for r in runs if r["success"]), None), "attempts": len(runs)}
