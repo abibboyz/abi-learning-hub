@@ -348,7 +348,7 @@ export function PlaywrightLab({ trackId, mode, onTrackChange }: Props) {
                     <span className="w-5 shrink-0 text-right text-xs text-ink-500">{i + 1}</span>
                     <span className="flex-1">{x.title}</span>
                     {done && <span className="text-accent" aria-label="passed">✓</span>}
-                    {off && <span className="text-[10px] text-ink-500">read</span>}
+                    {off && <span className="text-xs text-ink-500">read</span>}
                   </button>
                 </li>
               );

@@ -1,0 +1,25 @@
+{
+ "data": {},
+ "id": "01-connections",
+ "kind": "lesson",
+ "results": [
+  {
+   "columns": [
+    "ok"
+   ],
+   "rowCount": 1,
+   "rows": [
+    [
+     1
+    ]
+   ]
+  }
+ ],
+ "schema": {
+  "relationships": [],
+  "tables": []
+ },
+ "sql": [],
+ "stdout": "ok\n1\n(1 row)",
+ "trackId": "sql-postgres"
+}

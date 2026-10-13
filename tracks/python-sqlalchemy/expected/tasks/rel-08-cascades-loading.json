@@ -1,0 +1,120 @@
+{
+ "data": {
+  "lab_categories": {
+   "columns": [
+    "id",
+    "name"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_items": {
+   "columns": [
+    "id",
+    "label",
+    "category_id"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  }
+ },
+ "id": "rel-08-cascades-loading",
+ "kind": "task",
+ "results": [],
+ "schema": {
+  "relationships": [
+   {
+    "constraint": "lab_items_category_id_fkey",
+    "fromColumn": "category_id",
+    "fromTable": "lab_items",
+    "onDelete": "CASCADE",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_categories",
+    "type": "many-to-one"
+   }
+  ],
+  "tables": [
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_categories_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "name",
+      "nullable": false,
+      "type": "character varying"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_categories",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_items_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "label",
+      "nullable": false,
+      "type": "character varying"
+     },
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "category_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_categories"
+      },
+      "type": "integer"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_items",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   }
+  ]
+ },
+ "sql": [],
+ "stdout": "",
+ "trackId": "python-sqlalchemy"
+}

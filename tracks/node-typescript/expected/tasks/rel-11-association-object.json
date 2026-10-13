@@ -1,0 +1,192 @@
+{
+ "data": {
+  "lab_members": {
+   "columns": [
+    "id",
+    "name"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_memberships": {
+   "columns": [
+    "member_id",
+    "project_id",
+    "role",
+    "joined_at"
+   ],
+   "primaryKey": [
+    "member_id",
+    "project_id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_projects": {
+   "columns": [
+    "id",
+    "title"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  }
+ },
+ "id": "rel-11-association-object",
+ "kind": "task",
+ "results": [],
+ "schema": {
+  "relationships": [
+   {
+    "constraint": "lab_memberships_member_id_fkey",
+    "fromColumn": "member_id",
+    "fromTable": "lab_memberships",
+    "onDelete": "CASCADE",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_members",
+    "type": "many-to-one"
+   },
+   {
+    "constraint": "lab_memberships_project_id_fkey",
+    "fromColumn": "project_id",
+    "fromTable": "lab_memberships",
+    "onDelete": "CASCADE",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_projects",
+    "type": "many-to-one"
+   }
+  ],
+  "tables": [
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_members_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "name",
+      "nullable": false,
+      "type": "text"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_members",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": true,
+      "isUnique": false,
+      "name": "member_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_members"
+      },
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": true,
+      "isUnique": false,
+      "name": "project_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_projects"
+      },
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "role",
+      "nullable": false,
+      "type": "character varying"
+     },
+     {
+      "default": "CURRENT_TIMESTAMP",
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "joined_at",
+      "nullable": false,
+      "type": "timestamp without time zone"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_memberships",
+    "primaryKey": [
+     "member_id",
+     "project_id"
+    ],
+    "uniqueConstraints": []
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_projects_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "title",
+      "nullable": false,
+      "type": "text"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_projects",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   }
+  ]
+ },
+ "sql": [
+  "CREATE TABLE \"lab_members\" (\n  \"id\" SERIAL NOT NULL,\n  \"name\" TEXT NOT NULL,\n  CONSTRAINT \"lab_members_pkey\" PRIMARY KEY (\"id\")\n);",
+  "CREATE TABLE \"lab_projects\" (\n  \"id\" SERIAL NOT NULL,\n  \"title\" TEXT NOT NULL,\n  CONSTRAINT \"lab_projects_pkey\" PRIMARY KEY (\"id\")\n);",
+  "CREATE TABLE \"lab_memberships\" (\n  \"member_id\" INTEGER NOT NULL,\n  \"project_id\" INTEGER NOT NULL,\n  \"role\" VARCHAR(40) NOT NULL,\n  \"joined_at\" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  CONSTRAINT \"lab_memberships_pkey\" PRIMARY KEY (\"member_id\", \"project_id\")\n);",
+  "ALTER TABLE \"lab_memberships\" ADD CONSTRAINT \"lab_memberships_member_id_fkey\" FOREIGN KEY (\"member_id\") REFERENCES \"lab_members\" (\"id\") ON DELETE CASCADE;",
+  "ALTER TABLE \"lab_memberships\" ADD CONSTRAINT \"lab_memberships_project_id_fkey\" FOREIGN KEY (\"project_id\") REFERENCES \"lab_projects\" (\"id\") ON DELETE CASCADE;"
+ ],
+ "stdout": "",
+ "trackId": "node-typescript"
+}

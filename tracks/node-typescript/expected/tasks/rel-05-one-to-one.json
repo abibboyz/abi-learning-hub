@@ -1,0 +1,134 @@
+{
+ "data": {
+  "lab_accounts": {
+   "columns": [
+    "id",
+    "username"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_settings": {
+   "columns": [
+    "id",
+    "theme",
+    "account_id"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  }
+ },
+ "id": "rel-05-one-to-one",
+ "kind": "task",
+ "results": [],
+ "schema": {
+  "relationships": [
+   {
+    "constraint": "lab_settings_account_id_fkey",
+    "fromColumn": "account_id",
+    "fromTable": "lab_settings",
+    "onDelete": "NO ACTION",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_accounts",
+    "type": "many-to-one"
+   }
+  ],
+  "tables": [
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_accounts_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": true,
+      "name": "username",
+      "nullable": false,
+      "type": "text"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_accounts",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": [
+     [
+      "username"
+     ]
+    ]
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_settings_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": "'dark'::text",
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "theme",
+      "nullable": false,
+      "type": "text"
+     },
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": false,
+      "isUnique": true,
+      "name": "account_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_accounts"
+      },
+      "type": "integer"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_settings",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": [
+     [
+      "account_id"
+     ]
+    ]
+   }
+  ]
+ },
+ "sql": [
+  "CREATE TABLE \"lab_accounts\" (\n  \"id\" SERIAL NOT NULL,\n  \"username\" TEXT NOT NULL,\n  CONSTRAINT \"lab_accounts_pkey\" PRIMARY KEY (\"id\")\n);",
+  "CREATE TABLE \"lab_settings\" (\n  \"id\" SERIAL NOT NULL,\n  \"theme\" TEXT NOT NULL DEFAULT 'dark',\n  \"account_id\" INTEGER NOT NULL,\n  CONSTRAINT \"lab_settings_pkey\" PRIMARY KEY (\"id\")\n);",
+  "CREATE UNIQUE INDEX \"lab_accounts_username_key\" ON \"lab_accounts\" (\"username\");",
+  "CREATE UNIQUE INDEX \"lab_settings_account_id_key\" ON \"lab_settings\" (\"account_id\");",
+  "ALTER TABLE \"lab_settings\" ADD CONSTRAINT \"lab_settings_account_id_fkey\" FOREIGN KEY (\"account_id\") REFERENCES \"lab_accounts\" (\"id\");"
+ ],
+ "stdout": "",
+ "trackId": "node-typescript"
+}

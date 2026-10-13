@@ -1,0 +1,129 @@
+{
+ "data": {
+  "lab_l13_authors": {
+   "columns": [
+    "id",
+    "name"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_l13_books": {
+   "columns": [
+    "id",
+    "title",
+    "author_id"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  }
+ },
+ "id": "13-indexes",
+ "kind": "lesson",
+ "results": [],
+ "schema": {
+  "relationships": [
+   {
+    "constraint": "lab_l13_books_author_id_fkey",
+    "fromColumn": "author_id",
+    "fromTable": "lab_l13_books",
+    "onDelete": "NO ACTION",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_l13_authors",
+    "type": "many-to-one"
+   }
+  ],
+  "tables": [
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_l13_authors_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "name",
+      "nullable": false,
+      "type": "text"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_l13_authors",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_l13_books_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "title",
+      "nullable": false,
+      "type": "text"
+     },
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "author_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_l13_authors"
+      },
+      "type": "integer"
+     }
+    ],
+    "indexes": [
+     [
+      "author_id"
+     ]
+    ],
+    "name": "lab_l13_books",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   }
+  ]
+ },
+ "sql": [
+  "CREATE TABLE \"lab_l13_authors\" (\n  \"id\" SERIAL NOT NULL,\n  \"name\" TEXT NOT NULL,\n  CONSTRAINT \"lab_l13_authors_pkey\" PRIMARY KEY (\"id\")\n);",
+  "CREATE TABLE \"lab_l13_books\" (\n  \"id\" SERIAL NOT NULL,\n  \"title\" TEXT NOT NULL,\n  \"author_id\" INTEGER NOT NULL,\n  CONSTRAINT \"lab_l13_books_pkey\" PRIMARY KEY (\"id\")\n);",
+  "ALTER TABLE \"lab_l13_books\" ADD CONSTRAINT \"lab_l13_books_author_id_fkey\" FOREIGN KEY (\"author_id\") REFERENCES \"lab_l13_authors\" (\"id\");",
+  "CREATE INDEX \"lab_l13_books_author_id_idx\" ON \"lab_l13_books\" (\"author_id\");"
+ ],
+ "stdout": "",
+ "trackId": "node-typescript"
+}

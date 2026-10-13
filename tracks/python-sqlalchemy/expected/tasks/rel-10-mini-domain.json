@@ -1,0 +1,238 @@
+{
+ "data": {
+  "lab_bloggers": {
+   "columns": [
+    "id",
+    "handle"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_post_tags": {
+   "columns": [
+    "post_id",
+    "tag_id"
+   ],
+   "primaryKey": [
+    "post_id",
+    "tag_id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_posts": {
+   "columns": [
+    "id",
+    "title",
+    "blogger_id"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_tags": {
+   "columns": [
+    "id",
+    "label"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  }
+ },
+ "id": "rel-10-mini-domain",
+ "kind": "task",
+ "results": [],
+ "schema": {
+  "relationships": [
+   {
+    "constraint": "lab_post_tags_post_id_fkey",
+    "fromColumn": "post_id",
+    "fromTable": "lab_post_tags",
+    "onDelete": "CASCADE",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_posts",
+    "type": "many-to-one"
+   },
+   {
+    "constraint": "lab_post_tags_tag_id_fkey",
+    "fromColumn": "tag_id",
+    "fromTable": "lab_post_tags",
+    "onDelete": "CASCADE",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_tags",
+    "type": "many-to-one"
+   },
+   {
+    "constraint": "lab_posts_blogger_id_fkey",
+    "fromColumn": "blogger_id",
+    "fromTable": "lab_posts",
+    "onDelete": "NO ACTION",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_bloggers",
+    "type": "many-to-one"
+   }
+  ],
+  "tables": [
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_bloggers_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": true,
+      "name": "handle",
+      "nullable": false,
+      "type": "character varying"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_bloggers",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": [
+     [
+      "handle"
+     ]
+    ]
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": true,
+      "isUnique": false,
+      "name": "post_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_posts"
+      },
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": true,
+      "isUnique": false,
+      "name": "tag_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_tags"
+      },
+      "type": "integer"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_post_tags",
+    "primaryKey": [
+     "post_id",
+     "tag_id"
+    ],
+    "uniqueConstraints": []
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_posts_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "title",
+      "nullable": false,
+      "type": "character varying"
+     },
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "blogger_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_bloggers"
+      },
+      "type": "integer"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_posts",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_tags_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": true,
+      "name": "label",
+      "nullable": false,
+      "type": "character varying"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_tags",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": [
+     [
+      "label"
+     ]
+    ]
+   }
+  ]
+ },
+ "sql": [],
+ "stdout": "",
+ "trackId": "python-sqlalchemy"
+}

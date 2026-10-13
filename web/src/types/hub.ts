@@ -91,6 +91,7 @@ export type LessonExercise = {
   hint?: string;
   starterCode?: string;
   questions?: QuizQuestion[];
+  requirements?: unknown;
 };
 
 /** One gate failure. `rule` is a stable id shared by api-python and api-node (see CONCEPTS.md). */
@@ -108,7 +109,28 @@ export type ExecuteResult = {
   sql?: string[];
   traceback?: string;
   teachAlong?: string[];
+  /** false for Run (execute only, nothing graded) */
+  checked?: boolean;
+  /** SQL result sets (≤ 50 rows each) */
+  results?: ResultGrid[];
+  /** Exercise tables before / after this run */
+  dataBefore?: Snapshot;
+  dataAfter?: Snapshot;
+  hintsUsed?: number;
+  historyId?: number | null;
 };
+
+export type ResultGrid = { columns: string[]; rows: unknown[][]; rowCount?: number; statement?: string };
+export type Snapshot = Record<string, { columns: string[]; rows: unknown[][]; total: number; primaryKey?: string[] }>;
+export type Expected = {
+  schema?: { tables: SchemaTable[] };
+  data?: Snapshot;
+  results?: ResultGrid[];
+  stdout?: string;
+  sql?: string[];
+};
+export type Hint = { level: number; kind: "nudge" | "concept" | "near-solution"; text: string; links?: RefLink[]; code?: string; questions?: string[] };
+export type TimelineRun = { id: number; createdAt: string; success: boolean; mode: string; message: string; rules: string[]; failureCount: number; hintLevel: number; codeLines: number };
 
 export type Manifest = TrackSummary & {
   prerequisites?: {

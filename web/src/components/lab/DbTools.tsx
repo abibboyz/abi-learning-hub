@@ -70,7 +70,7 @@ export function DbTools({ trackId, onSchema }: { trackId: string; onSchema?: () 
             <span className="truncate text-ink-200">{s.name}</span>
             <button
               type="button"
-              className="btn-ghost !py-1 !text-[11px]"
+              className="btn-ghost !py-1 !text-xs"
               onClick={async () => {
                 setBusy(true);
                 try {

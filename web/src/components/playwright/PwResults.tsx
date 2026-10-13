@@ -54,7 +54,7 @@ function LogTable({ log, kind }: { log: PwLog[]; kind: "console" | "network" }) 
   if (!rows.length) return <p className="text-xs text-ink-500">No {kind} entries recorded for this test.</p>;
   return (
     <div className="max-h-60 overflow-auto rounded-lg border border-ink-800">
-      <table className="w-full text-left font-mono text-[11px]">
+      <table className="w-full text-left font-mono text-xs">
         <tbody>
           {rows.map((l, i) => (
             <tr key={i} className="border-b border-ink-800/60 align-top">
@@ -128,7 +128,7 @@ function TestDetail({ t, onJump }: { t: PwTestResult; onJump: (line: number) => 
               </button>
             )}
             <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded-lg bg-ink-950 p-2 text-xs text-danger">{t.error.message}</pre>
-            {t.error.snippet && <pre className="max-h-40 overflow-auto rounded-lg bg-ink-950 p-2 text-[11px] text-ink-200">{t.error.snippet}</pre>}
+            {t.error.snippet && <pre className="max-h-40 overflow-auto rounded-lg bg-ink-950 p-2 text-xs text-ink-200">{t.error.snippet}</pre>}
           </div>
         ) : (
           <p className="text-xs text-ink-400">No error — every repetition passed.</p>
@@ -140,7 +140,7 @@ function TestDetail({ t, onJump }: { t: PwTestResult; onJump: (line: number) => 
               <a key={s} href={artifactHref(s)} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-lg border border-ink-700">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={artifactHref(s)} alt={`Screenshot: ${s.split("/").pop()}`} className="w-full" loading="lazy" />
-                <span className="block truncate px-2 py-1 text-[10px] text-ink-400">{s.split("/").pop()}</span>
+                <span className="block truncate px-2 py-1 text-xs text-ink-400">{s.split("/").pop()}</span>
               </a>
             ))}
           </div>
@@ -220,9 +220,9 @@ export function PwResults({ result, running, onJump }: { result: PwExecuteResult
                   aria-pressed={sel === t.id}
                   className={clsx("flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-ink-800/60", sel === t.id && "bg-ink-800/80")}
                 >
-                  <span className={clsx("rounded-md border px-1.5 py-0.5 text-[10px] uppercase", STATUS_STYLE[t.status])}>{t.status}</span>
+                  <span className={clsx("rounded-md border px-1.5 py-0.5 text-xs uppercase", STATUS_STYLE[t.status])}>{t.status}</span>
                   <span className="truncate text-ink-100">{t.titlePath.join(" › ")}</span>
-                  {t.project !== "chromium" && <span className="text-[10px] text-ink-500">{t.project}</span>}
+                  {t.project !== "chromium" && <span className="text-xs text-ink-500">{t.project}</span>}
                   <span className="ml-auto flex items-center gap-1" title="Each repetition (repeat-each)">
                     {t.runs.map((r, i) => (
                       <span key={i} className={clsx("h-2 w-2 rounded-full", r.status === "passed" ? "bg-accent" : r.status === "skipped" ? "bg-ink-600" : "bg-danger")} />

@@ -1,0 +1,80 @@
+{
+ "data": {
+  "lab_staff": {
+   "columns": [
+    "id",
+    "name",
+    "manager_id"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  }
+ },
+ "id": "rel-07-self-referential",
+ "kind": "task",
+ "results": [],
+ "schema": {
+  "relationships": [
+   {
+    "constraint": "lab_staff_manager_id_fkey",
+    "fromColumn": "manager_id",
+    "fromTable": "lab_staff",
+    "onDelete": "SET NULL",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_staff",
+    "type": "many-to-one"
+   }
+  ],
+  "tables": [
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_staff_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "name",
+      "nullable": false,
+      "type": "character varying"
+     },
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "manager_id",
+      "nullable": true,
+      "references": {
+       "column": "id",
+       "table": "lab_staff"
+      },
+      "type": "integer"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_staff",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   }
+  ]
+ },
+ "sql": [],
+ "stdout": "",
+ "trackId": "sql-postgres"
+}

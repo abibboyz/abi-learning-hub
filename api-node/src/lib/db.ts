@@ -45,6 +45,18 @@ export async function ensureMetaTables() {
   `);
 }
 
+/** Additive lab-UX columns (api-python creates the same; both are idempotent). */
+export async function ensureLabColumns() {
+  const p = getPool();
+  await p.query("ALTER TABLE run_history ADD COLUMN IF NOT EXISTS data_before JSONB");
+  await p.query("ALTER TABLE run_history ADD COLUMN IF NOT EXISTS data_after JSONB");
+  await p.query("ALTER TABLE run_history ADD COLUMN IF NOT EXISTS hint_level INTEGER NOT NULL DEFAULT 0");
+  await p.query(`CREATE TABLE IF NOT EXISTS hint_usage (
+    id SERIAL PRIMARY KEY, track_id VARCHAR(64) NOT NULL, item_kind VARCHAR(16) NOT NULL,
+    item_id VARCHAR(64) NOT NULL, level INTEGER NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (track_id, item_kind, item_id, level))`);
+}
+
 export async function query<T extends pg.QueryResultRow = pg.QueryResultRow>(
   text: string,
   params?: unknown[]

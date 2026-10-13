@@ -1,26 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  executeCode,
-  fetchLessons,
-  fetchSchema,
-  fetchTasks,
-  fetchTrack,
-  fetchTracks,
-  fetchSolution,
-  fetchHistoryDetail,
-  type HistoryDetail,
-} from "@/lib/api";
-import type { ExecuteResult, Lesson, Manifest, Schema, Task } from "@/types/hub";
+import clsx from "clsx";
+import { fetchHistoryDetail, fetchLessons, fetchSchema, fetchTasks, fetchTrack, fetchTracks, type HistoryDetail } from "@/lib/api";
+import type { ExecuteResult, Lesson, Manifest, RefLink, Schema, Task } from "@/types/hub";
 import { SchemaDiagram } from "@/components/diagram/SchemaDiagram";
-import { CodeEditor } from "@/components/editor/CodeEditor";
 import { PrereqPanel } from "@/components/lab/PrereqPanel";
 import { DbTools } from "@/components/lab/DbTools";
 import { HistoryPanel } from "@/components/lab/HistoryPanel";
-import { GateResult } from "@/components/lab/GateResult";
-import { LessonExercise } from "@/components/lab/LessonExercise";
-import clsx from "clsx";
+import { ExercisePane, type ExerciseItem } from "@/components/lab/ExercisePane";
+import { ItemList } from "@/components/lab/ItemList";
+import { Checklist } from "@/components/lab/Checklist";
+import { buildChecklist, tickChecklist, type Req } from "@/lib/lab/checklist";
+import { continueId, itemStates, loadProgress, markAssisted, markPassed, saveProgress, type ProgressState } from "@/lib/lab/progress";
 
 type Props = {
   trackId: string;
@@ -37,21 +29,17 @@ const TRACK_OPTIONS = [
   { id: "playwright-typescript", label: "Playwright · TypeScript" },
 ];
 
-function RefList({ refs }: { refs?: Array<{ title: string; url: string }> }) {
+function RefList({ refs }: { refs?: RefLink[] }) {
   if (!refs?.length) return null;
   return (
     <div className="text-sm">
-      <p className="text-xs uppercase tracking-wide text-ink-400 mb-1">References</p>
+      <p className="mb-1 text-xs uppercase tracking-wide text-ink-300">References</p>
       <ul className="space-y-1">
         {refs.map((r) => (
           <li key={r.url}>
-            <a
-              href={r.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-accent hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-            >
+            <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-accent underline-offset-2 hover:underline">
               {r.title}
+              <span className="sr-only"> (opens in a new tab)</span>
             </a>
           </li>
         ))}
@@ -60,68 +48,52 @@ function RefList({ refs }: { refs?: Array<{ title: string; url: string }> }) {
   );
 }
 
+function Section({ title, children, tone }: { title: string; children: React.ReactNode; tone?: "accent" }) {
+  return (
+    <section className={clsx("space-y-1.5", tone === "accent" && "rounded-lg border border-accent/25 bg-accent/5 p-3")}>
+      <h3 className={clsx("text-xs font-semibold uppercase tracking-wide", tone === "accent" ? "text-accent" : "text-ink-300")}>{title}</h3>
+      <div className="text-sm text-ink-100">{children}</div>
+    </section>
+  );
+}
+
+/** History mode → lesson id: "lesson:<id>" (Check) or "run:lesson:<id>" (Run). */
+const lessonOf = (mode?: string | null) => (mode || "").replace(/^run:/, "").match(/^lesson:(.+)$/)?.[1] || null;
+
+const editorLabel = (lang?: string) =>
+  lang === "sql" ? "Your SQL" : lang === "prisma" ? "Your Prisma schema" : lang === "python" ? "Your Python" : lang ? `Your ${lang}` : "Your code";
+
 export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [taskId, setTaskId] = useState<string | null>(null);
-  const [lessonIdx, setLessonIdx] = useState(0);
-  const [code, setCode] = useState("");
+  const [selected, setSelected] = useState<string | null>(null);
   const [schema, setSchema] = useState<Schema | null>(null);
   const [result, setResult] = useState<ExecuteResult | null>(null);
-  const [executing, setExecuting] = useState(false);
   const [highlightTables, setHighlightTables] = useState<string[]>([]);
   const [highlightRels, setHighlightRels] = useState<string[]>([]);
-  const [runtimePanel, setRuntimePanel] = useState<string>("");
-  const [valCat, setValCat] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [passedIds, setPassedIds] = useState<Set<string>>(() => new Set());
   const [trackOptions, setTrackOptions] = useState(TRACK_OPTIONS);
   const [historyKey, setHistoryKey] = useState(0);
-  const [lessonReplay, setLessonReplay] = useState<{ code: string; nonce: number } | null>(null);
-  const [pendingTaskCode, setPendingTaskCode] = useState<string | null>(null);
+  const [replay, setReplay] = useState<{ id: number; nonce: number } | null>(null);
+  const [progress, setProgress] = useState<ProgressState>({ passed: [], assisted: [] });
 
-  /** Replay a past run: tasks load in Execute mode, lesson runs in Topics mode (same page or via URL). */
-  function replay(d: HistoryDetail) {
-    const lessonId = d.mode?.startsWith("lesson:") ? d.mode.slice(7) : null;
-    if (lessonId) {
-      if (mode !== "topics") {
-        window.location.href = `/lab?track=${trackId}&mode=topics&replay=${d.id}`;
-        return;
-      }
-      const idx = lessons.findIndex((l) => l.id === lessonId);
-      if (idx >= 0) setLessonIdx(idx);
-      setLessonReplay({ code: d.code, nonce: Date.now() });
-      return;
-    }
-    if (mode !== "execute") {
-      window.location.href = `/lab?track=${trackId}&mode=execute&replay=${d.id}`;
-      return;
-    }
-    if (d.task_id && d.task_id !== task?.id) {
-      setPendingTaskCode(d.code); // applied after the task switch resets the editor
-      setTaskId(d.task_id);
-    } else setCode(d.code);
-    setResult(null);
-  }
+  const isTopics = mode === "topics";
+  const kind = isTopics ? "lesson" : "task";
+  const listItems = useMemo(
+    () => (isTopics ? lessons.map((l) => ({ id: l.id, order: l.order, title: l.title, level: l.level })) : tasks.map((t) => ({ id: t.id, order: t.order, title: t.title, level: t.level }))),
+    [isTopics, lessons, tasks]
+  );
+  const ids = useMemo(() => listItems.map((i) => i.id), [listItems]);
+  // Progress is kept per track and per kind (tasks and lessons separately) in localStorage.
+  const progressKey = isTopics ? `${trackId}:lessons` : trackId;
 
   useEffect(() => {
     fetchTracks()
-      .then((t) => {
-        if (t.length) setTrackOptions(t.map((x) => ({ id: x.id, label: x.title })));
-      })
+      .then((t) => t.length && setTrackOptions(t.map((x) => ({ id: x.id, label: x.title }))))
       .catch(() => {});
   }, []);
-
-  const task = useMemo(
-    () => tasks.find((t) => t.id === taskId) || tasks[0] || null,
-    [tasks, taskId]
-  );
-
-  const progressPct = tasks.length
-    ? Math.round((passedIds.size / tasks.length) * 100)
-    : 0;
 
   const refreshSchema = useCallback(() => {
     fetchSchema(trackId)
@@ -133,123 +105,131 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
     setError(null);
     setResult(null);
     setLoading(true);
-    setPassedIds(new Set());
+    const prog = loadProgress(progressKey);
+    setProgress(prog);
     Promise.all([fetchTrack(trackId), fetchTasks(trackId), fetchLessons(trackId)])
-      .then(([m, t, l]) => {
+      .then(async ([m, t, l]) => {
         setManifest(m);
         setTasks(t);
         setLessons(l);
-        const first = t[0];
-        setTaskId(first?.id || null);
-        setCode(first?.starterCode || "");
-        const panels = Object.keys(m.runtimePanels || {});
-        setRuntimePanel(panels[0] || "");
-        setLessonIdx(0);
-        const replayId = Number(new URLSearchParams(window.location.search).get("replay"));
+        const list = (isTopics ? l : t).map((x) => x.id);
+        const params = new URLSearchParams(window.location.search);
+        const replayId = Number(params.get("replay"));
+        const wanted = params.get("item");
+        let pick = wanted && list.includes(wanted) ? wanted : continueId(list, prog);
         if (replayId) {
-          fetchHistoryDetail(trackId, replayId)
-            .then((d) => {
-              const lessonId = d.mode?.startsWith("lesson:") ? d.mode.slice(7) : null;
-              if (lessonId) {
-                const idx = l.findIndex((x) => x.id === lessonId);
-                if (idx >= 0) setLessonIdx(idx);
-                setLessonReplay({ code: d.code, nonce: Date.now() });
-              } else if (d.task_id) {
-                setPendingTaskCode(d.code);
-                setTaskId(d.task_id);
-              }
-            })
-            .catch(() => {});
+          try {
+            const d = await fetchHistoryDetail(trackId, replayId);
+            const target = lessonOf(d.mode) || d.task_id;
+            if (target && list.includes(target)) {
+              pick = target;
+              setReplay({ id: replayId, nonce: Date.now() });
+            }
+          } catch {
+            /* ignore a stale replay id */
+          }
         }
+        setSelected(pick);
       })
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
     refreshSchema();
-  }, [trackId, refreshSchema]);
+  }, [trackId, isTopics, progressKey, refreshSchema]);
 
-  useEffect(() => {
-    if (!task) return;
-    if (pendingTaskCode !== null) {
-      setCode(pendingTaskCode);
-      setPendingTaskCode(null);
-    } else setCode(task.starterCode || "");
+  const task = !isTopics ? tasks.find((t) => t.id === selected) || null : null;
+  const lesson = isTopics ? lessons.find((l) => l.id === selected) || null : null;
+  const lessonEx = lesson && typeof lesson.exercise === "object" ? lesson.exercise : null;
+  const idx = selected ? ids.indexOf(selected) : -1;
+  const hasNext = idx >= 0 && idx < ids.length - 1;
+
+  const exercise: ExerciseItem | null = useMemo(() => {
+    if (task) return { kind: "task", id: task.id, language: task.language, starterCode: task.starterCode || "", editorLabel: editorLabel(task.language) };
+    if (lesson && lessonEx?.runnable)
+      return {
+        kind: "lesson",
+        id: lesson.id,
+        language: lessonEx.language,
+        starterCode: lessonEx.starterCode || "",
+        quiz: lessonEx.kind === "quiz" ? lessonEx.questions || [] : undefined,
+        editorLabel: editorLabel(lessonEx.language),
+      };
+    return null;
+  }, [task, lesson, lessonEx]);
+
+  const checklist = useMemo(() => {
+    const req = (task ? task.requirements : lessonEx?.requirements) as Req | undefined;
+    return tickChecklist(buildChecklist(req), (result?.validation?.failures as never) || [], Boolean(result && result.checked !== false));
+  }, [task, lessonEx, result]);
+
+  function select(id: string) {
+    setSelected(id);
+    setReplay(null);
     setResult(null);
-  }, [task?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    const p = { ...progress, last: id };
+    setProgress(p);
+    saveProgress(progressKey, p);
+    const url = new URL(window.location.href);
+    url.searchParams.set("item", id);
+    url.searchParams.delete("replay");
+    window.history.replaceState(null, "", url.toString());
+    document.getElementById("item-title")?.focus();
+  }
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && mode === "execute") {
-        e.preventDefault();
-        void run();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  });
+  function onPassed() {
+    if (!selected) return;
+    const p = markPassed(progress, selected);
+    setProgress(p);
+    saveProgress(progressKey, p);
+  }
+  function onAssisted() {
+    if (!selected) return;
+    const p = markAssisted(progress, selected);
+    setProgress(p);
+    saveProgress(progressKey, p);
+  }
 
-  async function run() {
-    if (!task || mode !== "execute") return;
-    setExecuting(true);
-    setResult(null);
-    setHighlightTables([]);
-    setHighlightRels([]);
-    const pendingTables = task?.animation?.highlightTables || [];
-    setHighlightTables(pendingTables);
-    try {
-      const res = await executeCode({
-        trackId,
-        taskId: task.id,
-        code,
-      });
-      setResult(res);
-      setHistoryKey((k) => k + 1);
-      if (res.schema) setSchema(res.schema);
-      if (res.success && res.animation) {
-        setHighlightTables(res.animation.highlightTables || []);
-        setHighlightRels(res.animation.highlightRels || []);
-        if (task?.id) {
-          setPassedIds((prev) => new Set(prev).add(task.id));
-        }
-        setTimeout(() => {
-          setHighlightTables([]);
-          setHighlightRels([]);
-        }, 4000);
-      } else if (!res.success) {
+  function onResult(r: ExecuteResult | null) {
+    setResult(r);
+    if (r?.success && r.checked !== false && r.animation) {
+      setHighlightTables(r.animation.highlightTables || []);
+      setHighlightRels(r.animation.highlightRels || []);
+      setTimeout(() => {
         setHighlightTables([]);
         setHighlightRels([]);
-      }
-    } catch (e) {
-      setResult({ success: false, message: String(e), gate: "client_error" });
-      setHighlightTables([]);
-    } finally {
-      setExecuting(false);
+      }, 4000);
     }
   }
 
-  const lesson = lessons[lessonIdx];
-  const teachAlong =
-    (result?.success && (result.teachAlong || task?.teachAlong)) ||
-    (!result?.success && result ? undefined : task?.teachAlong);
+  function replayFromHistory(d: HistoryDetail) {
+    const lessonId = lessonOf(d.mode);
+    const wantTopics = Boolean(lessonId);
+    if (wantTopics !== isTopics) {
+      window.location.href = `/lab?track=${trackId}&mode=${wantTopics ? "topics" : "execute"}&replay=${d.id}`;
+      return;
+    }
+    const target = lessonId || d.task_id;
+    if (target) setSelected(target);
+    setReplay({ id: d.id, nonce: Date.now() });
+  }
+
+  const states = itemStates(ids, progress, selected);
+  const cont = continueId(ids, progress);
+  const example = lesson ? (typeof lesson.example === "object" ? lesson.example?.code || lesson.example?.sql : lesson.example) || lesson.exampleSql : null;
 
   return (
-    <div className="mx-auto max-w-[1400px] space-y-4 px-4 py-6">
+    <div className="mx-auto max-w-[1600px] space-y-4 px-4 py-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.18em] text-accent">
-            {mode === "topics" ? "Topic mode" : "Execute-only"} · one platform
-          </p>
+          <p className="text-xs uppercase tracking-[0.18em] text-accent">{isTopics ? "Lessons" : "Tasks"} · one platform</p>
           <h1 className="text-2xl font-semibold text-white">Relationship lab</h1>
-          <p className="text-sm text-ink-400">
-            Switch tracks here — Docker stays the same.
-          </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <label className="sr-only" htmlFor="track-picker">
             Learning track
           </label>
           <select
             id="track-picker"
-            className="rounded-xl border border-ink-600 bg-ink-900 px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            className="h-10 rounded-lg border border-ink-600 bg-ink-900 px-3 text-sm text-ink-100"
             value={trackId}
             onChange={(e) => onTrackChange(e.target.value)}
           >
@@ -259,407 +239,215 @@ export function LabWorkspace({ trackId, mode, onTrackChange }: Props) {
               </option>
             ))}
           </select>
-          <div
-            className="flex rounded-xl border border-ink-600 overflow-hidden text-sm"
-            role="tablist"
-            aria-label="Lab mode"
-          >
-            <a
-              href={`/lab?track=${trackId}&mode=topics`}
-              role="tab"
-              aria-selected={mode === "topics"}
-              className={clsx(
-                "px-3 py-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent",
-                mode === "topics" ? "bg-accent text-ink-950" : "bg-ink-900 text-ink-200"
-              )}
-            >
-              Topics
-            </a>
-            <a
-              href={`/lab?track=${trackId}&mode=execute`}
-              role="tab"
-              aria-selected={mode === "execute"}
-              className={clsx(
-                "px-3 py-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent",
-                mode === "execute" ? "bg-accent text-ink-950" : "bg-ink-900 text-ink-200"
-              )}
-            >
-              Execute
-            </a>
-          </div>
+          <nav aria-label="Lab mode" className="flex overflow-hidden rounded-lg border border-ink-600 text-sm">
+            {(["topics", "execute"] as const).map((m) => (
+              <a
+                key={m}
+                href={`/lab?track=${trackId}&mode=${m}`}
+                aria-current={mode === m ? "page" : undefined}
+                className={clsx("px-3 py-2", mode === m ? "bg-accent text-on-accent font-semibold" : "bg-ink-900 text-ink-200 hover:text-white")}
+              >
+                {m === "topics" ? "Lessons" : "Tasks"}
+              </a>
+            ))}
+          </nav>
         </div>
       </div>
 
-      {mode === "execute" && tasks.length > 0 && (
-        <div
-          className="card px-4 py-3 flex flex-wrap items-center gap-3"
-          aria-label="Task progress"
-        >
-          <div className="flex-1 min-w-[160px]">
-            <div className="flex justify-between text-xs text-ink-400 mb-1">
-              <span>
-                Progress {passedIds.size}/{tasks.length} tasks passed this session
-              </span>
-              <span>{progressPct}%</span>
-            </div>
-            <div
-              className="h-2 rounded-full bg-ink-800 overflow-hidden"
-              role="progressbar"
-              aria-valuenow={progressPct}
-              aria-valuemin={0}
-              aria-valuemax={100}
-            >
-              <div
-                className="h-full bg-accent transition-all duration-500"
-                style={{ width: `${progressPct}%` }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
       {error && (
-        <div
-          className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger"
-          role="alert"
-        >
-          Hub API unavailable ({error}). Start with{" "}
-          <code className="text-ink-100">docker compose up --build</code> and open{" "}
-          <code className="text-ink-100">http://localhost:3000</code> — track selection stays
-          in-app.
+        <div className="rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-ink-100" role="alert">
+          <p className="font-semibold text-danger">The hub API is not answering.</p>
+          <p>
+            Start everything with <code>docker compose up --build</code> and open <code>http://localhost:3000</code>. ({error})
+          </p>
+          <button type="button" className="btn-ghost mt-2 !h-8 text-xs" onClick={() => window.location.reload()}>
+            Try again
+          </button>
         </div>
       )}
 
       {loading && !error && (
-        <div className="card p-6 text-ink-400" aria-live="polite">
-          Loading track content…
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]" aria-busy="true" aria-live="polite">
+          <span className="sr-only">Loading track content…</span>
+          {[0, 1].map((i) => (
+            <div key={i} className="card h-72 motion-safe:animate-pulse" aria-hidden />
+          ))}
         </div>
       )}
 
-      {!loading && !error && mode === "execute" && tasks.length === 0 && (
-        <div className="card p-6 text-ink-300" role="status">
-          No tasks found for this track yet. Check <code className="text-accent">tracks/{trackId}/tasks</code>.
+      {!loading && !error && listItems.length === 0 && (
+        <div className="card p-6 text-ink-200" role="status">
+          No {isTopics ? "lessons" : "tasks"} in this track yet. Add some under <code className="text-accent">tracks/{trackId}/{isTopics ? "lessons" : "tasks"}</code>.
         </div>
       )}
 
-      {!loading && !error && mode === "topics" && lessons.length === 0 && (
-        <div className="card p-6 text-ink-300" role="status">
-          No lessons found for this track yet.
-        </div>
-      )}
+      {!loading && !error && listItems.length > 0 && (
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+          {/* Left ≈40%: map + lesson content */}
+          <div className="min-w-0 space-y-4">
+            <ItemList label={isTopics ? "Lessons" : "Tasks"} items={listItems} states={states} progress={progress} selected={selected} continueTo={cont} onSelect={select} />
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_1.05fr]">
-        <div className="space-y-4">
-          {manifest?.prerequisites && (
-            <PrereqPanel
-              title={manifest.prerequisites.title || `${manifest.title} setup`}
-              install={manifest.prerequisites.install || ""}
-              code={manifest.prerequisites.code || manifest.prerequisites.setupCode || ""}
-              lockedByDefault={manifest.prerequisites.lockedByDefault ?? true}
-            />
-          )}
-
-          {mode === "topics" && lesson && (
-            <article className="card p-4 space-y-3 animate-fade-up">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="font-medium text-white">
-                  {lesson.order}. {lesson.title}
-                </h2>
-                <span className="text-xs text-ink-400">
-                  {lesson.level ? `${lesson.level} · ` : ""}
-                  {lessonIdx + 1}/{lessons.length}
-                </span>
-              </div>
-              <p className="text-sm text-ink-200 whitespace-pre-wrap">
-                {lesson.body || lesson.summary || ""}
-              </p>
-              {lesson.why && (
-                <div className="rounded-lg border border-accent/20 bg-accent/5 p-3 text-sm text-ink-200">
-                  <p className="text-xs uppercase tracking-wide text-accent mb-1">Why</p>
-                  {lesson.why}
-                </div>
-              )}
-              {lesson.objectives && lesson.objectives.length > 0 && (
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-ink-400 mb-1">
-                    Learning objectives
+            {(task || lesson) && (
+              <article className="card space-y-4 p-4 motion-safe:animate-fade-up" aria-labelledby="item-title">
+                <header className="space-y-1">
+                  <p className="text-xs text-ink-300">
+                    {isTopics ? "Lesson" : "Task"} {idx + 1} of {ids.length}
+                    {(task?.level || lesson?.level) && ` · ${task?.level || lesson?.level}`}
+                    {selected && progress.assisted.includes(selected) && <span className="ml-2 rounded border border-warn/50 px-1 text-warn">assisted</span>}
                   </p>
-                  <ul className="list-disc space-y-1 pl-5 text-sm text-ink-200">
-                    {lesson.objectives.map((o) => (
-                      <li key={o}>{o}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {lesson.pitfalls && lesson.pitfalls.length > 0 && (
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-warn mb-1">
-                    Common pitfalls
+                  <h2 id="item-title" tabIndex={-1} className="text-xl font-semibold text-white focus:outline-none">
+                    {(task || lesson)!.title}
+                  </h2>
+                </header>
+
+                <Section title="Concept">
+                  <p className="whitespace-pre-wrap">{task ? task.summary || task.description : lesson!.body || lesson!.summary}</p>
+                </Section>
+                {(task?.why || lesson?.why) && (
+                  <Section title="Why it matters" tone="accent">
+                    {task?.why || lesson?.why}
+                  </Section>
+                )}
+                {(task?.objectives?.length || lesson?.objectives?.length) ? (
+                  <Section title="Goal">
+                    <ul className="list-disc space-y-1 pl-5">
+                      {(task?.objectives || lesson?.objectives || []).map((o) => (
+                        <li key={o}>{o}</li>
+                      ))}
+                    </ul>
+                  </Section>
+                ) : null}
+                {example && (
+                  <Section title="Example">
+                    <pre className="overflow-auto rounded-lg bg-ink-950 p-3 font-mono text-xs text-ink-100">{example}</pre>
+                  </Section>
+                )}
+                {task?.sqlEquivalent && (
+                  <details className="text-sm">
+                    <summary className="cursor-pointer text-accent">Equivalent SQL</summary>
+                    <pre className="mt-2 overflow-auto rounded-lg bg-ink-950 p-3 font-mono text-xs text-ink-100">{task.sqlEquivalent}</pre>
+                  </details>
+                )}
+                {(task?.mappingNotes || lesson?.mappingNotes) && (
+                  <p className="text-sm text-ink-200">
+                    <span className="font-semibold text-accent">SQL ↔ ORM: </span>
+                    {task?.mappingNotes || lesson?.mappingNotes}
                   </p>
-                  <ul className="list-disc space-y-1 pl-5 text-sm text-ink-300">
-                    {lesson.pitfalls.map((p) => (
-                      <li key={p}>{p}</li>
-                    ))}
-                  </ul>
+                )}
+                {lessonEx?.prompt && (
+                  <Section title="Try it" tone="accent">
+                    {lessonEx.prompt}
+                  </Section>
+                )}
+                {exercise && <Checklist items={checklist} />}
+                {(task?.pitfalls?.length || lesson?.pitfalls?.length) ? (
+                  <details className="text-sm">
+                    <summary className="cursor-pointer text-warn">Common pitfalls</summary>
+                    <ul className="mt-2 list-disc pl-5 text-ink-200">
+                      {(task?.pitfalls || lesson?.pitfalls || []).map((h) => (
+                        <li key={h}>{h}</li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : null}
+                {(result?.success && result.checked !== false && (result.teachAlong || task?.teachAlong || lesson?.teachAlong)?.length) ? (
+                  <Section title="What just happened" tone="accent">
+                    <ol className="list-decimal space-y-1 pl-5">
+                      {(result.teachAlong || task?.teachAlong || lesson?.teachAlong || []).map((s) => (
+                        <li key={s}>{s}</li>
+                      ))}
+                    </ol>
+                  </Section>
+                ) : null}
+                <RefList refs={task?.references || lesson?.references} />
+              </article>
+            )}
+
+            {manifest?.prerequisites && (
+              <details className="card p-3">
+                <summary className="cursor-pointer text-sm font-medium text-white">Setup &amp; prerequisites</summary>
+                <div className="mt-3">
+                  <PrereqPanel
+                    title={manifest.prerequisites.title || `${manifest.title} setup`}
+                    install={manifest.prerequisites.install || ""}
+                    code={manifest.prerequisites.code || manifest.prerequisites.setupCode || ""}
+                    lockedByDefault={manifest.prerequisites.lockedByDefault ?? true}
+                  />
                 </div>
-              )}
-              {lesson.mappingNotes && (
-                <p className="text-sm text-ink-300">
-                  <span className="text-accent">SQL ↔ ORM:</span> {lesson.mappingNotes}
-                </p>
-              )}
-              {lesson.teachAlong && (
-                <ol className="list-decimal space-y-1 pl-5 text-sm text-ink-300">
-                  {lesson.teachAlong.map((s) => (
-                    <li key={s}>{s}</li>
+              </details>
+            )}
+            {manifest?.runtimePanels && (
+              <details className="card p-3">
+                <summary className="cursor-pointer text-sm font-medium text-white">Runtime context</summary>
+                <div className="mt-3 space-y-3">
+                  {Object.entries(manifest.runtimePanels).map(([k, v]) => (
+                    <div key={k}>
+                      <h3 className="text-sm font-semibold text-ink-100">{v.title}</h3>
+                      <ul className="list-disc pl-5 text-sm text-ink-200">
+                        {v.points.map((p) => (
+                          <li key={p}>{p}</li>
+                        ))}
+                      </ul>
+                    </div>
                   ))}
-                </ol>
-              )}
-              {lesson.example && (
-                <pre className="overflow-auto rounded-lg bg-ink-950 p-3 text-[11px] text-accent-glow">
-                  {typeof lesson.example === "string"
-                    ? lesson.example
-                    : lesson.example.code || ""}
-                </pre>
-              )}
-              <RefList refs={lesson.references} />
-              <LessonExercise
-                trackId={trackId}
-                lesson={lesson}
-                replay={lessonReplay}
-                onResult={(r) => {
-                  if (r.schema) setSchema(r.schema);
-                  setHistoryKey((k) => k + 1);
-                  if (r.success && r.animation?.highlightTables?.length) {
-                    setHighlightTables(r.animation.highlightTables);
-                    setTimeout(() => setHighlightTables([]), 4000);
-                  }
-                }}
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  disabled={lessonIdx === 0}
-                  onClick={() => {
-                    setLessonReplay(null);
-                    setLessonIdx((i) => Math.max(0, i - 1));
-                  }}
-                >
-                  Prev
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  disabled={lessonIdx >= lessons.length - 1}
-                  onClick={() => {
-                    setLessonReplay(null);
-                    setLessonIdx((i) => Math.min(lessons.length - 1, i + 1));
-                  }}
-                >
-                  Next topic
-                </button>
-              </div>
-            </article>
-          )}
-
-          {mode === "execute" && tasks.length > 0 && (
-            <div className="card p-3">
-              <div className="flex gap-1 overflow-x-auto pb-1" role="listbox" aria-label="Tasks">
-                {tasks.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    role="option"
-                    aria-selected={t.id === task?.id}
-                    onClick={() => setTaskId(t.id)}
-                    className={clsx(
-                      "shrink-0 rounded-lg px-2.5 py-1.5 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent",
-                      t.id === task?.id
-                        ? "bg-accent text-ink-950"
-                        : "bg-ink-800 text-ink-300 hover:bg-ink-700",
-                      passedIds.has(t.id) && t.id !== task?.id && "ring-1 ring-accent/50"
-                    )}
-                  >
-                    {passedIds.has(t.id) ? "✓ " : ""}
-                    {t.order}. {t.title}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {task && (mode === "execute" || mode === "topics") && mode === "execute" && (
-            <div className="card p-4 space-y-3">
-              <div>
-                <h2 className="text-lg font-medium text-white">{task.title}</h2>
-                <p className="text-sm text-ink-300 whitespace-pre-wrap">
-                  {task.summary || task.description}
-                </p>
-              </div>
-              {task.why && (
-                <div className="rounded-lg border border-accent/20 bg-accent/5 p-3 text-sm text-ink-200">
-                  <p className="text-xs uppercase tracking-wide text-accent mb-1">Why</p>
-                  {task.why}
                 </div>
-              )}
-              <ul className="list-disc space-y-1 pl-5 text-sm text-ink-200">
-                {task.objectives?.map((o) => (
-                  <li key={o}>{o}</li>
-                ))}
-              </ul>
-              {task.pitfalls && task.pitfalls.length > 0 && (
-                <details className="text-sm text-ink-400">
-                  <summary className="cursor-pointer text-warn">Common pitfalls</summary>
-                  <ul className="mt-2 list-disc pl-5 text-ink-300">
-                    {task.pitfalls.map((h) => (
-                      <li key={h}>{h}</li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-              {task.hints && (
-                <details className="text-sm text-ink-400">
-                  <summary className="cursor-pointer text-ink-300">Hints</summary>
-                  <ul className="mt-2 list-disc pl-5">
-                    {task.hints.map((h) => (
-                      <li key={h}>{h}</li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-              {task.mappingNotes && (
-                <p className="text-sm text-ink-300">
-                  <span className="text-accent">SQL ↔ ORM:</span> {task.mappingNotes}
-                </p>
-              )}
-              {task.sqlEquivalent && (
-                <details open className="text-sm">
-                  <summary className="cursor-pointer text-accent">Equivalent SQL</summary>
-                  <pre className="mt-2 overflow-auto rounded-lg bg-ink-950 p-3 text-[11px] text-ink-200">
-                    {task.sqlEquivalent}
-                  </pre>
-                </details>
-              )}
-              <RefList refs={task.references} />
-              <CodeEditor
-                label={task.language === "sql" ? "Your SQL" : task.language === "prisma" ? "Your Prisma schema" : "Your ORM code"}
-                value={code}
-                onChange={setCode}
-                minHeight={280}
-              />
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className="btn-primary"
-                  disabled={executing}
-                  onClick={() => void run()}
-                >
-                  {executing ? "Running…" : "Run & validate"}
-                  <span className="kbd !text-[10px]">⌘↵</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  onClick={() => task && setCode(task.starterCode)}
-                >
-                  Reset starter
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  onClick={() =>
-                    fetchSolution(trackId, "tasks", task.id)
-                      .then((s) => {
-                        setCode(s);
-                        setResult(null);
-                      })
-                      .catch((e) => setResult({ success: false, gate: "client_error", message: `No solution available: ${e}` }))
-                  }
-                >
-                  Show solution
-                </button>
-              </div>
-              {result && <GateResult result={result} teachAlong={result.teachAlong || task.teachAlong} />}
-              {!result && teachAlong && (
-                <div className="rounded-lg border border-ink-700 bg-ink-950/50 p-3 text-sm text-ink-300">
-                  <p className="text-xs uppercase tracking-wide text-ink-400 mb-1">
-                    Teach-along (cause → effect)
-                  </p>
-                  <ol className="list-decimal pl-4 space-y-1">
-                    {teachAlong.map((s) => (
-                      <li key={s}>{s}</li>
-                    ))}
-                  </ol>
-                </div>
-              )}
-            </div>
-          )}
-
-          {manifest?.runtimePanels && (
-            <div className="card p-4 space-y-2">
-              <h3 className="font-medium text-white">Runtime context</h3>
-              <div className="flex flex-wrap gap-1">
-                {Object.entries(manifest.runtimePanels).map(([k, v]) => (
-                  <button
-                    key={k}
-                    type="button"
-                    className={clsx(
-                      "rounded-lg px-2 py-1 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent",
-                      runtimePanel === k ? "bg-accent text-ink-950" : "bg-ink-800 text-ink-300"
-                    )}
-                    onClick={() => setRuntimePanel(k)}
-                  >
-                    {v.title}
-                  </button>
-                ))}
-              </div>
-              {runtimePanel && manifest.runtimePanels[runtimePanel] && (
-                <ul className="list-disc pl-5 text-sm text-ink-300">
-                  {manifest.runtimePanels[runtimePanel].points.map((p) => (
-                    <li key={p}>{p}</li>
+              </details>
+            )}
+            {manifest?.validationCatalog && manifest.validationCatalog.length > 0 && (
+              <details className="card p-3">
+                <summary className="cursor-pointer text-sm font-medium text-white">Validation &amp; ecosystem</summary>
+                <div className="mt-3 space-y-3">
+                  {manifest.validationCatalog.map((c) => (
+                    <div key={c.id}>
+                      <h3 className="text-sm font-semibold text-ink-100">{c.title}</h3>
+                      <pre className="overflow-auto rounded-lg bg-ink-950 p-3 font-mono text-xs text-ink-100">{c.example}</pre>
+                    </div>
                   ))}
-                </ul>
+                </div>
+              </details>
+            )}
+          </div>
+
+          {/* Right ≈60%: editor over output */}
+          <div className="min-w-0 space-y-4">
+            <div className="card p-4">
+              {exercise ? (
+                <ExercisePane
+                  key={`${exercise.kind}:${exercise.id}`}
+                  trackId={trackId}
+                  item={exercise}
+                  replay={replay}
+                  hasNext={hasNext}
+                  onNext={() => hasNext && select(ids[idx + 1])}
+                  onResult={onResult}
+                  onPassed={onPassed}
+                  onAssisted={onAssisted}
+                  onSchema={setSchema}
+                  onHistoryChanged={() => setHistoryKey((k) => k + 1)}
+                />
+              ) : (
+                <div className="space-y-2 text-sm text-ink-200" role="status">
+                  <p className="font-medium text-white">This lesson is reading only.</p>
+                  {lessonEx?.prompt || (typeof lesson?.exercise === "string" ? lesson.exercise : "") ? <p>{lessonEx?.prompt || (lesson?.exercise as string)}</p> : null}
+                  {hasNext && (
+                    <button type="button" className="btn-primary" onClick={() => select(ids[idx + 1])}>
+                      Next lesson
+                    </button>
+                  )}
+                </div>
               )}
             </div>
-          )}
-
-          {manifest?.validationCatalog && manifest.validationCatalog.length > 0 && (
-            <div className="card p-4 space-y-2">
-              <h3 className="font-medium text-white">Validation & ecosystem</h3>
-              <div className="flex flex-wrap gap-1">
-                {manifest.validationCatalog.map((c, i) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className={clsx(
-                      "rounded-lg px-2 py-1 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent",
-                      valCat === i ? "bg-accent text-ink-950" : "bg-ink-800 text-ink-300"
-                    )}
-                    onClick={() => setValCat(i)}
-                  >
-                    {c.title}
-                  </button>
-                ))}
+            <SchemaDiagram schema={schema} highlightTables={highlightTables} highlightRels={highlightRels} />
+            <details className="card p-3">
+              <summary className="cursor-pointer text-sm font-medium text-white">All runs in this track</summary>
+              <div className="mt-3">
+                <HistoryPanel trackId={trackId} refreshKey={historyKey} onReplay={replayFromHistory} />
               </div>
-              <pre className="overflow-auto rounded-lg bg-ink-950 p-3 text-[11px] text-accent-glow">
-                {manifest.validationCatalog[valCat]?.example}
-              </pre>
-            </div>
-          )}
+            </details>
+            <DbTools trackId={trackId} onSchema={refreshSchema} />
+          </div>
         </div>
-
-        <div className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          <SchemaDiagram
-            schema={schema}
-            highlightTables={highlightTables}
-            highlightRels={highlightRels}
-            executing={executing}
-          />
-          <HistoryPanel trackId={trackId} refreshKey={historyKey} onReplay={replay} />
-          <DbTools trackId={trackId} onSchema={refreshSchema} />
-        </div>
-      </div>
+      )}
     </div>
   );
 }

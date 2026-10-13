@@ -1,0 +1,120 @@
+{
+ "data": {
+  "lab_l05_players": {
+   "columns": [
+    "id",
+    "title",
+    "team_id"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_l05_teams": {
+   "columns": [
+    "id",
+    "name"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  }
+ },
+ "id": "05-one-to-many",
+ "kind": "lesson",
+ "results": [],
+ "schema": {
+  "relationships": [
+   {
+    "constraint": "lab_l05_players_team_id_fkey",
+    "fromColumn": "team_id",
+    "fromTable": "lab_l05_players",
+    "onDelete": "NO ACTION",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_l05_teams",
+    "type": "many-to-one"
+   }
+  ],
+  "tables": [
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_l05_players_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "title",
+      "nullable": false,
+      "type": "character varying"
+     },
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "team_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_l05_teams"
+      },
+      "type": "integer"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_l05_players",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_l05_teams_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "name",
+      "nullable": false,
+      "type": "character varying"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_l05_teams",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   }
+  ]
+ },
+ "sql": [],
+ "stdout": "",
+ "trackId": "sql-postgres"
+}

@@ -1,0 +1,100 @@
+[
+ {
+  "Plan": {
+   "Node Type": "Sort",
+   "Parallel Aware": false,
+   "Async Capable": false,
+   "Startup Cost": 34.76,
+   "Total Cost": 35.18,
+   "Plan Rows": 170,
+   "Plan Width": 676,
+   "Actual Startup Time": 0.042,
+   "Actual Total Time": 0.043,
+   "Actual Rows": 3,
+   "Actual Loops": 1,
+   "Sort Key": [
+    "m.title"
+   ],
+   "Sort Method": "quicksort",
+   "Sort Space Used": 25,
+   "Sort Space Type": "Memory",
+   "Plans": [
+    {
+     "Node Type": "Hash Join",
+     "Parent Relationship": "Outer",
+     "Parallel Aware": false,
+     "Async Capable": false,
+     "Join Type": "Inner",
+     "Startup Cost": 16.3,
+     "Total Cost": 28.46,
+     "Plan Rows": 170,
+     "Plan Width": 676,
+     "Actual Startup Time": 0.026,
+     "Actual Total Time": 0.028,
+     "Actual Rows": 3,
+     "Actual Loops": 1,
+     "Inner Unique": true,
+     "Hash Cond": "(m.publisher_id = p.id)",
+     "Plans": [
+      {
+       "Node Type": "Seq Scan",
+       "Parent Relationship": "Outer",
+       "Parallel Aware": false,
+       "Async Capable": false,
+       "Relation Name": "lab_l10_magazines",
+       "Alias": "m",
+       "Startup Cost": 0.0,
+       "Total Cost": 11.7,
+       "Plan Rows": 170,
+       "Plan Width": 422,
+       "Actual Startup Time": 0.004,
+       "Actual Total Time": 0.005,
+       "Actual Rows": 3,
+       "Actual Loops": 1
+      },
+      {
+       "Node Type": "Hash",
+       "Parent Relationship": "Inner",
+       "Parallel Aware": false,
+       "Async Capable": false,
+       "Startup Cost": 12.8,
+       "Total Cost": 12.8,
+       "Plan Rows": 280,
+       "Plan Width": 262,
+       "Actual Startup Time": 0.008,
+       "Actual Total Time": 0.008,
+       "Actual Rows": 2,
+       "Actual Loops": 1,
+       "Hash Buckets": 1024,
+       "Original Hash Buckets": 1024,
+       "Hash Batches": 1,
+       "Original Hash Batches": 1,
+       "Peak Memory Usage": 9,
+       "Plans": [
+        {
+         "Node Type": "Seq Scan",
+         "Parent Relationship": "Outer",
+         "Parallel Aware": false,
+         "Async Capable": false,
+         "Relation Name": "lab_l10_publishers",
+         "Alias": "p",
+         "Startup Cost": 0.0,
+         "Total Cost": 12.8,
+         "Plan Rows": 280,
+         "Plan Width": 262,
+         "Actual Startup Time": 0.002,
+         "Actual Total Time": 0.002,
+         "Actual Rows": 2,
+         "Actual Loops": 1
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "Planning Time": 0.132,
+  "Triggers": [],
+  "Execution Time": 0.056
+ }
+]

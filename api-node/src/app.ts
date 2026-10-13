@@ -3,7 +3,8 @@ import express from "express";
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
-import { ensureMetaTables, getPool } from "./lib/db.js";
+import { ensureLabColumns, ensureMetaTables, getPool } from "./lib/db.js";
+import { snapshotTables } from "./lib/snapshot.js";
 import { introspectSchema } from "./lib/schemaIntrospector.js";
 import {
   checkData,
@@ -120,6 +121,8 @@ const ExecuteBody = z.object({
   code: z.string().min(1).max(20000),
   mode: z.string().default("execute"),
   language: z.enum(["typescript", "javascript"]).optional(),
+  /** Run (no grading): translate + apply in a rolled-back transaction, return the generated SQL. */
+  scratch: z.boolean().optional(),
 });
 type Body = z.infer<typeof ExecuteBody>;
 
@@ -198,6 +201,10 @@ app.post("/execute", async (req, res) => {
   }
 
   const pool = getPool();
+  const tables = [...(ex.requirements?.tables || []).map((t) => t.name), ...(ex.requirements?.resetTables || [])].filter((n) => LAB_TABLE.test(n));
+  const hintLevel = await hintLevelUsed(body.trackId, body.taskId ? "task" : "lesson", body.taskId || body.lessonId || "");
+  const dataBefore = await snapshotTables(pool, tables).catch(() => ({}));
+  if (body.scratch) return scratch(body, tables, hintLevel, dataBefore, res);
   let schemaBefore;
   try {
     schemaBefore = await introspectSchema(pool);
@@ -212,7 +219,8 @@ app.post("/execute", async (req, res) => {
         ? ex.quiz ? "Quiz passed!" : "Lesson exercise passed!"
         : ex.requirements ? "Task passed! Schema updated — watch the diagram highlight." : "Executed successfully."
       : v.message;
-    await recordHistory(body, success, message, schemaBefore, schemaAfter, v);
+    const dataAfter = await snapshotTables(pool, tables).catch(() => ({}));
+    await recordHistory(body, success, message, schemaBefore, schemaAfter, v, { dataBefore, dataAfter, hintLevel });
     if (success && body.taskId && ex.requirements) await upsertProgress(body.trackId, body.taskId, body.code);
     return res.json({
       success,
@@ -221,6 +229,10 @@ app.post("/execute", async (req, res) => {
       schema: schemaAfter,
       validation: v,
       animation: success ? ex.animation : null,
+      dataBefore,
+      dataAfter,
+      hintsUsed: hintLevel,
+      results: [],
       ...(success ? { schemaBefore } : {}),
       ...extra,
     });
@@ -287,6 +299,61 @@ app.post("/execute", async (req, res) => {
   return finish(v, "validation_failed", { sql: translated.sql, ...(v.ok ? {} : { note: "Requirements not met. Extra tables/columns are OK; the listed rules are not." }) }, schemaAfter);
 });
 
+async function hintLevelUsed(trackId: string, kind: string, id: string): Promise<number> {
+  if (!id) return 0;
+  try {
+    const r = await getPool().query(
+      "SELECT COALESCE(MAX(level),0) AS l FROM hint_usage WHERE track_id=$1 AND item_kind=$2 AND item_id=$3",
+      [trackId, kind, id]
+    );
+    return Number(r.rows[0]?.l || 0);
+  } catch {
+    return 0;
+  }
+}
+
+/** Run without grading: the generated DDL is applied in a transaction that is always rolled back. */
+async function scratch(body: Body, tables: string[], hintLevel: number, dataBefore: unknown, res: express.Response) {
+  body.mode = `run:${body.lessonId && !body.taskId ? `lesson:${body.lessonId}` : body.taskId || "adhoc"}`.slice(0, 32);
+  const pool = getPool();
+  const schema = await introspectSchema(pool);
+  const reply = async (ok: boolean, message: string, extra: Record<string, unknown>, failures: Validation["failures"] = []) => {
+    const v = validation(failures);
+    await recordHistory(body, ok, message, schema, schema, v, { dataBefore, dataAfter: dataBefore, hintLevel });
+    return res.json({
+      success: ok, checked: false, gate: ok ? "ran" : failures[0]?.rule === "rejected" ? "rejected" : "runtime_error",
+      message, schema, validation: ok ? null : v, results: [], dataBefore, dataAfter: dataBefore, hintsUsed: hintLevel,
+      animation: null, stdout: "", ...extra,
+    });
+  };
+  if (body.lessonId && !body.taskId) {
+    const l = tracks.loadLesson(body.trackId, body.lessonId) as { exercise?: { kind?: string; requirements?: Requirements } };
+    if (l.exercise?.kind === "quiz") return reply(false, "Quizzes have nothing to run — choose your answers and press Check.", {}, [{ rule: "rejected", message: "Nothing to run in a quiz: press Check." }]);
+    if (l.exercise?.requirements?.zod) {
+      const r = checkZodExercise(body.code, l.exercise.requirements.zod, body.trackId === "node-javascript");
+      const bad = r.failures.filter((f) => f.rule === "rejected" || f.rule === "runtime-error");
+      return bad.length ? reply(false, bad[0].message, {}, bad) : reply(true, "Schema parsed — not checked. Press Check to test it against the sample inputs.", {});
+    }
+  }
+  const translated = prismaModelsToSql(body.code);
+  if (!translated.ok) return reply(false, translated.error || "Parse error", {}, [{ rule: "rejected", message: translated.error || "Parse error", line: translated.line }]);
+  if (!translated.sql.length) return reply(true, translated.datasource ? "Datasource parsed — not checked. Press Check." : "No models yet.", { sql: [] });
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SET LOCAL statement_timeout = 10000");
+    for (const t of [...new Set([...tables, ...translated.tables])].filter((n) => LAB_TABLE.test(n))) await client.query(`DROP TABLE IF EXISTS "${t}" CASCADE`);
+    for (const stmt of translated.sql) await client.query(stmt);
+    return await reply(true, "Ran — Postgres accepted the generated SQL (rolled back, not checked). Press Check to grade it.", { sql: translated.sql });
+  } catch (e) {
+    const msg = `Postgres rejected the generated SQL: ${e instanceof Error ? e.message : String(e)}`;
+    return await reply(false, msg, { sql: translated.sql }, [{ rule: "runtime-error", message: msg }]);
+  } finally {
+    await client.query("ROLLBACK").catch(() => undefined);
+    client.release();
+  }
+}
+
 app.get("/history/:id", async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) return res.status(400).json({ error: "Bad id" });
@@ -305,13 +372,14 @@ async function recordHistory(
   message: string,
   before: unknown,
   after: unknown,
-  validation: unknown
+  validation: unknown,
+  lab: { dataBefore?: unknown; dataAfter?: unknown; hintLevel?: number } = {}
 ) {
   try {
     await getPool().query(
       `INSERT INTO run_history
-        (track_id, task_id, mode, code, success, message, schema_before, schema_after, validation)
-       VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9::jsonb)`,
+        (track_id, task_id, mode, code, success, message, schema_before, schema_after, validation, data_before, data_after, hint_level)
+       VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9::jsonb,$10::jsonb,$11::jsonb,$12)`,
       [
         body.trackId,
         body.taskId ?? null,
@@ -322,6 +390,9 @@ async function recordHistory(
         JSON.stringify(before),
         JSON.stringify(after),
         validation ? JSON.stringify(validation) : null,
+        JSON.stringify(lab.dataBefore ?? {}),
+        JSON.stringify(lab.dataAfter ?? {}),
+        lab.hintLevel ?? 0,
       ]
     );
   } catch (e) {
@@ -418,6 +489,7 @@ app.get("/compare/orms", (_req, res) => {
 export async function prepare() {
   try {
     await ensureMetaTables();
+    await ensureLabColumns();
   } catch (e) {
     console.warn("[startup] DB not ready:", e);
   }

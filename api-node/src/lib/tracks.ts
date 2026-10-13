@@ -105,7 +105,7 @@ export function loadLesson(trackId: string, lessonId: string) {
   throw new Error(`Lesson not found: ${trackId}/${lessonId}`);
 }
 
-const PRIVATE_KEYS = ["solution", "wrongSolutions"];
+const PRIVATE_KEYS = ["solution", "wrongSolutions", "hintLadder"];
 
 /** Strip reference/wrong solutions (served only by the explicit /solution endpoints). */
 export function publicItem<T extends Record<string, unknown>>(item: T): T {

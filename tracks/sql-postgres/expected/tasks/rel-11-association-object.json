@@ -1,0 +1,186 @@
+{
+ "data": {
+  "lab_members": {
+   "columns": [
+    "id",
+    "name"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_memberships": {
+   "columns": [
+    "member_id",
+    "project_id",
+    "role",
+    "joined_at"
+   ],
+   "primaryKey": [
+    "member_id",
+    "project_id"
+   ],
+   "rows": [],
+   "total": 0
+  },
+  "lab_projects": {
+   "columns": [
+    "id",
+    "title"
+   ],
+   "primaryKey": [
+    "id"
+   ],
+   "rows": [],
+   "total": 0
+  }
+ },
+ "id": "rel-11-association-object",
+ "kind": "task",
+ "results": [],
+ "schema": {
+  "relationships": [
+   {
+    "constraint": "lab_memberships_member_id_fkey",
+    "fromColumn": "member_id",
+    "fromTable": "lab_memberships",
+    "onDelete": "CASCADE",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_members",
+    "type": "many-to-one"
+   },
+   {
+    "constraint": "lab_memberships_project_id_fkey",
+    "fromColumn": "project_id",
+    "fromTable": "lab_memberships",
+    "onDelete": "CASCADE",
+    "onUpdate": "NO ACTION",
+    "toColumn": "id",
+    "toTable": "lab_projects",
+    "type": "many-to-one"
+   }
+  ],
+  "tables": [
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_members_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "name",
+      "nullable": false,
+      "type": "character varying"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_members",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": true,
+      "isUnique": false,
+      "name": "member_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_members"
+      },
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": true,
+      "isPrimaryKey": true,
+      "isUnique": false,
+      "name": "project_id",
+      "nullable": false,
+      "references": {
+       "column": "id",
+       "table": "lab_projects"
+      },
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "role",
+      "nullable": false,
+      "type": "character varying"
+     },
+     {
+      "default": "now()",
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "joined_at",
+      "nullable": false,
+      "type": "timestamp with time zone"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_memberships",
+    "primaryKey": [
+     "member_id",
+     "project_id"
+    ],
+    "uniqueConstraints": []
+   },
+   {
+    "checks": [],
+    "columns": [
+     {
+      "default": "nextval('lab_projects_id_seq'::regclass)",
+      "isForeignKey": false,
+      "isPrimaryKey": true,
+      "isUnique": true,
+      "name": "id",
+      "nullable": false,
+      "type": "integer"
+     },
+     {
+      "default": null,
+      "isForeignKey": false,
+      "isPrimaryKey": false,
+      "isUnique": false,
+      "name": "title",
+      "nullable": false,
+      "type": "character varying"
+     }
+    ],
+    "indexes": [],
+    "name": "lab_projects",
+    "primaryKey": [
+     "id"
+    ],
+    "uniqueConstraints": []
+   }
+  ]
+ },
+ "sql": [],
+ "stdout": "",
+ "trackId": "sql-postgres"
+}

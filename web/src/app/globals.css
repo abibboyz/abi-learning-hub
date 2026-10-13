@@ -2,9 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+:root,
+html.dark {
   color-scheme: dark;
+  /* Design tokens (RGB channels). Text pairs ≥ 4.5:1, UI ≥ 3:1 — see docs/UX_RESEARCH.md */
+  --ink-50: 244 247 251; --ink-100: 232 238 247; --ink-200: 201 214 234; --ink-300: 155 176 208;
+  --ink-400: 155 176 208; --ink-500: 125 147 184; --ink-600: 74 103 150; --ink-700: 44 62 92;
+  --ink-800: 30 43 66; --ink-900: 20 28 44; --ink-950: 11 17 28;
+  --accent: 110 231 183; --accent-dim: 52 211 153; --accent-glow: 167 243 208; --accent-soft: 5 150 105;
+  --on-accent: 11 17 28;
+  --warn: 251 191 36; --danger: 248 113 113; --info: 125 211 252;
+  --heading: 255 255 255;
+  --bg-grad-a: rgba(52, 211, 153, 0.12); --bg-grad-b: rgba(251, 191, 36, 0.08); --bg-top: #0b111c; --bg-bottom: #141c2c;
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.3); --shadow-2: 0 8px 24px rgb(0 0 0 / 0.35);
+  --shadow-glow: 0 0 40px rgba(110, 231, 183, 0.15);
+  --dur-fast: 120ms; --dur: 200ms; --dur-slow: 350ms; --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
+html.light {
+  color-scheme: light;
+  /* The ink scale is mirrored: ink-950 is the page, ink-100 the text. */
+  --ink-50: 11 17 28; --ink-100: 20 28 44; --ink-200: 44 62 92; --ink-300: 56 79 120;
+  --ink-400: 74 103 150; --ink-500: 82 103 140; --ink-600: 107 134 179; --ink-700: 201 214 234;
+  --ink-800: 232 238 247; --ink-900: 244 247 251; --ink-950: 255 255 255;
+  --accent: 4 120 87; --accent-dim: 4 120 87; --accent-glow: 6 95 70; --accent-soft: 4 120 87;
+  --on-accent: 255 255 255;
+  --warn: 146 64 14; --danger: 185 28 28; --info: 3 105 161;
+  --heading: 20 28 44;
+  --bg-grad-a: rgba(4, 120, 87, 0.07); --bg-grad-b: rgba(146, 64, 14, 0.05); --bg-top: #ffffff; --bg-bottom: #f4f7fb;
+  --shadow-1: 0 1px 2px rgb(15 23 42 / 0.08); --shadow-2: 0 8px 24px rgb(15 23 42 / 0.12);
+  --shadow-glow: 0 1px 3px rgb(15 23 42 / 0.08);
+}
+/* Headings use text-white in the dark design; in light mode they follow the heading token. */
+html.light .text-white { color: rgb(var(--heading)); }
+html.light .bg-accent, html.light .bg-accent * { color: rgb(var(--on-accent)); }
 
 html,
 body {
@@ -14,9 +44,9 @@ body {
 body {
   @apply bg-ink-950 text-ink-100 antialiased;
   background-image:
-    radial-gradient(1200px 600px at 10% -10%, rgba(52, 211, 153, 0.12), transparent 60%),
-    radial-gradient(900px 500px at 90% 0%, rgba(251, 191, 36, 0.08), transparent 55%),
-    linear-gradient(180deg, #0b111c 0%, #141c2c 100%);
+    radial-gradient(1200px 600px at 10% -10%, var(--bg-grad-a), transparent 60%),
+    radial-gradient(900px 500px at 90% 0%, var(--bg-grad-b), transparent 55%),
+    linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
   background-attachment: fixed;
 }
 
@@ -25,7 +55,7 @@ body {
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2c3e5c;
+  background: rgb(var(--ink-700));
   border-radius: 999px;
 }
 
@@ -37,22 +67,22 @@ body {
     @apply inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-sm font-medium transition;
   }
   .btn-ghost {
-    @apply btn border border-ink-600/60 bg-ink-800/80 text-ink-100 hover:bg-ink-700;
+    @apply btn border border-ink-600/60 bg-ink-800/80 text-ink-100 hover:bg-ink-700 disabled:opacity-50;
   }
   .btn-danger {
     @apply btn border border-danger/30 bg-danger/10 text-danger hover:bg-danger/20;
   }
   .btn-primary {
-    @apply btn bg-accent font-semibold text-ink-950 hover:bg-accent-glow;
+    @apply btn bg-accent font-semibold text-on-accent hover:brightness-110 disabled:opacity-50;
   }
   .kbd {
-    @apply inline-flex items-center rounded border border-ink-600 bg-ink-800 px-1.5 py-0.5 text-[10px] font-mono text-ink-300;
+    @apply inline-flex items-center rounded-sm border border-ink-600 bg-ink-800 px-1.5 py-0.5 text-xs font-mono text-ink-200;
   }
   .code-area {
     @apply w-full min-h-[280px] rounded-xl border border-ink-700 bg-ink-950 p-4 font-mono text-sm leading-relaxed text-accent-glow focus:outline-none focus:ring-2 focus:ring-accent/40;
   }
   .diagram-table {
-    @apply rounded-xl border border-accent/20 bg-ink-900/90 p-2 text-[11px] shadow-glow;
+    @apply rounded-xl border border-accent/20 bg-ink-900/90 p-2 text-xs shadow-glow;
   }
   .diagram-table.highlight {
     @apply animate-pulseGlow border-accent;
@@ -63,13 +93,13 @@ body {
 }
 
 .rel-line {
-  stroke: #34d399;
+  stroke: rgb(var(--accent-dim));
   stroke-width: 2;
   fill: none;
   opacity: 0.55;
 }
 .rel-line.active {
-  stroke: #fbbf24;
+  stroke: rgb(var(--warn));
   opacity: 1;
   stroke-dasharray: 6 4;
   animation: dashMove 0.8s linear infinite;
@@ -105,7 +135,7 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid #34d399;
+  outline: 2px solid rgb(var(--accent));
   outline-offset: 2px;
 }
 
@@ -118,3 +148,19 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+@media (forced-colors: active) {
+  .card, .btn, .kbd { border: 1px solid CanvasText; }
+}
+
+/* CodeMirror chrome follows the tokens in both themes */
+.cm-editor { background: rgb(var(--ink-950)); color: rgb(var(--ink-100)); border-radius: 12px; font-size: 13px; }
+.cm-editor.cm-focused { outline: 2px solid rgb(var(--accent)); outline-offset: 0; }
+.cm-gutters { background: rgb(var(--ink-900)) !important; color: rgb(var(--ink-400)) !important; border-right: 1px solid rgb(var(--ink-700)) !important; }
+.cm-activeLine { background: rgb(var(--ink-800) / 0.45) !important; }
+.cm-activeLineGutter { background: rgb(var(--ink-800)) !important; }
+.cm-cursor { border-left-color: rgb(var(--accent)) !important; }
+.cm-selectionBackground, .cm-content ::selection { background: rgb(var(--accent) / 0.25) !important; }
+.cm-line.alh-error-line { background: rgb(var(--danger) / 0.14); box-shadow: inset 3px 0 0 rgb(var(--danger)); }
+.cm-gutterElement.alh-error-gutter { color: rgb(var(--danger)); font-weight: 700; }
+.cm-tooltip { background: rgb(var(--ink-900)) !important; color: rgb(var(--ink-100)) !important; border: 1px solid rgb(var(--ink-700)) !important; }
