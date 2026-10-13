@@ -47,9 +47,48 @@ Sample SQL reference: `snapshots/sample-seed.sql`.
 
 ## Modes (in-app)
 
-- **Topic-by-topic** — `/lab?mode=topics`: concepts with why, pitfalls, SQL↔ORM mapping and official references. **Every lesson has a runnable exercise** (code or a graded quiz) checked by the same gate as tasks, with Show solution and Reset.
-- **Execute-only** — `/lab?mode=execute`: progressive relationship tasks (beginner → advanced) with a validation gate, Show solution and teach-along highlights.
-- **History** — every run (pass or fail, task or lesson) is recorded. **Replay this code** loads it back into its task or lesson.
+- **Lessons** — `/lab?mode=topics`: Concept → Why → Goal → Example → Try it, with a live checklist. Every lesson has a runnable exercise (code or a graded quiz) checked by the same gate as tasks.
+- **Tasks** — `/lab?mode=execute`: progressive relationship tasks (beginner → advanced) with the validation gate.
+- **Progress map** — numbered list with ✓ passed · ● up next · ○ to do, a **Continue** button and an x/y bar. Saved in the browser (`localStorage["alh:progress:<trackId>"]`). Items where you used hints or the solution show an **assisted** badge (informational only).
+- **History** — every Run and Check is recorded. The **History** tab shows this item's attempts as a timeline; **Load code** replays one.
+
+### Run vs Check
+
+| | Run | Check |
+|---|---|---|
+| Keys | Ctrl+Enter / ⌘+Enter | Ctrl+Shift+Enter / ⌘+⇧+Enter |
+| Grades? | No | Yes: checklist, failures with rule id + line, then **Next →** |
+| SQL | runs in a transaction that is **rolled back**; new tables live in `pg_temp` | runs and commits the exercise tables |
+| Prisma / Drizzle | translated to DDL, applied and rolled back; shows the generated SQL | translated, applied, graded |
+| Python | runs (tables it creates are committed, see limitations) | runs and grades |
+
+### Results panel
+
+- **Output**: SQL result tables (first 50 rows), printed output, generated SQL, and an **error card** (line, *Go to line*, a plain-language explanation for ~17 common errors, full traceback). Error lines are also marked in the editor gutter.
+- **Check**: what is already right and what to fix.
+- **Expected vs yours**: the reference result next to yours with **≠** on rows that differ (order-insensitive; generated timestamps ignored), plus schema and printed-output diffs. Reference artefacts live in `tracks/<id>/expected/` (regenerate with `scripts/capture_expected.py`).
+- **Data**: exercise tables after the run: **+** added, **~** changed (changed cells underlined), **−** removed.
+- **Plan** (raw SQL track): EXPLAIN / EXPLAIN ANALYZE of the selected or last statement, always rolled back; plan tree plus step-through in execution order.
+- **History**: the timeline above.
+
+**Hints:** 1 nudge → 2 concept → 3 near-solution (the reference with key parts blanked as `____`); the full solution is behind a confirm. **Reset** restores the starter code and drops the exercise tables (hint history is kept).
+
+### Keyboard shortcuts
+
+| Keys | Action |
+|---|---|
+| Ctrl/⌘ + Enter | Run (execute only) |
+| Ctrl/⌘ + Shift + Enter | Check (run and grade); after a pass: Next |
+| Ctrl + H | Next hint (on macOS ⌘H hides the browser, so use the Hint button) |
+| F8 | Go to the next error line |
+| ? | Shortcut sheet (outside the editor) |
+| Esc, then Tab | Leave the code editor (Tab indents inside it) |
+
+Theme: the header button cycles **system → dark → light** (saved in `localStorage["alh:theme"]`). `?editor=plain` swaps CodeMirror for a plain textarea.
+
+### Lab API (via the BFF, every SQL/ORM track)
+
+`POST /api/execute {…, scratch: true}` (Run) · `POST|GET /api/lab/hints` · `GET /api/lab/timeline` · `POST /api/lab/reset-task` · `GET /api/lab/expected` · `POST /api/lab/explain {code, selection?, analyze}`.
 
 ## Tracks (pluggable, in-app only)
 
@@ -153,7 +192,9 @@ make test-python   # pytest: gate parity, runners, SQL runner, and a walk of eve
 make test-node     # node:test: gate parity, Prisma translator, Zod lab, and the same walk for the Node tracks
                    # run these two one after the other, not in parallel (they share the lab_* tables)
 make walk          # HTTP walk of all DB tracks against running APIs (add ARGS=--via-bff to go through the web proxy)
-cd web && npm install && npx tsc --noEmit
+cd web && npm install && npx tsc --noEmit && npm test   # pure lab libs (diffs, checklist, shortcuts, EXPLAIN parser)
+cd web && npm run test:ui  # browser tests vs a running hub (HUB_URL, default :3000): axe WCAG 2.1 AA light+dark,
+                           # Run/Check flow, keyboard (skip link, ? sheet, tabs), 320px reflow, theme
 make test-pw       # pw-runner gate/evaluate/runner/API tests + typecheck, pw-app tests
 make test-pw-e2e   # every Playwright task solution, wrong solution and lesson example in real Chromium
 ```
@@ -171,6 +212,7 @@ make test-pw-e2e   # every Playwright task solution, wrong solution and lesson e
 - [CONCEPTS.md](./CONCEPTS.md) — relationships, ORM↔SQL, validation, runtimes, references
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — one platform, BFF, internal services
 - [docs/TRACK_AUDIT.md](./docs/TRACK_AUDIT.md) — database-track audit: gaps, fixes, limitations
+- [docs/UX_RESEARCH.md](./docs/UX_RESEARCH.md) — what other learning/dev tools do, and what the lab built from it
 
 ## License
 
