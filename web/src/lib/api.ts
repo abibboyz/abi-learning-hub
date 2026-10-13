@@ -1,4 +1,4 @@
-import type { ExecuteResult, Lesson, Manifest, PwExecuteResult, PwLesson, PwTask, Schema, Task, TrackSummary } from "@/types/hub";
+import type { Expected, Hint, TimelineRun, ExecuteResult, Lesson, Manifest, PwExecuteResult, PwLesson, PwTask, Schema, Task, TrackSummary } from "@/types/hub";
 
 /** Single public API surface — same-origin BFF proxies to internal runners. */
 const API = (typeof window === "undefined"
@@ -72,6 +72,8 @@ export async function executeCode(body: {
   lessonId?: string | null;
   code: string;
   mode?: string;
+  /** Run: execute only (nothing graded; SQL is rolled back). */
+  scratch?: boolean;
 }): Promise<ExecuteResult> {
   const res = await fetch(`${API}/execute`, {
     method: "POST",
@@ -216,3 +218,36 @@ export const exportSnapshot = exportDb;
 /** @deprecated Dual public URLs removed — use same-origin /api */
 export const PYTHON = API;
 export const NODE = API;
+
+// ---------------------------------------------------------------- /lab (shared by every SQL/ORM track)
+
+export type ItemKind = "task" | "lesson";
+
+async function postJson<T>(url: string, body: unknown): Promise<T> {
+  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(`${res.status} ${url}`);
+  return res.json() as Promise<T>;
+}
+
+const q = (o: Record<string, string>) => new URLSearchParams(o).toString();
+
+/** Reveal hints up to `level` (1 nudge · 2 concept · 3 near-solution); usage is recorded. */
+export function revealHints(trackId: string, kind: ItemKind, id: string, level: number) {
+  return postJson<{ hints: Hint[]; total: number; used: number }>(`${API}/lab/hints`, { trackId, kind, id, level });
+}
+export function fetchHintsUsed(trackId: string, kind: ItemKind, id: string) {
+  return getJson<{ hints: Hint[]; total: number; used: number }>(`${API}/lab/hints?${q({ trackId, kind, id })}`);
+}
+export function fetchExpected(trackId: string, kind: ItemKind, id: string) {
+  return getJson<Expected>(`${API}/lab/expected?${q({ trackId, kind, id })}`);
+}
+export function fetchTimeline(trackId: string, kind: ItemKind, id: string) {
+  return getJson<{ runs: TimelineRun[]; firstPassId: number | null; attempts: number }>(`${API}/lab/timeline?${q({ trackId, kind, id })}`);
+}
+export function resetTask(trackId: string, kind: ItemKind, id: string) {
+  return postJson<{ ok: boolean; dropped: string[]; starterCode: string; schema: Schema; message: string }>(`${API}/lab/reset-task`, { trackId, kind, id });
+}
+export type ExplainResponse = { ok: boolean; error?: string; line?: number; query?: string; analyze?: boolean; plan?: unknown; note?: string };
+export function explainSql(code: string, analyze: boolean, selection?: string) {
+  return postJson<ExplainResponse>(`${API}/lab/explain`, { trackId: "sql-postgres", code, analyze, selection: selection || undefined });
+}
